@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Полис создан | VZR Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <a href="{% url 'home' %}" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition-colors font-semibold text-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            Вернуться к оформлению
+        </a>
+
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
+            
+            <div class="bg-green-50 px-8 py-6 border-b border-green-100 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-green-800 tracking-tight">Полис успешно создан!</h1>
+                    <p class="text-green-700 opacity-80 text-sm">Зарегистрирован в системе под № <b>{{ policy.policy_number }}</b></p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-[10px] font-bold text-green-600 uppercase tracking-widest">Агент / Филиал</p>
+                        <p class="text-xs font-bold text-green-800">{{ policy.agent.get_full_name|default:policy.agent.username }} ({{ policy.branch_code }})</p>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl shadow-sm text-green-600">
+                        <i data-lucide="check-circle" class="w-8 h-8"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8 space-y-10">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <i data-lucide="user" class="w-3 h-3"></i> Страхователь
+                        </h3>
+                        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">ФИО полностью</p>
+                            <p class="font-bold text-slate-800 text-lg leading-tight uppercase">{{ policy.holder_name }}</p>
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Паспорт</p>
+                                    <p class="font-semibold text-slate-700">{{ policy.holder_passport }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Телефон</p>
+                                    <p class="font-semibold text-slate-700">{{ policy.holder_phone }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <i data-lucide="plane" class="w-3 h-3"></i> Детали поездки
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Направление</span>
+                                <span class="font-bold text-slate-700">{{ policy.get_territory_display }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Программа</span>
+                                <span class="font-bold text-blue-600">{{ policy.program }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Количество дней</span>
+                                <span class="font-bold text-slate-700 italic">{{ policy.days_count }} </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <i data-lucide="users" class="w-3 h-3"></i> Список застрахованных лиц
+                    </h3>
+                    <div class="overflow-hidden border border-slate-100 rounded-2xl">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase">
+                                <tr>
+                                    <th class="px-6 py-3">№</th>
+                                    <th class="px-6 py-3">ФИО (Латиница)</th>
+                                    <th class="px-6 py-3">Дата рождения</th>
+                                    <th class="px-6 py-3">Паспорт</th>
+                                    <th class="px-6 py-3 text-right">Премия</th>
+
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-60">
+                                {% for person in policy.insured_persons.all %}
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-6 py-4 text-slate-400 font-bold">{{ forloop.counter }}</td>
+                                    <td class="px-6 py-4 font-bold text-slate-800 uppercase">{{ person.full_name }}</td>
+                                    <td class="px-6 py-4 text-slate-600">{{ person.date_of_birth|date:"d.m.Y" }}</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono">{{ person.passport_number }}</td>
+                                    <td class="px-6 py-4 text-right font-bold text-blue-600">
+                                        {{ person.premium_currency }} {% if policy.territory == 'SCHENGEN' %}€{% else %}${% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">Данные о застрахованных не найдены</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-6 pt-6 border-t border-slate-100">
+                    <div class="flex-1 bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+                        
+                        <div class="flex justify-between items-start mb-8 relative z-10">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Итого к оплате</p>
+                                <h2 class="text-5xl font-black tracking-tighter">
+                                    {{ policy.total_premium_som|floatformat:2 }} <span class="text-xl font-bold text-slate-400">KGS</span>
+                                </h2>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Курс валюты</p>
+                                <p class="text-xl font-bold italic">{{ policy.exchange_rate }}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10 relative z-10">
+                            <i data-lucide="shield-check" class="text-blue-400 w-5 h-5"></i>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Лимит покрытия (на чел.)</p>
+                                <p class="font-bold text-blue-400">
+                                    {{ policy.insured_persons.first.sum_insured_currency|floatformat:0 }} 
+                                    {% if policy.territory == 'SCHENGEN' %}€{% else %}${% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center min-w-[220px]">
+                        <div class="bg-slate-50 p-4 rounded-2xl mb-3">
+                             <img src="{% static 'qr.png' %}" alt="QR" class="w-32 h-32 mix-blend-multiply">
+                        </div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase text-center leading-tight tracking-widest">
+                            Сканируйте<br>для оплаты KGS
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <a href="{% url 'print_policy' policy.pk %}" target="_blank" class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-3 group text-sm uppercase tracking-widest">
+                        <i data-lucide="printer" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                        Распечатать полис
+                    </a>
+                    <a href="{% url 'home' %}" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Новый
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-center text-slate-400 text-[10px] mt-8 uppercase tracking-[0.3em] font-bold">Система контроля страховой документации v2.1 • GSO Digital</p>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

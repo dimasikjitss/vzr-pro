@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления | VZR PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .apexcharts-canvas { margin: 0 auto; }
+        /* Анимация для индикаторов роста */
+        .growth-up { color: #10b981; }
+        .growth-down { color: #ef4444; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<nav class="bg-white border-b border-slate-200 px-6 py-4 mb-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <span class="font-black text-xl tracking-tighter text-slate-900 flex items-center gap-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+            </div>
+            VZR <span class="text-blue-600">PRO</span>
+        </span>
+        <div class="flex items-center gap-6">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Администратор: {{ user.get_full_name }}</span>
+            <a href="{% url 'home' %}" class="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> На главную
+            </a>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-6 pb-20">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Аналитика системы</h1>
+            <p class="text-slate-500 text-sm font-medium">Контроль ключевых показателей и эффективности филиалов</p>
+        </div>
+        
+        <div class="flex flex-wrap gap-3">
+            <a href="{% url 'export_excel' %}?type=acc&date_from={{date_from}}&date_to={{date_to}}" 
+               class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> БУХГАЛТЕРИЯ (XLSX)
+            </a>
+            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-all">
+                <i data-lucide="printer" class="w-4 h-4"></i> ПЕЧАТЬ ОТЧЕТА
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mb-6">
+        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Выбор периода:</span>
+        <a href="?period=today" class="px-4 py-2 rounded-xl text-xs font-bold transition-all {% if current_period == 'today' %} bg-blue-600 text-white shadow-lg shadow-blue-200 {% else %} bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 {% endif %}">Сегодня</a>
+        <a href="?period=week" class="px-4 py-2 rounded-xl text-xs font-bold transition-all {% if current_period == 'week' %} bg-blue-600 text-white shadow-lg shadow-blue-200 {% else %} bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 {% endif %}">Неделя</a>
+        <a href="?period=month" class="px-4 py-2 rounded-xl text-xs font-bold transition-all {% if current_period == 'month' %} bg-blue-600 text-white shadow-lg shadow-blue-200 {% else %} bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 {% endif %}">Месяц</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                <i data-lucide="banknote" class="w-6 h-6"></i>
+            </div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Общий сбор</p>
+            <p class="text-3xl font-black text-slate-900">{{ total_som|floatformat:0 }} <small class="text-sm font-bold text-slate-400">c.</small></p>
+            <div class="mt-2 text-[10px] font-bold growth-up flex items-center gap-1">
+                <i data-lucide="trending-up" class="w-3 h-3"></i> +12.5% к прошлому периоду
+            </div>
+        </div>
+        
+        <div class="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+            <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+            </div>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Продано полисов</p>
+            <p class="text-3xl font-black text-slate-900">{{ total_count }} <small class="text-sm font-bold text-slate-400">шт.</small></p>
+            <div class="mt-2 text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="activity" class="w-3 h-3"></i> Средний чек: {{ total_som|floatformat:0 }} c.
+            </div>
+        </div>
+        
+        <div class="lg:col-span-2 bg-white border border-slate-200 p-6 rounded-3xl shadow-sm overflow-hidden">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Доля сборов по филиалам</p>
+            <div class="space-y-4">
+                {% for b_stat in branch_stats %}
+                <div class="group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-slate-700">{{ b_stat.branch__name }}</span>
+                        <span class="text-xs font-black text-slate-900">{{ b_stat.total|floatformat:0 }} <small class="text-slate-400 text-[10px]">KGS</small></span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full transition-all duration-1000 group-hover:bg-blue-600" 
+                             style="width: {% if total_som > 0 %}{% widthratio b_stat.total total_som 100 %}{% else %}0{% endif %}%">
+                        </div> 
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-4 h-4"></i> Динамика сборов
+                </h3>
+                <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">LIVE</span>
+            </div>
+            <div id="dailyChart"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-4 h-4"></i> Популярность направлений
+            </h3>
+            <div id="regionChart"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <i data-lucide="package" class="w-4 h-4"></i> Программы в разрезе территорий
+            </h3>
+            <div id="programChart"></div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4"></i> Карта эффективности агентов
+                </h3>
+                <i data-lucide="info" class="w-3 h-3 text-slate-300 cursor-help" title="Сравнение кол-ва полисов и среднего чека"></i>
+            </div>
+            <div id="agentChart"></div>
+        </div>
+    </div>
+
+    <div class="bg-slate-800 p-8 rounded-3xl shadow-xl mb-10 text-white border border-slate-700">
+        <form method="get" class="flex flex-wrap items-end gap-6">
+            <div class="flex-1 min-w-[200px] space-y-2">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Филиал</label>
+                <select name="branch" class="w-full bg-slate-700 border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer">
+                    <option value="">Все подразделения</option>
+                    {% for b in branches %}
+                    <option value="{{ b.id }}" {% if selected_branch == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[150px] space-y-2">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">От даты</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="w-full bg-slate-700 border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+            </div>
+            <div class="flex-1 min-w-[150px] space-y-2">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest">До даты</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="w-full bg-slate-700 border-none rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-10 py-3 rounded-xl text-sm font-bold hover:bg-blue-500 transition-all shadow-lg active:scale-95">Применить фильтр</button>
+            <a href="{% url 'admin_dashboard' %}" class="px-4 py-3 text-xs text-slate-400 font-bold hover:text-white transition-colors">Сбросить</a>
+        </form>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+        <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+            <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest">Последние транзакции</h4>
+            <span class="text-[10px] font-bold text-slate-400">Найдено записей: {{ total_count }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-white border-b border-slate-100">
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Полис</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Клиент / Агент</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Программа</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Премия</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in policies %}
+                    <tr class="hover:bg-slate-50/80 transition-all group">
+                        <td class="px-8 py-6">
+                            <div class="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{{ p.policy_number }}</div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{{ p.issue_date|date:"d.m.Y" }} | {{ p.branch.name }}</div>
+                        </td>
+                        <td class="px-8 py-6">
+                            <div class="font-bold text-slate-700 text-sm capitalize">{{ p.holder_name|lower }}</div>
+                            <div class="text-[10px] text-slate-400">Агент: <span class="text-slate-600 font-bold">{{ p.agent.get_full_name }}</span></div>
+                        </td>
+                        <td class="px-8 py-6">
+                            <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest {% if p.program == 'GOLD' %} bg-amber-50 text-amber-600 {% elif p.program == 'SILVER' %} bg-slate-100 text-slate-600 {% else %} bg-orange-50 text-orange-600 {% endif %}">
+                                {{ p.program }}
+                            </span>
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <div class="font-black text-slate-900">{{ p.total_premium_som|floatformat:0 }}</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">KGS</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-8 py-20 text-center">
+                            <div class="flex flex-col items-center gap-3 text-slate-300">
+                                <i data-lucide="search-x" class="w-12 h-12"></i>
+                                <p class="font-medium text-sm">Данные за этот период отсутствуют</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+</main>
+
+{{ chart_daily_values|json_script:"daily-values" }}
+{{ chart_daily_labels|json_script:"daily-labels" }}
+{{ chart_region_values|json_script:"region-values" }}
+{{ chart_region_labels|json_script:"region-labels" }}
+{{ chart_program_labels|json_script:"program-labels" }}
+{{ chart_program_series|json_script:"program-series" }}
+{{ agent_performance|json_script:"agent-data" }}
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+
+        const getJson = (id) => JSON.parse(document.getElementById(id).textContent);
+
+        const common = {
+            chart: { 
+                fontFamily: 'Inter, sans-serif', 
+                toolbar: { show: false },
+                zoom: { enabled: false }
+            },
+            colors: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+            yaxis: { labels: { formatter: (val) => Math.round(val) } },
+            dataLabels: { enabled: false },
+            tooltip: { y: { formatter: (val) => Math.round(val) + " KGS" } }
+        };
+
+        // 1. Динамика
+        new ApexCharts(document.querySelector("#dailyChart"), {
+            ...common,
+            series: [{ name: 'Сумма', data: getJson('daily-values') }],
+            chart: { ...common.chart, type: 'area', height: 250 },
+            stroke: { curve: 'smooth', width: 2 },
+            xaxis: { categories: getJson('daily-labels') },
+            fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.1 } }
+        }).render();
+
+        // 2. Регионы
+        new ApexCharts(document.querySelector("#regionChart"), {
+            ...common,
+            series: getJson('region-values'),
+            labels: getJson('region-labels'),
+            chart: { ...common.chart, type: 'donut', height: 250 },
+            legend: { position: 'bottom' },
+            plotOptions: { 
+                pie: { 
+                    donut: { 
+                        size: '70%', 
+                        labels: { 
+                            show: true, 
+                            total: { 
+                                show: true, 
+                                label: 'ИТОГО',
+                                // ВОТ ЭТОТ БЛОК ИСПРАВЛЯЕТ ЦИФРУ ПО ЦЕНТРУ:
+                                formatter: function (w) {
+                                    const sum = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                    return Math.round(sum).toLocaleString() + ' c.';
+                                }
+                            },
+                            value: {
+                                // А ЭТОТ ИСПРАВЛЯЕТ ЦИФРУ ПРИ НАВЕДЕНИИ:
+                                formatter: function (val) {
+                                    return Math.round(val).toLocaleString() + ' c.';
+                                }
+                            }
+                        } 
+                    } 
+                } 
+            }
+        }).render();
+
+        // 3. Программы по направлениям (Grouped Bar)
+        new ApexCharts(document.querySelector("#programChart"), {
+            ...common,
+            series: getJson('program-series'),
+            chart: { ...common.chart, type: 'bar', height: 250 },
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+            xaxis: { categories: getJson('program-labels') },
+            legend: { position: 'top' }
+        }).render();
+
+        // 4. Матрица Агентов
+        const agentData = getJson('agent-data').map(a => ({
+            x: a.count,
+            y: a.avg_check,
+            name: a.name
+        }));
+
+        new ApexCharts(document.querySelector("#agentChart"), {
+            ...common,
+            series: [{ name: 'Агенты', data: agentData }],
+            chart: { ...common.chart, type: 'scatter', height: 250 },
+            xaxis: { title: { text: 'Количество полисов', style: { fontSize: '10px' } } },
+            yaxis: { title: { text: 'Средний чек (сом)', style: { fontSize: '10px' } } },
+            annotations: {
+                xaxis: [{ x: 5, borderColor: '#cbd5e1', label: { text: 'Порог активности' } }],
+                yaxis: [{ y: 5000, borderColor: '#cbd5e1', label: { text: 'Целевой чек' } }]
+            },
+            tooltip: {
+                custom: function({series, seriesIndex, dataPointIndex, w}) {
+                    const d = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+                    let status = d.x > 5 && d.y > 5000 ? 'ЗВЕЗДА' : 'В ПРОЦЕССЕ';
+                    return `<div class="p-3 bg-slate-800 text-white text-[10px] rounded shadow-xl border border-slate-700">
+                        <b class="text-blue-400 block mb-1">${d.name}</b>
+                        Статус: <span class="text-emerald-400 font-black">${status}</span><br>
+                        Сделок: ${d.x}<br>Средний чек: ${Math.round(d.y)} сом</div>`;
+                }
+            }
+        }).render();
+    });
+</script>
+</body>
+</html>
