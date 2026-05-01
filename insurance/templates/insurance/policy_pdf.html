@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Печать полиса {{ policy.policy_number }}</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="{% static 'js/vzr-create.js' %}"></script>
     <style>
         /* Глобальные настройки листа A4 */
         @page { size: A4; margin: 0; }
@@ -77,11 +80,16 @@
     <div class="no-print">
         <button onclick="window.print()">ПЕЧАТЬ (2 ЛИСТА)</button>
         <button onclick="window.history.back()" style="background:#7f8c8d;">НАЗАД</button>
+        <button onclick="downloadPDF('{{ policy.policy_number|escapejs }}', '{{ policy.holder_name|escapejs }}')" 
+            style="background:#e67e22;">
+            СОХРАНИТЬ PDF
+        </button>
     </div>
 
     <div class="page">
         <div class="page-blank">
             <div class="center" style="font-size: 6.5pt; font-style: italic; margin-top: 10px;">
+                <b>STATE INSURANCE ORGANIZATION</b><br>
                 <b>Государственная лицензия Серия С №0041 от 26.01.2017 г. / State license Series C No. 0041 dated January 26, 2017</b>
             </div>
         </div>
@@ -89,74 +97,74 @@
 
         <table>
             <tr>
-                <th class="bold">Дата оформления полиса / Policy issue date</th>
+                <th class="bold">Policy issue date / Дата оформления полиса</th>
                 <td class="bold">{{ policy.issue_date|date:"d.m.Y" }}</td>
             </tr>
             <tr>
-                <th class="bold">ПОЛИС № / POLICY №</th>
+                <th class="bold">POLICY № / ПОЛИС №</th>
                 <td class="bold">{{ policy.policy_number }}</td>
             </tr>
             <tr>
-                <th class="bold">ФИО, компания агента / Agent's full name, company</th>
+                <th class="bold">Agent's full name, company / ФИО, компания агента</th>
                 <td class="bold">{{ policy.agent.get_full_name|upper }}</td> 
             </tr>
         </table>
 
-        <div class="section-title">МЕЖДУНАРОДНЫЙ СТРАХОВОЙ ПОЛИС / INTERNATIONAL INSURANCE POLICY</div>
+        <div class="section-title">INTERNATIONAL INSURANCE POLICY / МЕЖДУНАРОДНЫЙ СТРАХОВОЙ ПОЛИС </div>
 
         <table>
             <tr>
-                <th class="bold">СТРАХОВАТЕЛЬ. ФИО / INSUREE. Full name</th>
+                <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
                 <td class="bold">{{ policy.holder_name|upper }}</td>
             </tr>
             <tr>
-                <th class="bold">Номер телефона / Phone number</th>
-                <td class="bold">{{ policy.holder_phone}}</td>
+                <th class="bold">Phone number, address / Номер телефона, адрес</th>
+                <td class="bold">{{ policy.holder_phone}} / {{policy.holder_address}}</td>
             </tr>
             <tr>
-                <th class="bold">Номер паспорта, ИНН / Passport number, PIN</th>
+                <th class="bold">Passport number, PIN / Номер паспорта, ИНН</th>
                 <td class="bold">{{ policy.holder_passport }} / {{ policy.holder_inn }}</td>
             </tr>
             <tr>
-                <th class="bold">Контакт родственника / Relative's contact</th>
+                <th class="bold">Relative's contact / Контакт родственника</th>
                 <td class="bold">{{ policy.relative_contact }}</td>
             </tr>
         </table>
 
-        <div class="section-title">СТРАХОВОЙ ТУРИСТCКИЙ ПАКЕТ / TRAVEL INSURANCE PACKAGE</div>
+        <div class="section-title">INSURANCE PACKAGE / СТРАХОВОЙ ПАКЕТ</div>
         <table>
             <tr>
-                <th class="bold" style="width: 48%;">Период страхования / Insurance period</th>
-                <td class="bold" width="10%">с / from</td>
+                <th class="bold" style="width: 48%;">Insurance period / Период страхования</th>
+                <td class="bold" width="10%">from / с</td>
                 <td class="center"><span class="bold">{{ policy.date_from|date:"d.m.Y" }}</span></td>
-                <td class="bold" width="10%">по / to </td>
+                <td class="bold" width="10%">to /по</td>
                 <td class="center"><span class="bold">{{ policy.date_to|date:"d.m.Y" }}</span></td>
             </tr>
             <tr>
-                <th class="bold">Количество застрахованных дней / Number of insured days</th>
+                <th class="bold">Number of insured days / Количество застрахованных дней</th>
                 <td colspan="2" class="left bold" style="font-size: 8pt;">{{ policy.days_count }}</td>
             </tr>
         </table>
 
         <table>
             <tr>
-                <th class="bold" rowspan="3">Территория страховой защиты / Insurance territory</th>
+                <th class="bold" rowspan="3">Insurance territory / Территория страховой защиты</th>
                 <td class="center" style="width: 25px;">{% if policy.territory == 'ASIA' %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>Азия, СНГ, Африка, Океания и Австралия / Asia, CIS, Africa, Oceania and Australia</b></td>
+                <td class="small-text"><b>Asia, CIS, Africa, Oceania and Australia / Азия, СНГ, Африка, Океания и Австралия</b></td>
             </tr>
             <tr>
                 <td class="center">{% if policy.territory == 'SCHENGEN' %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>Шенген и страны Европы / Schengen and European countries</b></td>
+                <td class="small-text"><b>SCHENGEN STATES AND ALL EUROPE / ШЕНГЕН И СТРАНЫ ЕВРОПЫ</b></td>
             </tr>
             <tr>
                 <td class="center">{% if policy.territory == 'WORLD' %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>Северная и Южная Америка, Юго-Восточная Азия, Мальдивы/<br> North and South America, Southeast Asia, Maldives</b></td>
+                <td class="small-text"><b>North and South America, Southeast Asia, Maldives/<br> Северная и Южная Америка, Юго-Восточная Азия, Мальдивы</b></td>
             </tr>
         </table>
 
         <table>
             <tr>
-                <th class="bold" rowspan="3">Программа / The Program</th>
+                <th class="bold" rowspan="3">The Program / Программа</th>
                 <td class="center" style="width: 25px;">{% if policy.program == 'BRONZE' %}<span class="marked">X</span>{% endif %}</td>
                 <td class="small-text"><b>VZR BRONZE</b></td>
             </tr>
@@ -173,27 +181,27 @@
         <table>
             <tr class="header-row">
                 <th class="bold" style="width: 48%; text-align: left; padding-left: 10px; background-color: #f1f5f9; border: 1px solid #000;">
-                    Период страхования / Insurance period
+			Insurance coverage type / Тип Покрытия
                 </th>
                 
-                <td class="label-cell" style="width: 10%; font-weight: bold; border: 1px solid #000; text-align: center;">
+                <td class="label-cell" style="width: 9%; font-weight: bold; border: 1px solid #000; text-align: center;">
                     {% if policy.activity_type == 'A+' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>A+</b></td>
-                <td class="label-cell" style="width: 10%; font-weight: bold; border: 1px solid #000; text-align: center;">
+                <td class="small-text"><b>A+ (Activity)</b></td>
+                <td class="label-cell" style="width: 9%; font-weight: bold; border: 1px solid #000; text-align: center;">
                     {% if policy.activity_type == 'E+' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>E+</b></td>
-                <td class="label-cell" style="width: 10%; font-weight: bold; border: 1px solid #000; text-align: center;">
+                <td class="small-text"><b>E+(Extreme)</b></td>
+                <td class="label-cell" style="width: 9%; font-weight: bold; border: 1px solid #000; text-align: center;">
                     {% if policy.activity_type == 'S+' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>S+</b></td>
+                <td class="small-text"><b>S+ (Sport)</b></td>
             </tr>
         </table>
 
         <table>
             <tr>
-                <th style="width: 48%;">Повышающий коэффициент согласно возрасту / Age increasing ratio</th>
+                <th style="width: 48%;">Age increasing ratio / Повышающий коэффициент согласно возрасту</th>
                 <td class="center" style="width: 25px;">{% if policy.has_child %}<span class="marked">X</span>{% endif %}</td>
                 <td class="small-text">С 1 месяца до 4 лет</td>
 
@@ -207,48 +215,81 @@
 
         <table>
             <tr>
-                <th style="width: 75%;">Курс доллара США, Евро на дату подписания полиса / US Dollar, Euro exchange rate for the date of the policy signing</th>
+                <th style="width: 75%;">US Dollar, Euro exchange rate for the date of the policy signing / Курс доллара США, Евро на дату подписания полиса</th>
                 <td class="center bold">{{ policy.exchange_rate }}</td>
             </tr>
         </table>
+         <table>
+            <tr>
+                <th class="bold" style="width: 75%;">ZERO / NO DEDUCTIBLE</th>
+            </tr>
+        </table>
 
-        <table style="text-align: center; font-size: 7.5pt; margin-top: 5px;">
+        <table style="text-align: center; font-size: 6.5pt; margin-top: 5px;">
             <tr style="background: #f2f2f2; font-weight: bold;">
-                <th style="width: 25%;" class="center bold">Застрахованный / Insured</th>
-                <td>Дата рождения / Date of birth</td>
-                <td>Номер паспорта / Passport number</td>
-                <td>Страховая сумма доллар США, Евро/Sum insured US Dollar, Euro</td>
-                <td>Страховая сумма сом / Sum insured som</td>
-                <td>Страховая премия доллар США, Евро с учетом 2% НСП/Insurance premium US Dollar, Euro including 2% sales tax</td>
-                <td>Страховая премия сом с учетом 2% НСП/Insurance premium som including 2% sales tax</td>
+                <th style="width: 25%; font-size: 9.5pt;" class="center bold">INSURED <br> Застрахованный</th>
+                <td>Date of birth / Дата рождения</td>
+                <td>Passport number / Номер паспорта</td>
+                <td>Sum insured US Dollar, Euro / Страховая сумма доллар США, Евро</td>
+                <td>Sum insured som / Страховая сумма сом</td>
+                <td>Insurance premium US Dollar, Euro not including sales tax / Страховая премия доллар США, Евро без учета НСП</td>
+                <td>Insurance premium som not including sales tax / Страховая премия в сомах без учета НСП</td>
+                <td>Sales tax 2% / НСП 2%</td>
+                <td>Insurance premium som including 2% sales tax / Страховая премия сом с учетом 2% НСП</td>
             </tr>
-            
-            {% for person in policy.insured_persons.all %}
-            <tr>
-                <td class="bold uppercase">{{ person.full_name }}</td>
-                <td class="bold">{{ person.date_of_birth|date:"d.m.Y" }}</td>
-                <td class="bold">{{ person.passport_number }}</td>
-                <td class="bold">{{ person.sum_insured_currency|floatformat:0 }}</td>
-                <td class="bold">{{ person.sum_insured_som|floatformat:0 }}</td>
-                <td class="bold center">{{ person.premium_currency|floatformat:2 }}</td>
-                <td class="bold center">{{ person.premium_som|floatformat:2 }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 20px; color: #999;">Данные о застрахованных отсутствуют</td>
-            </tr>
-            {% endfor %}
+            {% if is_draft %}
+                {% for person in insured_persons_preview %}
+                    <tr>
+                        <td class="bold uppercase">{{ person.full_name }}</td>
+                        <td class="bold">{{ person.date_of_birth }}</td>
+                        <td class="bold">{{ person.passport_number }}</td>
+                        <td class="bold">
+                            {{ person.sum_insured_currency|floatformat:0 }}{% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                        </td>
+                        <td class="bold">{{ person.sum_insured_som|floatformat:0 }}</td>
+                        <td class="bold center">
+                            {{ person.premium_currency|floatformat:2 }}{% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                        </td>
+                        <td class="bold center">{{ person.premium_som|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.nsp_amount_som|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.premium_netto_som|floatformat:2 }} сом</td>
+                    </tr>
+                {% endfor %}
+            {% else %}    
+                {% for person in policy.insured_persons.all %}
+                <tr>
+                    <td class="bold uppercase">{{ person.full_name }}</td>
+                    <td class="bold">{{ person.date_of_birth|date:"d.m.Y" }}</td>
+                    <td class="bold">{{ person.passport_number }}</td>
+                    <td class="bold">{{ person.sum_insured_currency|floatformat:0 }}
+                        {% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                    </td>
+                    <td class="bold">{{ person.sum_insured_som|floatformat:0 }}</td>
+                    <td class="bold center">{{ person.premium_currency|floatformat:2 }}
+                        {% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                    </td>
+                    <td class="bold center">{{ person.premium_som|floatformat:2 }}</td>
+                    <td class="bold center">{{ person.nsp_amount_som|floatformat:2 }}</td>
+                    <td class="bold center">{{ person.premium_nsp_som|floatformat:2 }} сом</td>
+
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 20px; color: #999;">Данные о застрахованных отсутствуют</td>
+                </tr>
+                {% endfor %}
+            {% endif %}
             
             <tr style="border-top: 2px solid #000;">
-                <td colspan="5" style="text-align: right; font-weight: bold;">ИТОГО К ОПЛАТЕ:</td>
-                <td class="bold center" style="background: #eee;">{{ policy.total_premium_currency|floatformat:2 }}</td>
-                <td class="bold center" style="background: #eee;">{{ policy.total_premium_som|floatformat:2 }}</td>
+                <td colspan="8" style="text-align: right; font-weight: bold;">ИТОГО К ОПЛАТЕ:</td>
+                <!-- <td class="bold center" style="background: #eee;">{{ policy.total_premium_currency|floatformat:2 }}</td> -->
+                <td class="bold center" style="background: #eee;">{{ policy.total_premium_som|floatformat:2 }} сом</td>
             </tr>
             
         </table>
 
         <div style="font-size: 6.5pt; text-align: justify; margin: 6px 0;">
-            <b>Настоящий полис подтверждает заключение договора страхования между Страхователем и Страховщиком на условиях «Правил страхования медицинских и иных непредвиденных расходов лиц, выезжающих с места постоянного проживания», утвержденных Протоколом Правления ОАО «Государственная Страховая Организация» от 4 мая 2017 года. С указанными правилами страхования ознакомлен(а) и согласен(а) их соблюдать. / This policy confirms the execution of an insurance between the Policyholder and the Insurer under the terms and conditions of the “Rules for Insurance of Medical and other Unforeseen Expenses of Persons Traveling from their Place of Permanent Residence”, approved by the Board Resolution of OJSC “State Insurance Organization” dated May 4, 2017. I have read and agree to comply with these rules.</b>
+            <b>This policy confirms the execution of an insurance between the Policyholder and the Insurer under the terms and conditions of the “Rules for Insurance of Medical and other Unforeseen Expenses of Persons Traveling from their Place of Permanent Residence”, approved by the Board Resolution of OJSC “State Insurance Organization” dated May 4, 2017. I have read and agree to comply with these rules. / Настоящий полис подтверждает заключение договора страхования между Страхователем и Страховщиком на условиях «Правил страхования медицинских и иных непредвиденных расходов лиц, выезжающих с места постоянного проживания», утвержденных Протоколом Правления ОАО «Государственная Страховая Организация» от 4 мая 2017 года. С указанными правилами страхования ознакомлен(а) и согласен(а) их соблюдать.</b>
         </div>
         <table>
             <tr style="background-color: #f2f2f2;">
@@ -256,8 +297,8 @@
                 <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"></th>
             </tr>
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Подпись Страхователя, Застрахованного/Signature of Insuree, Insured</th>
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Подпись Страховщика/Signature of Insurer</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insuree, Insured / Подпись Страхователя, Застрахованного</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insurer / Подпись Страховщика</th>
             </tr>  
         </table>
         <table style="margin-top: 1px;">  
@@ -271,7 +312,7 @@
         <table style="margin-top: -1px;">
             <tr>
                 <td style="font-size: 6.5pt; text-align: justify; padding: 4px;">
-                    <b>Внимание! Международный страховой полис покрывает только медицинские и медико-транспортные расходы, связанные с внезапными болезнями, травмами, непреднамеренными несчастными случаями на территории, предусмотренной туристической путевкой или визой. Плановые операции, обследования, а также лечебно-профилактические манипуляции не предусмотрены / Please note! The international insurance policy covers only medical and medical transportation expenses related to sudden illnesses, injuries, and unintentional accidents within the territory covered by the travel package or visa. Planned surgeries, examinations, and therapeutic and preventive procedures are not provided.</b>
+                    <b>COVERAGE AND BENEFITS. INCLUDING: 1. EMERGENCY MEDICAL EXPENSES 2. MEDICAL EVACUATION AND REPATRIATION 3. REPATRIATION OF REMAINS </b>
                 </td>
             </tr>
         </table>
@@ -304,7 +345,7 @@
             </tr>
             <tr>
                 <td colspan="2" style="text-align: center; font-size: 8pt; font-weight: bold; padding: 4px;">
-                    Служба поддержки: +7 495 987 17 75/76; +7 499 284 54 02 | WhatsApp: +7 906 762 41 70 | Telegram: @Savitarbot
+                    EMERGENCY NUMBER 24/7: +7 495 987 17 75; +7 495 987 17 76; +7 499 284 54 02 | WhatsApp: +7 906 762 41 70 | Telegram: @Savitarbot
                 </td>
             </tr>
         </table>
@@ -312,15 +353,15 @@
         <table style="margin-top: 5px;">
             <tr>
                 <td style="font-size: 6.5pt; padding: 4px; text-align: center;">
-                    <b>Страховая компания:</b> ОАО «Государственная Страховая Организация», Юридический адрес: Кыргызская Республика, г.Бишкек, пр. Ч. Айтматова, 1, тел.: +996 553 545400, эл.почта: vzr@gso.kg, ИНН 01101201610062 / <b>Insurance company:</b> "State Insurance Organization" OJSC, Legal address: 1, ave. Ch.Aitmatov, Bishkek city, Kyrgyz Republic, tel.: +996 553 545400, email: vzr@gso.kg, TIN 01101201610062
+                    <b>Insurance company:</b> "State Insurance Organization" OJSC, Legal address: 1, ave. Ch.Aitmatov, Bishkek city, Kyrgyz Republic, tel.: +996 553 545400, email: vzr@gso.kg, TIN 01101201610062 / <b>Страховая компания:</b> ОАО «Государственная Страховая Организация», Юридический адрес: Кыргызская Республика, г.Бишкек, пр. Ч. Айтматова, 1, тел.: +996 553 545400, эл.почта: vzr@gso.kg, ИНН 01101201610062 
                 </td>
             </tr>
         </table>
 
         <table style="margin-top: -1px;">
             <tr>
-                <td style="font-size: 6.5pt; padding: 1px; text-align: center;">
-                    <b>Сведения об ассистанс компании / Information about the assistance company:</b><br>
+                <td style="font-size: 7.5pt; padding: 1px; text-align: center;">
+                    <b>INFORMATION ABOUT THE ASSISTANCE COMPANY / Сведения об Ассистанс компании:</b><br>
                     Savitar Group Ltd. address: 4, Alkeou str. AY. Antonios 1060 Nicosia-Cyprus. Postal address: 4 Pindou street, Engomi 2409 Nicosia, Cyprus.<br>
                     Для звонков 24/7 / For calls 24/7: + 7 495 987 17 75; + 7 495 987 17 76; + 7 499 284 54 02<br>
                     Мессенджеры (текст) / Messengers (text only): Telegram @Savitargrbot, WhatsApp + 7 906 762 41 70

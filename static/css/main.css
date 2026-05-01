@@ -1,0 +1,54 @@
+/* static/css/main.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --gso-blue: #2563eb;
+    --gso-dark: #0f172a;
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    @apply bg-slate-50 min-h-screen pb-20; 
+}
+
+/* Компоненты UI */
+.active-tab { 
+    background-color: white !important; 
+    color: var(--gso-blue) !important; 
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); 
+}
+
+.card-grad { 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+
+.card-grad:hover { 
+    transform: translateY(-5px); 
+}
+
+/* Стилизация инпутов для всего CRM */
+.gso-input {
+    @apply w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-slate-700 transition-all;
+}
+
+.gso-label {
+    @apply block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1;
+}
+
+.gso-label.italic-label {
+    @apply italic;
+}
+
+
+/* static/css/main.css */
+.gso-input {
+    @apply w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3.5 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-slate-700 transition-all;
+}
+
+.gso-label {
+    @apply block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-widest;
+}
+
+.italic-label {
+    @apply italic;
+}

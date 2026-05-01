@@ -91,7 +91,7 @@ class InsurancePolicyAdmin(admin.ModelAdmin):
     list_display = ('policy_number', 'holder_name', 'agent', 'branch', 'issue_date', 'total_premium_som')
     search_fields = ('policy_number', 'holder_name', 'holder_passport')
     list_filter = ('branch', 'agent', 'issue_date')
-    readonly_fields = ('policy_number', 'days_count', 'total_premium_currency', 'total_premium_som', 'issue_date')
+    readonly_fields = ('policy_number', 'days_count', 'total_premium_currency', 'issue_date')
     
     fieldsets = (
         ('Системная информация', {
@@ -118,8 +118,18 @@ class InsuranceTariffAdmin(admin.ModelAdmin):
     list_editable = ('rate',)
 
 @admin.register(Branch)
+
 class BranchAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name')
+    # Поля, которые будут видны в списке всех филиалов
+    list_display = ('name', 'code', 'has_qr')
+    # Поля, по которым можно искать
+    search_fields = ('name', 'code')
+
+    # Добавим индикатор: загружен ли QR
+    def has_qr(self, obj):
+        return bool(obj.qr_code)
+    has_qr.short_description = 'QR-код'
+    has_qr.boolean = True
 
 # Скрываем Profile и PolicyCounter из общего списка, так как они теперь 
 # либо внутри User, либо работают автоматически

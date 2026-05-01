@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Полис создан | VZR Pro</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -29,7 +30,7 @@
                 <div class="flex items-center gap-3">
                     <div class="text-right hidden sm:block">
                         <p class="text-[10px] font-bold text-green-600 uppercase tracking-widest">Агент / Филиал</p>
-                        <p class="text-xs font-bold text-green-800">{{ policy.agent.get_full_name|default:policy.agent.username }} ({{ policy.branch_code }})</p>
+                        <p class="text-xs font-bold text-green-800">{{ policy.agent.get_full_name|default:policy.agent.username }} ({{ policy.branch.name }})</p>
                     </div>
                     <div class="bg-white p-3 rounded-2xl shadow-sm text-green-600">
                         <i data-lucide="check-circle" class="w-8 h-8"></i>
@@ -67,7 +68,7 @@
                         <div class="space-y-3">
                             <div class="flex justify-between items-center py-2 border-b border-slate-50">
                                 <span class="text-slate-400 text-xs font-bold uppercase">Направление</span>
-                                <span class="font-bold text-slate-700">{{ policy.get_territory_display }}</span>
+                                <span class="font-bold text-slate-700" style="font-size: 10pt;">{{ policy.get_territory_display }}</span>
                             </div>
                             <div class="flex justify-between items-center py-2 border-b border-slate-50">
                                 <span class="text-slate-400 text-xs font-bold uppercase">Программа</span>
@@ -85,32 +86,45 @@
                     <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                         <i data-lucide="users" class="w-3 h-3"></i> Список застрахованных лиц
                     </h3>
-                    <div class="overflow-hidden border border-slate-100 rounded-2xl">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase">
+                    <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-slate-50 text-slate-400 font-bold uppercase tracking-tighter">
                                 <tr>
-                                    <th class="px-6 py-3">№</th>
-                                    <th class="px-6 py-3">ФИО (Латиница)</th>
-                                    <th class="px-6 py-3">Дата рождения</th>
-                                    <th class="px-6 py-3">Паспорт</th>
-                                    <th class="px-6 py-3 text-right">Премия</th>
-
+                                    <th class="px-4 py-3 border-r border-slate-100">Застрахованный</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Дата рождения</th>
+                                    <th class="px-3 py-3 border-r border-slate-100">Паспорт</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая сумма<br> ($/€)</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая сумма (сом)</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая премия без НСП ($/€)</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая премия без НСП (сом)</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">НСП 2%</th>
+                                    <th class="px-4 py-3 border-r border-slate-100">Страховая премия сом с НСП</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-60">
+                            <tbody class="divide-y divide-slate-100">
                                 {% for person in policy.insured_persons.all %}
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-6 py-4 text-slate-400 font-bold">{{ forloop.counter }}</td>
-                                    <td class="px-6 py-4 font-bold text-slate-800 uppercase">{{ person.full_name }}</td>
-                                    <td class="px-6 py-4 text-slate-600">{{ person.date_of_birth|date:"d.m.Y" }}</td>
-                                    <td class="px-6 py-4 text-slate-600 font-mono">{{ person.passport_number }}</td>
-                                    <td class="px-6 py-4 text-right font-bold text-blue-600">
-                                        {{ person.premium_currency }} {% if policy.territory == 'SCHENGEN' %}€{% else %}${% endif %}
+                                    <td class="px-4 py-4 font-bold text-slate-800 uppercase border-r border-slate-50">{{ person.full_name }}</td>
+                                    <td class="px-3 py-4 text-slate-600 text-center border-r border-slate-50">{{ person.date_of_birth|date:"d.m.Y" }}</td>
+                                    <td class="px-3 py-4 text-slate-600 font-mono border-r border-slate-50">{{ person.passport_number }}</td>
+                                    <td class="px-3 py-4 text-center font-bold border-r border-slate-50">
+                                        {{ person.sum_insured_currency|floatformat:0 }}{% if policy.territory == 'SCHENGEN' %}€{% else %}${% endif %}
                                     </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">Данные о застрахованных не найдены</td>
+                                    <td class="px-3 py-4 text-center text-slate-500 border-r border-slate-50">
+                                        {{ person.sum_insured_som|floatformat:0 }}
+                                    </td>
+                                    <td class="px-3 py-4 text-center border-r border-slate-50">
+                                        {{ person.premium_currency|floatformat:2 }}{% if policy.territory == 'SCHENGEN' %}€{% else %}${% endif %}
+                                    </td>
+                                    <td class="px-3 py-4 text-center text-slate-500 border-r border-slate-50">
+                                        {{ person.premium_som|floatformat:2 }}
+                                    </td>
+                                    <td class="px-3 py-4 text-center text-slate-400 border-r border-slate-50">
+                                        {{ person.nsp_amount_som|floatformat:2 }}
+                                    </td>
+                                    <td class="px-4 py-4 font-bold text-slate-800 uppercase border-r border-slate-50">
+                                        {{ person.premium_nsp_som|floatformat:2 }}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -149,12 +163,18 @@
 
                     <div class="bg-white border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center min-w-[220px]">
                         <div class="bg-slate-50 p-4 rounded-2xl mb-3">
-                             <img src="{% static 'qr.png' %}" alt="QR" class="w-32 h-32 mix-blend-multiply">
+                            {% if policy.branch.qr_code %}
+                                <img src="{{ policy.branch.qr_code.url }}" alt="QR {{ policy.branch.name }}" class="w-32 h-32 mix-blend-multiply">
+                            {% else %}
+                                <img src="{% static 'qr.png' %}" alt="Default QR" class="w-32 h-32 mix-blend-multiply opacity-20">
+                            {% endif %}
                         </div>
                         <p class="text-[10px] font-black text-slate-400 uppercase text-center leading-tight tracking-widest">
-                            Сканируйте<br>для оплаты KGS
+                            Оплата для филиала:<br>
+                            <span class="text-blue-600">{{ policy.branch.name }}</span>
                         </p>
                     </div>
+                    
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 pt-4">
@@ -176,3 +196,4 @@
     <script>lucide.createIcons();</script>
 </body>
 </html>
+

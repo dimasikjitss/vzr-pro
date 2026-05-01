@@ -1,0 +1,638 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Базовый стиль для всех инпутов */
+    .custom-input { 
+        width: 100%; 
+        background-color: #f8fafc; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 1.25rem; 
+        padding: 0.75rem 1.25rem; 
+        font-weight: 700; 
+        color: #1e293b; 
+        outline: none; 
+        transition: all 0.2s ease; 
+        appearance: none; /* Убираем стандартную стрелку браузера */
+    }
+    
+    .custom-input:focus { 
+        border-color: #3b82f6; 
+        background-color: white; 
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); 
+    }
+
+    /* Специальный стиль для выпадающих списков (Стрелочка) */
+    select.custom-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1.25rem center;
+        background-size: 1rem;
+        padding-right: 3rem;
+    }
+
+    /* Метки полей */
+    .input-label { 
+        font-size: 10px; 
+        font-weight: 900; 
+        color: #94a3b8; 
+        text-transform: uppercase; 
+        margin-bottom: 0.5rem; 
+        margin-left: 0.4rem; 
+        display: block; 
+        letter-spacing: 0.05em; 
+    }
+</style>
+    <div class="grid grid-cols-12 gap-6">
+            
+            <div class="col-span-12 lg:col-span-9 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <a href="{% url 'create_policy_vzr' %}" class="card-grad relative group overflow-hidden p-6 rounded-[2rem] text-white shadow-lg shadow-blue-100" style='background-color:#34b5e2'>
+                        <i data-lucide="plane" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">VZR</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">ВЗР: Выезд за рубеж</h3>
+                        <p class="text-[10px] text-blue-100 mt-2 opacity-80">Оформление выезжающих за рубеж</p>
+                    </a>
+
+                    <a href="{% url 'nomad:create_policy_nomad' %}" class="card-grad relative group overflow-hidden bg-slate-500 p-6 rounded-[2rem] text-white">
+                        <i data-lucide="home" class="absolute -right-2 -top-2 w-20 h-20 text-white/5 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/10 rounded-full text-[8px] font-bold uppercase tracking-widest">Nomad</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">Туристы НС</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 opacity-80">По всему Кыргызстану</p>
+                    </a>
+
+                    <a href="#" class="card-grad relative group overflow-hidden  p-6 rounded-[2rem] text-white" style='background-color:#0bb7a2'>
+                        <i data-lucide="map-pin" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">VT</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">GSO Work</h3>
+                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Оформление полисов для работников за рубежом</p>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
+                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-blue-500/5 rotate-12"></i>
+                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">Дети</h3>
+                        <p class="text-[10px] text-slate-400 mt-2">Страхование школьников</p>
+                    </a>
+
+                    <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm text-orange-600">
+                        <i data-lucide="trophy" class="absolute -right-2 -top-2 w-20 h-20 text-orange-500/10 rotate-12"></i>
+                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">Спорт</h3>
+                        <p class="text-[10px] text-slate-400 mt-2">Профессиональный риск</p>
+                    </a>
+
+                    <div class="relative group overflow-hidden bg-slate-50 border border-dashed border-slate-200 p-6 rounded-[2rem] flex flex-col justify-center">
+                        <h3 class="text-sm font-bold text-slate-400 text-center uppercase tracking-widest">Скоро<br>новые продукты</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-12 lg:col-span-3 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Продажи (месяц)</h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100/50">
+                            <p class="text-[9px] font-bold text-blue-400 uppercase">Результат</p>
+                            <p class="text-xl font-black text-blue-600">{{ monthly_total|floatformat:0 }} <span class="text-xs">KGS</span></p>
+                        </div>
+                    </div>
+                </div>
+                <button class="w-full mt-4 py-3 bg-gradient-to-br from-blue-700 to-indigo-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-colors">
+                    Отчеты
+                </button>
+            </div>
+        </div>
+
+    <div class="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tighter italic">Быстрый расчет</h2>
+        <i data-lucide="zap" class="text-blue-600 w-6 h-6 fill-blue-600"></i> 
+    </div>
+
+    <div class="flex p-1 bg-slate-100 rounded-2xl mb-10 w-full max-w-md">
+        <button type="button" id="tab-vzr" onclick="switchTab('VZR')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600">
+            <i data-lucide="plane" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">ВЗР</span>
+        </button>
+        <button type="button" id="tab-nomad" onclick="switchTab('NOMAD')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+            <i data-lucide="tent" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">Номад</span>
+        </button>
+        <button type="button" disabled class="flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 cursor-not-allowed group relative">
+            <i data-lucide="map-pin" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">ВТ</span>
+            <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-12 gap-8">
+        <div class="col-span-12 lg:col-span-7">
+            <div class="grid grid-cols-2 gap-5">
+                <div class="col-span-2">
+                    <label class="input-label">Дата рождения</label>
+                    <input type="date" id="h_dob" class="custom-input">
+                </div>
+                <div>
+                    <label class="input-label">Начало</label>
+                    <input type="date" id="start_date" class="custom-input">
+                </div>
+                <div>
+                    <label class="input-label">Конец</label>
+                    <input type="date" id="end_date" class="custom-input">
+                </div>
+
+                <div id="dynamic-fields" class="col-span-2 grid grid-cols-2 gap-5">
+                    </div>
+            </div>
+            
+            <div class="flex gap-4 mt-8">
+                <button type="button" id="calc-btn" class="flex-[3] bg-blue-700 text-white py-4 rounded-2xl uppercase font-black text-[10px]">Рассчитать стоимость</button>
+                <button type="button" id="reset-btn" class="flex-1 bg-slate-100 text-slate-500 py-4 rounded-2xl uppercase font-black text-[10px]">Сброс</button>
+            </div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-5 bg-gradient-to-br from-slate-900 to-blue-900 rounded-[2.5rem] p-8 text-white flex flex-col justify-between relative overflow-hidden shadow-2xl">
+            <i data-lucide="calculator" class="absolute -right-8 -top-8 w-40 h-40 text-white/5 rotate-12"></i>
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-blue-300/60 uppercase tracking-widest mb-1">Итого к оплате</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="preview-price" class="text-6xl font-black tracking-tighter text-white">0.00</span>
+                    <span class="text-xl font-bold text-blue-400">KGS</span>
+                </div>
+            </div>
+
+            <div class="relative z-10 space-y-4 mt-8 border-t border-white/10 pt-6 text-[10px] font-black uppercase tracking-widest">
+                <div class="grid grid-cols-2 gap-y-3">
+                    <div class="text-blue-200/50">Возраст:</div>
+                    <div class="text-right text-white"><span id="res-age">---</span> (x<span id="res-age-coeff">1.0</span>)</div>
+                    <div class="text-blue-200/50">Период:</div>
+                    <div class="text-right text-white"><span id="res-days">0</span> дн.</div>
+                    <div class="text-blue-200/50">Без НСП:</div>
+                    <div class="text-right text-white"><span id="res-netto">0.00</span> сом</div>
+                    <div class="text-blue-400/80 italic">Курс:</div>
+                    <div class="text-right text-white"><span id="res-rate">0.00</span></div>
+                    <div class="text-blue-400">НСП 2%:</div>
+                    <div class="text-right text-blue-400"><span id="preview-nsp">0.00</span> сом</div>
+                </div>
+                <div class="pt-4 border-t border-white/5 text-center">
+                    <p class="text-[9px] text-blue-200/40 italic">Тариф: <span id="preview-prog-label" class="text-white not-italic font-black">---</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/30">
+                <h2 class="font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-blue-600"></i> Журнал последних полисов
+                </h2>
+                
+                <div class="relative w-full md:w-80">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5"></i>
+                    <input type="text" placeholder="Поиск по ФИО или номеру..." 
+                        class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-white text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Дата</th>
+                            <th class="px-6 py-4 text-left">Страхователь / Полис</th>
+                            <th class="px-6 py-4 text-left">Территория</th>
+                            <th class="px-6 py-4 text-left">Программа</th>
+                            <th class="px-6 py-4 text-left">Лимит</th>
+                            <th class="px-6 py-4 text-left">Активность</th>
+                            <th class="px-6 py-4 text-left">Премия</th>
+                            <th class="px-6 py-4 text-center">Печать</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        {% for p in last_policies %}
+                        <tr class="hover:bg-slate-50/50 transition-colors group">
+                            <td class="px-6 py-4">
+                                <span class="text-xs font-bold text-slate-700">{{ p.issue_date|date:"d.m.Y" }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">{{ p.holder_name }}</p>
+                                <p class="text-[9px] text-blue-500 font-mono tracking-tighter mt-0.5">{{ p.policy_number }}</p>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[10px] text-slate-600 font-semibold italic">{{ p.territory }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{{ p.program }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[10px] text-slate-700 font-bold">
+                                    {% with p.insured_persons.all|first as first_person %}
+                                        {{ first_person.sum_insured_currency|floatformat:0 }} 
+                                        {% if p.territory == "SCHENGEN" %}EUR{% else %}USD{% endif %}
+                                    {% endwith %}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[9px] font-bold {% if p.activity_type == 'NONE' %}text-slate-400{% else %}text-orange-600{% endif %}">
+                                    {{ p.activity_type }}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-black text-slate-900 text-xs">{{ p.total_premium_som|floatformat:2 }}</span>
+                                    <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 text-center">
+                                <a href="{% url 'print_policy' p.pk %}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center gap-2 opacity-20">
+                                    <i data-lucide="folder-open" class="w-12 h-12"></i>
+                                    <p class="text-sm font-bold uppercase tracking-widest">Полисы не найдены</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.tariffsData = JSON.parse('{{ tariffs_data|escapejs }}');
+    window.nomadTariffsData = JSON.parse('{{ tariffs_nomad_json|escapejs }}');
+    window.usdRate = parseFloat("{{ usd_rate }}".replace(',', '.'));
+    window.eurRate = parseFloat("{{ eur_rate }}".replace(',', '.'));
+</script>
+<script src="{% static 'js/vzr-calc.js' %}"></script>
+{% endblock %}
+ <!-- {% load static %} -->
+<!-- <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель управления | CRM GSO</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .active-tab { background-color: white !important; color: #2563eb !important; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .card-grad { transition: all 0.3s ease; }
+        .card-grad:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-20">
+
+    <div class="max-w-7xl mx-auto px-4 pt-8 space-y-8">
+        
+        <div class="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+    
+            <div class="flex flex-col items-center lg:items-start gap-1">
+                <div class="max-w-[280px] h-auto flex items-center justify-center lg:justify-start">
+                    <img src="{% static 'img/logo_gso.svg' %}" alt="Кыргызгосстрах" class="w-full h-auto object-contain">
+                </div>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1 hidden md:block">Рабочий стол агента CRM</p>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                {% if user.is_superuser %}
+                <a href="{% url 'admin_dashboard' %}" 
+                class="flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 group">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 group-hover:rotate-12 transition-transform"></i>
+                    АНАЛИТИКА
+                </a>
+                {% endif %}
+                <div class="flex gap-4 border-r border-slate-100 pr-6 hidden sm:flex">
+                    <div class="text-center">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">USD</p>
+                        <p class="text-sm font-black text-slate-700">{{ usd_rate }}</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">EUR</p>
+                        <p class="text-sm font-black text-slate-700">{{ eur_rate }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-xs font-bold text-slate-800 leading-none">{{ user.get_full_name|default:user.username }}</p>
+                        <p class="text-[10px] text-green-600 font-bold mt-1 uppercase">Online • {{ user.profile.branch.name }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-xl shadow-slate-200">
+                        {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                    </div>
+                    <form action="{% url 'logout' %}" method="post">{% csrf_token %}
+                        <button type="submit" class="flex items-center gap-2 text-slate-400 hover:text-red-600 transition-colors">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold italic">Выйти</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-6">
+            
+            <div class="col-span-12 lg:col-span-9 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <a href="{% url 'create_policy_vzr' %}" class="card-grad relative group overflow-hidden bg-blue-600 p-6 rounded-[2rem] text-white shadow-lg shadow-blue-100">
+                        <i data-lucide="plane" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">VZR</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">ВЗР: Выезд</h3>
+                        <p class="text-[10px] text-blue-100 mt-2 opacity-80">Оформление выезжающих за рубеж</p>
+                    </a>
+
+                    <a href="#" class="card-grad relative group overflow-hidden bg-slate-800 p-6 rounded-[2rem] text-white">
+                        <i data-lucide="home" class="absolute -right-2 -top-2 w-20 h-20 text-white/5 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/10 rounded-full text-[8px] font-bold uppercase tracking-widest">Nomad</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">Внутренний</h3>
+                        <p class="text-[10px] text-slate-400 mt-2 opacity-80">По всему Кыргызстану</p>
+                    </a>
+
+                    <a href="#" class="card-grad relative group overflow-hidden bg-emerald-600 p-6 rounded-[2rem] text-white">
+                        <i data-lucide="map-pin" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">VT</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">Въездной</h3>
+                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Оформление полисов для гостей республики</p>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
+                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-blue-500/5 rotate-12"></i>
+                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">Дети</h3>
+                        <p class="text-[10px] text-slate-400 mt-2">Страхование школьников</p>
+                    </a>
+
+                    <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm text-orange-600">
+                        <i data-lucide="trophy" class="absolute -right-2 -top-2 w-20 h-20 text-orange-500/10 rotate-12"></i>
+                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">Спорт</h3>
+                        <p class="text-[10px] text-slate-400 mt-2">Профессиональный риск</p>
+                    </a>
+
+                    <div class="relative group overflow-hidden bg-slate-50 border border-dashed border-slate-200 p-6 rounded-[2rem] flex flex-col justify-center">
+                        <h3 class="text-sm font-bold text-slate-400 text-center uppercase tracking-widest">Скоро<br>новые продукты</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-12 lg:col-span-3 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Продажи (месяц)</h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-blue-50 rounded-2xl border border-blue-100/50">
+                            <p class="text-[9px] font-bold text-blue-400 uppercase">Результат</p>
+                            <p class="text-xl font-black text-blue-600">{{ monthly_total|floatformat:0 }} <span class="text-xs">KGS</span></p>
+                        </div>
+                    </div>
+                </div>
+                <button class="w-full mt-4 py-3 bg-gradient-to-br from-blue-700 to-indigo-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-colors">
+                    Отчеты
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tighter italic">Быстрый расчет</h2>
+                <i data-lucide="zap" class="text-blue-600 w-6 h-6 fill-blue-600"></i> 
+            </div>
+
+            <div class="flex p-1 bg-slate-100 rounded-2xl mb-10 w-full max-w-md">
+                <button type="button" class="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600">
+                    <i data-lucide="plane" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest">ВЗР</span>
+                </button>
+
+                <button type="button" disabled class="flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 cursor-not-allowed group relative">
+                    <i data-lucide="tent" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest">Номад</span>
+                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
+                </button>
+
+                <button type="button" disabled class="flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 cursor-not-allowed group relative">
+                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest">ВТ</span>
+                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-12 gap-8">
+                
+                <div class="col-span-12 lg:col-span-7">
+                    <div class="grid grid-cols-2 gap-5">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Дата рождения</label>
+                            <input type="date" id="h_dob" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-slate-700">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Начало</label>
+                            <input type="date" id="start_date" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-slate-700">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Конец</label>
+                            <input type="date" id="end_date" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-bold text-slate-700">
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Территория</label>
+                            <select id="territory" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700 outline-none">
+                                <option value="" disabled selected hidden>Выберите направление</option>
+                                <option value="ASIA">Азия, СНГ, Африка</option>
+                                <option value="SCHENGEN">Шенген и Европа</option>
+                                <option value="WORLD">Весь мир</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Программа</label>
+                            <select id="program" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700 outline-none">
+                                <option value="" disabled selected hidden>Программа</option>
+                                <option value="BRONZE">BRONZE</option>
+                                <option value="SILVER">SILVER</option>
+                                <option value="GOLD">GOLD</option>
+                            </select>
+                        </div>
+
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Сумма покрытия (Лимит)</label>
+                            <select id="sum_insured" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700 outline-none">
+                                <option value="" disabled selected>Выберите лимит</option>
+                            </select>
+                        </div>
+
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-1">Тип покрытия (Активность)</label>
+                            <select id="activity" class="w-full border border-slate-200 bg-slate-50/50 rounded-2xl px-5 py-3 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700 outline-none">
+                                <option value="" disabled selected hidden>Выберите вид отдыха</option>
+                                <option value="NONE">Стандарт (1.0)</option>
+                                <option value="A+">Активный отдых (1.25)</option>
+                                <option value="E+">Экстремальный туризм (1.75)</option>
+                                <option value="S+">Спорт и соревнования (2.0)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4 mt-8">
+                        <button type="button" id="calc-btn" class="flex-[3] bg-gradient-to-br from-blue-700 to-indigo-900 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all uppercase text-[10px] tracking-widest active:scale-95">
+                            Рассчитать стоимость
+                        </button>
+                        <button type="button" id="reset-btn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-500 font-black py-4 rounded-2xl transition-all uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 active:scale-95">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                            Сброс
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-span-12 lg:col-span-5 bg-gradient-to-br from-slate-900 to-blue-900 rounded-[2.5rem] p-8 text-white flex flex-col justify-between relative overflow-hidden shadow-2xl">
+                    <i data-lucide="calculator" class="absolute -right-8 -top-8 w-40 h-40 text-white/5 rotate-12"></i>
+                    
+                    <div class="relative z-10">
+                        <p class="text-[10px] font-black text-blue-300/60 uppercase tracking-widest mb-1">Итого к оплате</p>
+                        <div class="flex items-baseline gap-2">
+                            <span id="preview-price" class="text-6xl font-black tracking-tighter text-white">0.00</span>
+                            <span class="text-xl font-bold text-blue-400">KGS</span>
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 space-y-4 mt-8 border-t border-white/10 pt-6">
+                        <div class="grid grid-cols-2 gap-y-3 text-[10px] font-black uppercase tracking-widest">
+                            <div class="text-blue-200/50">Возраст:</div>
+                            <div class="text-right text-white"><span id="res-age">---</span> (x<span id="res-age-coeff">1.0</span>)</div>
+                            
+                            <div class="text-blue-200/50">Период:</div>
+                            <div class="text-right text-white"><span id="res-days">0</span> дн.</div>
+                            
+                            <div class="text-blue-200/50">Без НСП:</div>
+                            <div class="text-right text-white"><span id="res-netto">0.00</span> сом</div>
+                            
+                            <div class="text-blue-400">НСП 2%:</div>
+                            <div class="text-right text-blue-400"><span id="preview-nsp">0.00</span> сом</div>
+                        </div>
+                        
+                        <div class="pt-4 border-t border-white/5 text-center">
+                            <p class="text-[9px] text-blue-200/40 italic">
+                                Тариф: <span id="preview-prog-label" class="text-white not-italic font-black">---</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/30">
+                <h2 class="font-black text-slate-800 tracking-tight flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-blue-600"></i> Журнал последних полисов
+                </h2>
+                
+                <div class="relative w-full md:w-80">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5"></i>
+                    <input type="text" placeholder="Поиск по ФИО или номеру..." 
+                        class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-white text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Дата</th>
+                            <th class="px-6 py-4 text-left">Страхователь / Полис</th>
+                            <th class="px-6 py-4 text-left">Территория</th>
+                            <th class="px-6 py-4 text-left">Программа</th>
+                            <th class="px-6 py-4 text-left">Лимит</th>
+                            <th class="px-6 py-4 text-left">Активность</th>
+                            <th class="px-6 py-4 text-left">Премия</th>
+                            <th class="px-6 py-4 text-center">Печать</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        {% for p in last_policies %}
+                        <tr class="hover:bg-slate-50/50 transition-colors group">
+                            <td class="px-6 py-4">
+                                <span class="text-xs font-bold text-slate-700">{{ p.issue_date|date:"d.m.Y" }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">{{ p.holder_name }}</p>
+                                <p class="text-[9px] text-blue-500 font-mono tracking-tighter mt-0.5">{{ p.policy_number }}</p>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[10px] text-slate-600 font-semibold italic">{{ p.territory }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{{ p.program }}</span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[10px] text-slate-700 font-bold">
+                                    {% with p.insured_persons.all|first as first_person %}
+                                        {{ first_person.sum_insured_currency|floatformat:0 }} 
+                                        {% if p.territory == "SCHENGEN" %}EUR{% else %}USD{% endif %}
+                                    {% endwith %}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span class="text-[9px] font-bold {% if p.activity_type == 'NONE' %}text-slate-400{% else %}text-orange-600{% endif %}">
+                                    {{ p.activity_type }}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-black text-slate-900 text-xs">{{ p.total_premium_som|floatformat:2 }}</span>
+                                    <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 text-center">
+                                <a href="{% url 'print_policy' p.pk %}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center gap-2 opacity-20">
+                                    <i data-lucide="folder-open" class="w-12 h-12"></i>
+                                    <p class="text-sm font-bold uppercase tracking-widest">Полисы не найдены</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+      
+</body>
+</html>  -->
+
+

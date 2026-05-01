@@ -9,6 +9,7 @@ from datetime import date
 class Branch(models.Model):
     name = models.CharField("Название филиала", max_length=255)
     code = models.CharField("Код филиала", max_length=10, unique=True) 
+    qr_code = models.ImageField(upload_to='branch_qrs/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -19,8 +20,13 @@ class Branch(models.Model):
 
 # 2. СИСТЕМНЫЙ СЧЕТЧИК
 class PolicyCounter(models.Model):
-    branch_code = models.CharField(max_length=10, unique=True)
+    branch_code = models.CharField(max_length=10)
     current_id = models.PositiveIntegerField(default=0)
+    policy_type = models.CharField(max_length=20)
+    
+    class Meta:
+        # Теперь уникальность строится по паре "Код филиала + Тип полиса"
+        unique_together = ('branch_code', 'policy_type')
 
 # 3. ТАРИФЫ
 class InsuranceTariff(models.Model):
@@ -33,7 +39,7 @@ class InsuranceTariff(models.Model):
 
 # 4. ПОЛИС
 class InsurancePolicy(models.Model):
-    TERRITORY_CHOICES = [('ASIA', 'Азия...'), ('SCHENGEN', 'Шенген...'), ('WORLD', 'Весь мир')]
+    TERRITORY_CHOICES = [('ASIA', 'Азия, СНГ, Африка, Океания и Австралия'), ('SCHENGEN', 'Шенген и страны Европы'), ('WORLD', 'Северная и Южная Америка, Юго-Восточная Азия, Мальдивы')]
 
     policy_number = models.CharField("Номер", max_length=50, unique=True, blank=True)
     agent = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -76,7 +82,7 @@ class InsurancePolicy(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.policy_number:
-            counter, _ = PolicyCounter.objects.get_or_create(branch_code=self.branch.code)
+            counter, _ = PolicyCounter.objects.get_or_create(branch_code=self.branch.code, policy_type='VZR')
             counter.current_id += 1
             counter.save()
             self.policy_number = f"VZR{self.branch.code}#{counter.current_id:06d}"
@@ -100,10 +106,17 @@ class InsuredPerson(models.Model):
     premium_currency = models.DecimalField(max_digits=10, decimal_places=2)
     premium_som = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
 
+    premium_nsp_som = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    nsp_amount_som = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     def save(self, *args, **kwargs):
         rate = Decimal(str(self.policy.exchange_rate))
         self.sum_insured_som = (self.sum_insured_currency * rate).quantize(Decimal('1.00'))
         self.premium_som = (self.premium_currency * rate).quantize(Decimal('0.01'))
+        
+        self.premium_nsp_som = (self.premium_som * Decimal('1.02'))
+        self.nsp_amount_som = (self.premium_nsp_som - self.premium_som)
+        
         super().save(*args, **kwargs)
 
 # 6. ПРОФИЛЬ
