@@ -101,7 +101,7 @@ class InsurancePolicyAdmin(admin.ModelAdmin):
             'fields': ('holder_name', 'holder_inn', 'holder_phone', 'holder_address', 'holder_passport', 'relative_contact')
         }),
         ('Параметры страховки', {
-            'fields': ('date_from', 'date_to', 'days_count', 'territory', 'program', 'activity_type')
+            'fields': ('date_from', 'date_to', 'days_count', 'territory', 'to_country', 'program', 'activity_type')
         }),
         ('Экономика', {
             'fields': ('exchange_rate', 'currency_code', 'total_premium_currency', 'total_premium_som')

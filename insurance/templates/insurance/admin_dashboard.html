@@ -27,7 +27,9 @@
     <div class="max-w-7xl mx-auto flex justify-between items-center">
         <div class="flex flex-col items-center lg:items-start gap-1">
                 <div class="max-w-[280px] h-auto flex items-center justify-center lg:justify-start">
-                    <img src="{% static 'img/logo_gso.svg' %}" alt="Кыргызгосстрах" class="w-full h-auto object-contain">
+                    <a href="{% url 'home' %}" class="block w-full h-auto transition-transform hover:scale-95 active:scale-90">
+                        <img src="{% static 'img/logo_gso.svg' %}" alt="Кыргызгосстрах" class="w-full h-auto object-contain">
+                    </a>
                 </div>
         </div>
         <div class="flex items-center gap-6">
@@ -45,16 +47,6 @@
         <div>
             <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Аналитика системы</h1>
             <p class="text-slate-500 text-sm font-medium">Контроль ключевых показателей и эффективности филиалов</p>
-        </div>
-        
-        <div class="flex flex-wrap gap-3">
-            <a href="{% url 'export_excel' %}?type=acc&date_from={{date_from}}&date_to={{date_to}}" 
-               class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> БУХГАЛТЕРИЯ (XLSX)
-            </a>
-            <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-all">
-                <i data-lucide="printer" class="w-4 h-4"></i> ПЕЧАТЬ ОТЧЕТА
-            </button>
         </div>
     </div>
 

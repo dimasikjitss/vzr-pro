@@ -45,6 +45,12 @@ class InsurancePolicy(models.Model):
     agent = models.ForeignKey(User, on_delete=models.PROTECT)
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT)
     issue_date = models.DateField(auto_now_add=True)
+    to_country = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        verbose_name="Страна назначения (вручную)"
+    )
 
     holder_name = models.CharField("ФИО", max_length=255)
     holder_inn = models.CharField("ИНН", max_length=14, blank=True, null=True)

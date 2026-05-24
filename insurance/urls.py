@@ -22,4 +22,9 @@ urlpatterns = [
 
     path('policy/preview/', views.policy_preview, name='policy_preview'),
     
+    path('analytics/', views.analytics_page, name='analytics_dashboard'),
+    path('api/analytics/', views.analytics_api, name='analytics_api'),
+    path('analytics/export/', views.export_excel_buh, name='export_excel_buh'),
+    path('analytics/export-savitar/', views.export_excel_savitar, name='export_excel_savitar'),
+    path('analytics/export-vt/', views.export_excel_buh_vt, name='export_excel_buh_vt'),
 ]

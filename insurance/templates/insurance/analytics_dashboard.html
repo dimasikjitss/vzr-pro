@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Аналитика и отчетность | GSO Insurance{% endblock %}
+
+{% block extra_css %}
+<style>
+    button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 pt-8 space-y-8">
+   
+    <div class="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    
+        <div class="flex bg-slate-100 p-1 rounded-lg self-start lg:self-auto">
+            <button onclick="switchProduct('vzr')" id="tab-vzr" class="text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm">
+                ВЗР (Выездной)
+            </button>
+            <button onclick="switchProduct('vt')" id="tab-vt" class="text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider text-slate-500 hover:text-slate-700">
+                ВТ (Внутренний)
+            </button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full lg:w-auto">
+            
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1.5 shadow-inner">
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">с</span>
+
+                <input type="date" id="date_from" 
+                    class="bg-transparent border-0 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-0 px-2 py-1 cursor-pointer" 
+                    onchange="loadAnalytics()">
+                
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">по</span>
+                
+                <input type="date" id="date_to" 
+                    class="bg-transparent border-0 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-0 px-2 py-1 cursor-pointer" 
+                    onchange="loadAnalytics()">
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <button onclick="downloadAccountingReport()" 
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-black bg-slate-950 text-white px-4 py-3 rounded-lg hover:bg-slate-800 active:scale-95 transition-all uppercase tracking-wider shadow-sm">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Отчет Бухгалтерия</span>
+                </button>
+
+                <button onclick="downloadSavitarReport()" id="btn-savitar" 
+                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-black bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-wider shadow-sm">
+                    <i data-lucide="send" class="w-4 h-4 text-blue-200"></i>
+                    <span>Отчет Савитар</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Всего полисов оформлено</p>
+                <p id="stat-count" class="text-3xl font-black text-slate-900 mt-1 tracking-tight">0 шт.</p>
+            </div>
+            <div class="p-3 bg-blue-50 text-blue-500 rounded-lg">
+                <i data-lucide="files" class="w-6 h-6"></i>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500 flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Общая сумма сборов (премия)</p>
+                <div class="flex items-baseline gap-1 mt-1">
+                    <span id="stat-amount" class="text-3xl font-black text-slate-900 tracking-tight">0</span>
+                    <span class="text-sm font-bold text-slate-400 uppercase">сом</span>
+                </div>
+            </div>
+            <div class="p-3 bg-emerald-50 text-emerald-500 rounded-lg">
+                <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                <i data-lucide="trending-up" class="w-4 h-4 text-blue-500"></i> Динамика продаж
+            </h3>
+            <div class="h-80 w-full">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <i data-lucide="award" class="w-4 h-4 text-amber-500"></i> Топ-5 лидеров продаж
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse table-fixed"> <thead>
+                            <tr class="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                <th class="pb-3 font-bold w-1/2">Агент</th> <th class="pb-3 font-bold text-right w-1/6">Полисы</th>
+                                <th class="pb-3 font-bold text-right w-1/3">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-agents-table" class="divide-y divide-slate-50">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let currentProduct = 'vzr';
+    let chartInstance = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+        
+        const to = new Date();
+        const from = new Date();
+        from.setDate(to.getDate() - 30);
+        
+        document.getElementById('date_to').value = to.toISOString().split('T')[0];
+        document.getElementById('date_from').value = from.toISOString().split('T')[0];
+        
+        loadAnalytics();
+    });
+
+    function switchProduct(product) {
+    currentProduct = product;
+    
+    // 1. Находим обе кнопки табов
+    const tabVzr = document.getElementById('tab-vzr');
+    const tabVt = document.getElementById('tab-vt');
+    
+    // Шаблоны классов, чтобы код не превращался в кашу
+    const activeClass = "text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm";
+    const inactiveClass = "text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider text-slate-500 hover:text-slate-700";
+    
+    // 2. Жестко переключаем оформление в зависимости от выбранного продукта
+    if (product === 'vzr') {
+        tabVzr.className = activeClass;
+        tabVt.className = inactiveClass;
+    } else {
+        tabVzr.className = inactiveClass;
+        tabVt.className = activeClass;
+    }
+    
+    // 3. Логика скрытия/показа кнопки Савитар
+    const savitarBtn = document.getElementById('btn-savitar');
+    if (savitarBtn) { // проверка на случай, если кнопка еще не рендерилась
+        if (product === 'vt') {
+            savitarBtn.classList.add('hidden'); // убираем кнопку для ВТ
+        } else {
+            savitarBtn.classList.remove('hidden'); // возвращаем для ВЗР
+        }
+    }
+    
+    // 4. Перезагружаем AJAX-метрики и график под новый продукт
+    loadAnalytics();
+}
+
+    function loadAnalytics() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        if (!dateFrom || !dateTo) return;
+
+        fetch(`/api/analytics/?product=${currentProduct}&date_from=${dateFrom}&date_to=${dateTo}`)
+            .then(res => {
+                if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('stat-count').innerText = (data.total_count || 0) + ' шт.';
+                document.getElementById('stat-amount').innerText = (data.total_amount || 0).toLocaleString('ru-RU');
+                
+                const tbody = document.getElementById('top-agents-table');
+                tbody.innerHTML = '';
+
+                if (data.top_agents && data.top_agents.length > 0) {
+                    data.top_agents.forEach((agent, index) => {
+                        let rankBadge = '';
+
+                        if (index === 0) {
+                            rankBadge = `<span class="flex items-center text-amber-500 font-bold shrink-0">
+                                            <i data-lucide="trophy" class="w-4 h-4 fill-amber-500"></i>
+                                        </span>`;
+                        } else if (index === 1) {
+                            rankBadge = `<span class="flex items-center text-slate-400 font-bold shrink-0">
+                                            <i data-lucide="medal" class="w-4 h-4 fill-slate-300"></i>
+                                        </span>`;
+                        } else if (index === 2) {
+                            rankBadge = `<span class="flex items-center text-amber-700 font-bold shrink-0">
+                                            <i data-lucide="medal" class="w-4 h-4 fill-amber-600/50"></i>
+                                        </span>`;
+                        } else {
+                            rankBadge = `<span class="text-xs font-bold text-slate-400 pl-1 w-4 block text-center shrink-0">${index + 1}</span>`;
+                        }
+
+                        // ИСПРАВЛЕНО: Добавили truncate для имени и запрет переноса строк whitespace-nowrap для числовых значений
+                        tbody.innerHTML += `
+                            <tr class="text-sm text-slate-700 hover:bg-slate-50/50 transition-colors">
+                                <td class="py-3.5 flex items-center gap-2 font-semibold text-slate-800 min-w-0">
+                                    ${rankBadge}
+                                    <span class="truncate block" title="${agent.name}">${agent.name}</span>
+                                </td>
+                                <td class="py-3.5 text-right text-slate-500 font-medium whitespace-nowrap">${agent.count}</td>
+                                <td class="py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">${agent.sales.toLocaleString('ru-RU')} сом</td>
+                            </tr>
+                        `;
+                    });
+
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center py-8 text-xs font-bold text-slate-400 uppercase italic tracking-wider">
+                                Нет продаж за выбранный период
+                            </td>
+                        </tr>`;
+                }
+
+                renderChart(data.chart || []);
+            })
+            .catch(err => {
+                console.error("Ошибка обновления дашборда аналитики:", err);
+            });
+    }
+
+    function renderChart(chartData) {
+        const canvas = document.getElementById('salesChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const labels = chartData.map(item => item.date);
+        const sums = chartData.map(item => item.sum);
+
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Сборы (сомы)',
+                    data: sums,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.04)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.2,
+                    pointBackgroundColor: '#2563eb',
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11, weight: '500' }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: '#94a3b8',
+                            font: { size: 11, weight: '500' }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function downloadAccountingReport() {
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    
+    if (!dateFrom || !dateTo) {
+        alert("Пожалуйста, выберите период (даты НАЧАЛА и ОКОНЧАНИЯ) для формирования отчета.");
+        return;
+    }
+
+    // Динамически определяем URL в зависимости от активного таба (currentProduct)
+    let downloadUrl = '';
+    if (currentProduct === 'vt') {
+        downloadUrl = `/analytics/export-vt/?date_from=${dateFrom}&date_to=${dateTo}`;
+    } else {
+        downloadUrl = `/analytics/export/?date_from=${dateFrom}&date_to=${dateTo}`;
+    }
+    
+    window.location.href = downloadUrl;
+}
+    function downloadSavitarReport() {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        if (!dateFrom || !dateTo) {
+            alert("Пожалуйста, выберите период для формирования партнерского отчета.");
+            return;
+        }
+
+        // Стучимся на новый созданный URL
+        const downloadUrl = `/analytics/export-savitar/?date_from=${dateFrom}&date_to=${dateTo}`;
+        window.location.href = downloadUrl;
+    }
+</script>
+{% endblock %}

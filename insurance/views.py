@@ -8,12 +8,13 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.db.models import Sum, Count
-from nomad.models import NomadTariff
+from nomad.models import NomadTariff, NomadPolicy
 from django.core.serializers.json import DjangoJSONEncoder
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter # Добавь этот импорт в начало файла
-
+from openpyxl.styles import Font, Alignment, PatternFill
 from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch
+from .analytics_core import PRODUCT_ANALYTICS_MAP
 
 # --- УТИЛИТЫ ---
 
@@ -86,6 +87,7 @@ def vzr_create(request):
                 date_from=date.fromisoformat(request.POST.get('start_date')),
                 date_to=date.fromisoformat(request.POST.get('end_date')),
                 territory=request.POST.get('territory'),
+                to_country=request.POST.get('to_country', '').strip().upper(),
                 program=request.POST.get('program'),
                 activity_type=request.POST.get('activity'),
                 exchange_rate=Decimal(request.POST.get('exchange_rate', '1.0').replace(',', '.'))
@@ -361,7 +363,7 @@ def export_excel(request):
     # 2. Выгружаем полисы с СОРТИРОВКОЙ от новых к старым (-issue_date)
     policies = InsurancePolicy.objects.filter(
         issue_date__range=[d_from, d_to]
-    ).select_related('agent').prefetch_related('insured_persons').order_by('-issue_date', '-id')
+    ).select_related('agent').prefetch_related('insured_persons').order_by('issue_date', 'id')
 
     # 3. Создаем Excel книгу
     wb = Workbook()
@@ -369,7 +371,7 @@ def export_excel(request):
     ws.title = "Отчет ВЗР"
 
     headers = [
-        'Серия полиса', '№ полиса', 'Дата оформления полиса', 'Страхователь', 
+        'Серия полиса', 'Дата оформления полиса', '№ полиса', 'Страхователь', 
         'Выгодоприобретатель', 'ИНН', 'Номер паспорта', 'Дата рождения', 
         'Телефон', 'Начало действия', 'Окончание действия', 'Курс Доллар/ Евро НБ КР', 
         'Страховая сумма, USD/Euro', 'Страховая сумма, сом', 'Страховая премия без НСП, сомы', 
@@ -388,8 +390,8 @@ def export_excel(request):
             
             ws.append([
                 'VZR',
-                p.policy_number,
                 p.issue_date.strftime('%d.%m.%Y'),
+                p.policy_number,
                 p.holder_name,
                 person.full_name,
                 p.holder_inn,
@@ -441,3 +443,490 @@ def print_policy(request, pk):
 
 def get_tariffs_api(request):
     return JsonResponse(list(InsuranceTariff.objects.all().values('program', 'territory', 'sum_insured', 'days_min', 'days_max', 'rate')), safe=False)
+
+
+def analytics_page(request):
+    """Просто рендерит пустую страницу аналитики с фильтрами"""
+    return render(request, 'insurance/analytics_dashboard.html')
+
+def analytics_api(request):
+
+    """Возвращает данные в формате JSON для графиков и карточек"""
+    product_type = request.GET.get('product', 'vzr').lower()
+    
+    # По умолчанию берем последние 30 дней
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_to = date.today()
+        d_from = d_to - timedelta(days=30)
+
+    # Проверяем, есть ли такой продукт в маппинге
+    if product_type not in PRODUCT_ANALYTICS_MAP:
+        return JsonResponse({'error': 'Неизвестный продукт'}, status=400)
+
+    # Вызываем нужную функцию сбора данных
+    metrics_func = PRODUCT_ANALYTICS_MAP[product_type]
+    data = metrics_func(d_from, d_to)
+
+    return JsonResponse(data)
+
+@login_required
+@user_passes_test(is_superadmin)
+def export_excel_buh(request):
+
+    # 1. Получаем параметры периода из запроса
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_from = d_to = date.today()
+
+    date_from_str = d_from.strftime('%d.%m.%Y')
+    date_to_str = d_to.strftime('%d.%m.%Y')
+
+    # 2. Выгружаем полисы с СОРТИРОВКОЙ от старых к новым
+    policies = InsurancePolicy.objects.filter(
+        issue_date__range=[d_from, d_to]
+    ).select_related('agent', 'branch').prefetch_related('insured_persons').order_by('issue_date', 'id')
+
+    # 3. Создаем Excel книгу
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчет ВЗР Бухгалтерия"
+
+    # Настройки шрифтов и стилей
+    font_title = Font(name='Arial', size=14, bold=True, color="1E293B")
+    font_bold = Font(name='Arial', size=10, bold=True)
+    font_regular = Font(name='Arial', size=10, bold=False)
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    align_left = Alignment(horizontal='left', vertical='center')
+    fill_summary = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+
+    # --- ГЛАВНЫЙ ЗАГОЛОВОК ---
+    ws.append([f"Отчет по полисам VZR за период с {date_from_str} по {date_to_str}"])
+    ws.row_dimensions[1].height = 35
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=4)
+    ws.cell(row=1, column=1).font = font_title
+    ws.cell(row=1, column=1).alignment = align_center
+
+    # --- СТРОКА 2: Отступ ---
+    ws.append([])
+    ws.row_dimensions[2].height = 15
+
+    # --- СТРОКА 3: Шапка таблицы ---
+    headers = [
+        'Серия полиса', 'Дата оформления полиса', '№ полиса', 'Страхователь', 
+        'Выгодоприобретатель', 'ИНН', 'Номер паспорта', 'Дата рождения', 
+        'Телефон', 'Начало действия', 'Окончание действия', 'Курс Доллар/Евро НБКР', 
+        'Страховая сумма, USD/Euro', 'Страховая сумма, сом', 'Страховая премия без НСП, сомы', 
+        'НСП 2%', 'Стр. премия сомы с НСП', 'Кто оформил'
+    ]
+    ws.append(headers)
+    
+    ws.row_dimensions[3].height = 28
+    for cell in ws[3]:
+        cell.font = font_bold
+        cell.alignment = align_center
+
+    # Переменные для общих итогов
+    total_policies_count = 0
+    total_premium_gross = Decimal('0.00')
+    branch_stats = {}
+
+    # 4. Наполняем таблицу данными
+    for p in policies:
+        branch_code = p.branch.code
+        branch_name = p.branch.name
+        
+        if branch_code not in branch_stats:
+            branch_stats[branch_code] = {
+                'name': branch_name,
+                'count': 0,
+                'sum': Decimal('0.00')
+            }
+
+        total_policies_count += 1
+        branch_stats[branch_code]['count'] += 1
+
+        for person in p.insured_persons.all():
+            currency_label = "EURO" if p.territory == 'SCHENGEN' else "USD"
+            
+            p_som = Decimal(str(person.premium_som or '0.00'))
+            p_nsp_som = Decimal(str(person.premium_nsp_som or '0.00'))
+            nsp_val = Decimal(str(person.nsp_amount_som or '0.00'))
+            
+            if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
+                final_premium_gross = p_som
+            else:
+                final_premium_gross = p_nsp_som
+            
+            total_premium_gross += final_premium_gross
+            branch_stats[branch_code]['sum'] += final_premium_gross
+            
+            row_data = [
+                'VZR',
+                p.issue_date.strftime('%d.%m.%Y'),
+                p.policy_number,
+                p.holder_name,
+                person.full_name,
+                p.holder_inn,
+                person.passport_number,
+                person.date_of_birth.strftime('%d.%m.%Y'),
+                p.holder_phone,
+                p.date_from.strftime('%d.%m.%Y'),
+                p.date_to.strftime('%d.%m.%Y'),
+                p.exchange_rate,
+                f"{person.sum_insured_currency} {currency_label}",
+                person.sum_insured_som,
+                p_som,
+                nsp_val,
+                final_premium_gross,
+                p.agent.get_full_name() or p.agent.username
+            ]
+            ws.append(row_data)
+            
+            current_row = ws.max_row
+            ws.row_dimensions[current_row].height = 20
+            for cell in ws[current_row]:
+                cell.font = font_regular
+                cell.alignment = align_center
+
+    # 5. ФОРМИРУЕМ БЛОК ИТОГОВ ВНИЗУ ТАБЛИЦЫ
+    ws.append([]) 
+    ws.append([]) 
+
+    # --- ОБЩИЙ ИТОГ ПО ВСЕЙ КОМПАНИИ ---
+    start_summary_row = ws.max_row + 1
+    
+    ws.append(['ОБЩИЕ ИТОГИ ЗА ПЕРИОД'])
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=3)
+    ws.cell(row=ws.max_row, column=1).font = font_bold
+    ws.cell(row=ws.max_row, column=1).alignment = align_center
+    ws.cell(row=ws.max_row, column=1).fill = fill_summary
+
+    ws.append(['Всего оформлено полисов (бланков):', f"{total_policies_count} шт."])
+    ws.append(['Общая сумма страховых премий с НСП:', f"{total_premium_gross} сом"])
+    
+    for r in range(start_summary_row + 1, ws.max_row + 1):
+        ws.cell(row=r, column=1).font = font_bold
+        ws.cell(row=r, column=2).font = font_bold
+        ws.cell(row=r, column=2).alignment = align_center
+
+    ws.append([]) 
+
+    # --- ИТОГИ В РАЗРЕЗЕ ФИЛИАЛОВ (С КРАСИВОЙ СОРТИРОВКОЙ И СТРУКТУРОЙ) ---
+    ws.append(['ИТОГИ В РАЗРЕЗЕ ФИЛИАЛОВ'])
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=3)
+    ws.cell(row=ws.max_row, column=1).font = font_bold
+    ws.cell(row=ws.max_row, column=1).alignment = align_center
+    ws.cell(row=ws.max_row, column=1).fill = fill_summary
+
+    # Добавляем мини-шапку для колонок филиалов, как на твоем макете №2
+    ws.append(['Филиал:', 'Кол-во полисов', 'Премия с НСП, сом'])
+    current_row = ws.max_row
+    ws.cell(row=current_row, column=1).font = font_regular
+    ws.cell(row=current_row, column=1).alignment = align_left
+    ws.cell(row=current_row, column=2).font = font_regular
+    ws.cell(row=current_row, column=2).alignment = align_center
+    ws.cell(row=current_row, column=3).font = font_regular
+    ws.cell(row=current_row, column=3).alignment = align_center
+
+    # ИСПРАВЛЕНО: Сортируем филиалы по возрастанию кодов ('00', '01', '07'...) перед выводом
+    sorted_branches = sorted(branch_stats.items(), key=lambda item: item[0])
+
+    for b_code, b_info in sorted_branches:
+        # Теперь выводим строго в три раздельные ячейки без лишнего текста
+        ws.append([
+            f"{b_code} - {b_info['name']}", 
+            f"{b_info['count']} шт.", 
+            f"{b_info['sum']} сом"
+        ])
+        
+        current_row = ws.max_row
+        ws.row_dimensions[current_row].height = 20
+        
+        # Применяем жирный шрифт и правильное выравнивание
+        cell_name = ws.cell(row=current_row, column=1)
+        cell_name.font = font_bold
+        cell_name.alignment = align_left # название филиала прижмем к левому краю
+        
+        cell_count = ws.cell(row=current_row, column=2)
+        cell_count.font = font_bold
+        cell_count.alignment = align_center # количество строго по центру
+        
+        cell_sum = ws.cell(row=current_row, column=3)
+        cell_sum.font = font_bold
+        cell_sum.alignment = align_center # сумму строго по центру
+
+    # 6. АВТОПОДБОР ШИРИНЫ КОЛОНОК
+    for col in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        
+        for cell in col:
+            # Игнорируем длинные строки заголовков и серых плашек, чтобы они не ломали ширину колонок
+            if cell.row in [1, start_summary_row, start_summary_row + 4]:
+                continue
+            try:
+                if cell.value:
+                    val_len = len(str(cell.value))
+                    if val_len > max_length:
+                        max_length = val_len
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 3, 30)
+
+    # 7. Формируем HTTP-ответ
+    filename = f"Report_VZR_Buhgalteriya_{d_from}_{d_to}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    
+    return response
+
+@login_required
+@user_passes_test(is_superadmin)
+def export_excel_savitar(request):
+    # 1. Получаем параметры периода из запроса
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_from = d_to = date.today()
+
+    date_from_str = d_from.strftime('%d.%m.%Y')
+    date_to_str = d_to.strftime('%d.%m.%Y')
+
+    # 2. Выгружаем полисы с СОРТИРОВКОЙ от старых к новым
+    policies = InsurancePolicy.objects.filter(
+        issue_date__range=[d_from, d_to]
+    ).select_related('agent').prefetch_related('insured_persons').order_by('issue_date', 'id')
+
+    # 3. Создаем Excel книгу
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчет Савитар"
+
+    # Настройки шрифтов и стилей
+    font_title = Font(name='Arial', size=14, bold=True, color="1E293B")
+    font_bold = Font(name='Arial', size=10, bold=True)
+    font_regular = Font(name='Arial', size=10, bold=False)
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    # --- ГЛАВНЫЙ ЗАГОЛОВОК ---
+    ws.append([f"Отчет ВЗР ГСО за период с {date_from_str} по {date_to_str}"])
+    ws.row_dimensions[1].height = 35
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5) # 17 колонок
+    ws.cell(row=1, column=1).font = font_title
+    ws.cell(row=1, column=1).alignment = align_center
+
+    # --- СТРОКА 2: Отступ ---
+    ws.append([])
+    ws.row_dimensions[2].height = 15
+
+    # --- СТРОКА 3: Шапка таблицы для Савитар ---
+    headers = [
+        'Номер полиса', 'Дата оформления', 'Начало действия', 'Окончание действия',
+        'Программа страхования', 'Территория страхования', 'Страхователь', 'Застрахованный',
+        'Номер паспорта', 'Дата рождения', 'Телефон', 'Страховая сумма, USD/EUR',
+        'Страховая сумма, сом', 'Страховая премия, USD/EUR', 'Страховая премия, сом без НСП',
+        'Кто оформил',
+    ]
+    ws.append(headers)
+    
+    ws.row_dimensions[3].height = 28
+    for cell in ws[3]:
+        cell.font = font_bold
+        cell.alignment = align_center
+
+    # 4. Наполняем данными в разрезе застрахованных лиц
+    for p in policies:
+        for person in p.insured_persons.all():
+            currency_label = "EURO" if p.territory == 'SCHENGEN' else "USD"
+            
+            # Конвертируем премию в валюте (base_premium_currency) безопасности ради
+            # Если в твоей модели поле называется иначе, подправь имя аттрибута
+            premium_currency = getattr(person, 'premium_currency', 0) or 0
+            
+            row_data = [
+                p.policy_number,
+                p.issue_date.strftime('%d.%m.%Y'),
+                p.date_from.strftime('%d.%m.%Y'),
+                p.date_to.strftime('%d.%m.%Y'),
+                p.program,
+                p.to_country or "", # Территория страхования (пока пусто, дорабатываешь модельку)
+                p.holder_name,
+                person.full_name, # Застрахованный
+                person.passport_number,
+                person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "",
+                p.holder_phone,
+                f"{person.sum_insured_currency} {currency_label}",
+                person.sum_insured_som,
+                f"{premium_currency} {currency_label}",
+                person.premium_som, # Чистая премия сом без НСП
+                p.agent.get_full_name() or p.agent.username,
+                
+            ]
+            ws.append(row_data)
+            
+            # Выравниваем всё строго по центру
+            current_row = ws.max_row
+            ws.row_dimensions[current_row].height = 20
+            for cell in ws[current_row]:
+                cell.font = font_regular
+                cell.alignment = align_center
+
+    # 5. Автоподбор ширины колонок
+    for col in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row == 1:
+                continue
+            try:
+                if cell.value:
+                    val_len = len(str(cell.value))
+                    if val_len > max_length:
+                        max_length = val_len
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 3, 30)
+
+    # 6. HTTP-ответ
+    filename = f"GSO_VZR_Savitar_Report_{d_from}_{d_to}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    
+    return response
+
+@login_required
+@user_passes_test(is_superadmin)
+def export_excel_buh_vt(request):
+    # 1. Получаем параметры периода
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_from = d_to = date.today()
+
+    date_from_str = d_from.strftime('%d.%m.%Y')
+    date_to_str = d_to.strftime('%d.%m.%Y')
+
+    # 2. Выгружаем полисы NOMAD (ВТ) за период с подгрузкой агента и застрахованных
+    policies = NomadPolicy.objects.filter(
+        issue_date__range=[d_from, d_to]
+    ).select_related('agent').prefetch_related('insured_persons').order_by('issue_date', 'id')
+
+    # 3. Создаем книгу Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчет ВТ Бухгалтерия"
+
+    font_title = Font(name='Arial', size=14, bold=True, color="1E293B")
+    font_bold = Font(name='Arial', size=10, bold=True)
+    font_regular = Font(name='Arial', size=10, bold=False)
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    # --- ГЛАВНЫЙ ЗАГОЛОВОК ---
+    ws.append([f"Отчет по полисам ВТ за период с {date_from_str} по {date_to_str}"])
+    ws.row_dimensions[1].height = 35
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15) # Ровно 15 колонок
+    ws.cell(row=1, column=1).font = font_title
+    ws.cell(row=1, column=1).alignment = align_center
+
+    ws.append([])
+    ws.row_dimensions[2].height = 15
+
+    # --- ШАПКА ТАБЛИЦЫ ВТ ---
+    headers = [
+        'Серия', 'Номер полиса', 'Дата оформления', 'Страхователь', 
+        'Номер паспорта', 'Гражданство', 'Дата рождения', 'Телефон', 
+        'Дата начала', 'Окончание действия', 'Страховая сумма', 
+        'Премия без НСП', 'НСП', 'Стр. премия с НСП', 'Кто оформил'
+    ]
+    ws.append(headers)
+    
+    ws.row_dimensions[3].height = 28
+    for cell in ws[3]:
+        cell.font = font_bold
+        cell.alignment = align_center
+
+    # 4. Наполнение данными на основе твоей вьюшки nomad_create
+    for p in policies:
+        for person in p.insured_persons.all():
+            
+            # Безопасный перевод финансовых полей в Decimal на случай пустых значений в старых записях
+            p_som = Decimal(str(p.total_premium_netto or '0.00'))      # Премия без НСП берется из полиса
+            p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  # Премия с НСП
+            nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       # Сумма НСП 2%
+
+            # Защита / Фолбэк для архивных полисов (если брутто/gross не посчиталось и упало в 0)
+            if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
+                final_premium_gross = p_som
+            else:
+                final_premium_gross = p_nsp_som
+
+            row_data = [
+                'VT',                                              # Серия vt константа
+                p.policy_number,                                   # Номер полиса
+                p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", # Дата оформления
+                p.holder_name,                                     # Страхователь
+                person.passport_number,                            # Номер паспорта застрахованного
+                p.citizenship,                                     # Гражданство (берется из полиса)
+                person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "", # Дата рождения
+                p.holder_phone,                                    # Телефон
+                p.date_from.strftime('%d.%m.%Y') if p.date_from else "", # Дата начала
+                p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     # Окончание действия
+                person.sum_insured,                                # Страховая сумма (из NomadInsuredPerson)
+                p_som,                                             # Премия без нсп
+                nsp_val,                                           # нсп
+                final_premium_gross,                               # стр премия с нсп
+                p.agent.get_full_name() or p.agent.username        # Кто оформил
+            ]
+            ws.append(row_data)
+            
+            # Центрируем каждую ячейку в строке контента
+            current_row = ws.max_row
+            ws.row_dimensions[current_row].height = 20
+            for cell in ws[current_row]:
+                cell.font = font_regular
+                cell.alignment = align_center
+
+    # 5. Автоподбор ширины колонок под контент
+    for col in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row == 1:
+                continue
+            try:
+                if cell.value:
+                    val_len = len(str(cell.value))
+                    if val_len > max_length:
+                        max_length = val_len
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 3, 30)
+
+    # 6. Генерируем HTTP-ответ для скачивания файла
+    filename = f"VT_Nomad_Accounting_Report_{d_from}_{d_to}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    
+    return response

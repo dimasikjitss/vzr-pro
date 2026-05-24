@@ -21,6 +21,7 @@ class NomadPolicy(models.Model):
     citizenship = models.CharField("Гражданство", max_length=100, default="Кыргызстан")
     beneficiary = models.CharField("Выгодоприобретатель", max_length=255, blank=True, 
                                    help_text="Если не указан, считается 'Застрахованный'")
+    relative_contact = models.CharField("Контакт родственника", max_length=255)
 
     # --- Условия поездки ---
     date_from = models.DateField("Дата начала")
