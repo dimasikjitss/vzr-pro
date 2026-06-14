@@ -13,7 +13,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter # Добавь этот импорт в начало файла
 from openpyxl.styles import Font, Alignment, PatternFill
-from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch
+from django.contrib.contenttypes.models import ContentType
+from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch, IndividualHolder, CompanyHolder
 from .analytics_core import PRODUCT_ANALYTICS_MAP
 
 # --- УТИЛИТЫ ---
@@ -75,15 +76,37 @@ def vzr_create(request):
 
     if request.method == "POST":
         try:
+            # 1. Определяем, кто страхователь: 'individual' (физ) или 'company' (юр)
+            holder_kind = request.POST.get('holder_kind', 'individual')
+            holder_instance = None
+
+            if holder_kind == 'company':
+                # Создаем или находим Юридическое лицо (ищем по ИНН)
+                holder_instance = CompanyHolder.objects.create(
+                    company_name=request.POST.get('company_name', '').strip().upper(),
+                    inn=request.POST.get('company_inn', '').strip(),
+                    okpo=request.POST.get('company_okpo', '').strip(),
+                    legal_address=request.POST.get('company_address', '').strip().upper(),
+                    signatory_name=request.POST.get('company_signatory', '').strip().upper(),
+                    phone=request.POST.get('company_phone', '').strip(),
+                )
+            else:
+                # По дефолту создаем или находим Физическое лицо (ищем по Паспорту)
+                holder_instance = IndividualHolder.objects.create(
+                    passport=request.POST.get('holder_passport', '').strip().upper(),
+                    name=request.POST.get('holder_name', '').strip().upper(),
+                    inn=request.POST.get('holder_inn', '').strip(),
+                    phone=request.POST.get('holder_phone', '').strip(),
+                    address=request.POST.get('holder_address', '').strip().upper(),
+                    relative_contact=request.POST.get('holder_relative', '').strip() or "Не указан",
+                )
+
+            # 2. Создаем полис и передаем туда наш holder_instance
+            # Наш кастомный метод save() сам заполнит старые текстовые поля (holder_name, holder_phone и т.д.)
             policy = InsurancePolicy.objects.create(
                 agent=request.user,
                 branch=user_branch,
-                holder_name=request.POST.get('holder_name', '').strip().upper(),
-                holder_inn=request.POST.get('holder_inn', '').strip(),
-                holder_phone=request.POST.get('holder_phone', '').strip(),
-                holder_address=request.POST.get('holder_address', '').strip(),
-                holder_passport=request.POST.get('holder_passport', '').strip().upper(),
-                relative_contact=request.POST.get('holder_relative', '').strip() or "Не указан",
+                holder=holder_instance,  # <- Передаем объект напрямую в GenericForeignKey
                 date_from=date.fromisoformat(request.POST.get('start_date')),
                 date_to=date.fromisoformat(request.POST.get('end_date')),
                 territory=request.POST.get('territory'),
@@ -93,6 +116,7 @@ def vzr_create(request):
                 exchange_rate=Decimal(request.POST.get('exchange_rate', '1.0').replace(',', '.'))
             )
             
+            # 3. Логика добавления застрахованных (осталась без изменений)
             names = request.POST.getlist('insured_name[]')
             dobs = request.POST.getlist('insured_dob[]')
             passports = request.POST.getlist('insured_passport[]')
@@ -144,26 +168,56 @@ def policy_preview(request):
             d_to = date.fromisoformat(d_to_raw)
             calculated_days = (d_to - d_from).days + 1
             
+            # --- УМНОЕ ОПРЕДЕЛЕНИЕ ТИПА СТРАХОВАТЕЛЯ ---
+            company_name_raw = request.POST.get('company_name', '').strip()
+            holder_name_raw = request.POST.get('holder_name', '').strip()
+            
+            holder_fake_obj = {}
+
+            # Если на форме заполнено имя компании — это 100% Юридическое Лицо
+            if company_name_raw:
+                holder_fake_obj = {
+                    'company_name': company_name_raw.upper(),
+                    'inn': request.POST.get('company_inn', '').strip(),
+                    'okpo': request.POST.get('company_okpo', '').strip(),
+                    'legal_address': request.POST.get('company_address', '').strip().upper(),
+                    'signatory_name': request.POST.get('company_signatory', '').strip().upper(),
+                    'phone': request.POST.get('company_phone', '').strip(),
+                }
+            # Во всех остальных случаях собираем данные как для Физического Лица
+            else:
+                holder_fake_obj = {
+                    'name': holder_name_raw.upper() if holder_name_raw else "НЕ УКАЗАНО",
+                    'passport': request.POST.get('holder_passport', '').strip().upper(),
+                    'inn': request.POST.get('holder_inn', '').strip(),
+                    'address': request.POST.get('holder_address', '').strip().upper(),
+                    'phone': request.POST.get('holder_phone', '').strip(),
+                    'relative_contact': request.POST.get('holder_relative', '').strip() or "Не указан",
+                }
+
             preview_policy = {
                 'policy_number': 'ПРОЕКТ / DRAFT',
                 'issue_date': date.today(),
                 'agent': request.user, 
-                'holder_name': request.POST.get('holder_name', '').strip().upper(),
-                'holder_phone': request.POST.get('holder_phone', '').strip(),
-                'holder_passport': request.POST.get('holder_passport', '').strip().upper(),
-                'holder_inn': request.POST.get('holder_inn', '').strip(),
-                'holder_address': request.POST.get('holder_address', '').strip(),
-                'relative_contact': request.POST.get('holder_relative', '').strip() or "Не указан",
+                
+                # Передаем сымитированный объект держателя (шаблон увидит его через policy.holder)
+                'holder': holder_fake_obj,
+                
                 'date_from': d_from,
                 'date_to': d_to,
                 'days_count': calculated_days,
                 'territory': request.POST.get('territory', 'Кыргызстан'),
-                'program': request.POST.get('program_select', 'GSO NOMAD BRONZE'),
-                'activity_type': request.POST.get('activity', 'Нет'),
+                'program': request.POST.get('program', 'GSO NOMAD BRONZE'),
+                'activity_type': request.POST.get('activity', 'NONE'),
                 'exchange_rate': exchange_rate,
+                
+                # Инициализируем флаги для чекбоксов/галочек в HTML
+                'has_child': False,
+                'has_adult': False,
+                'has_senior': False,
             }
 
-            # 2. Получаем списки застрахованных
+            # 2. Получаем списки застрахованных лиц из динамической таблицы
             names = request.POST.getlist('insured_name[]')
             passports = request.POST.getlist('insured_passport[]')
             dobs = request.POST.getlist('insured_dob[]')
@@ -180,7 +234,7 @@ def policy_preview(request):
 
             for i in range(len(names)):
                 if names[i].strip():
-                    # Безопасное получение данных по индексу
+                    # Безопасное получение данных по текущему индексу строки
                     raw_dob_str = dobs[i] if i < len(dobs) else None
                     p_premium_val = premiums[i] if i < len(premiums) else 0
                     p_sum_val = sums[i] if i < len(sums) else 0
@@ -194,39 +248,46 @@ def policy_preview(request):
                         try:
                             dob_date = date.fromisoformat(raw_dob_str)
                             formatted_dob = dob_date.strftime('%d.%m.%Y')
-                            # Считаем возраст
+                            
+                            # Вычисляем точный возраст на сегодняшний день
                             age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
                             
-                            # Применяем вашу логику коэффициентов
-                            if 0 <= age <= 5:
+                            # Проверяем возрастные группы и взводим соответствующие флаги в полисе
+                            if age <= 4:
                                 age_coeff = Decimal('2.0')
-                            elif 6 <= age <= 13:
-                                age_coeff = Decimal('1.8')
+                                preview_policy['has_child'] = True
+                            elif age >= 65:
+                                age_coeff = Decimal('2.5')
+                                preview_policy['has_senior'] = True
                             else:
                                 age_coeff = Decimal('1.0')
+                                preview_policy['has_adult'] = True
+                                
                         except ValueError:
-                            pass
+                            # Если дата рождения не распарсилась, ставим дефолт "взрослый"
+                            preview_policy['has_adult'] = True
 
-                    # --- РАСЧЕТЫ СУММ ---
+                    # --- МАТЕМАТИЧЕСКИЕ РАСЧЕТЫ СУММ И ПРЕМИЙ ---
                     p_total_cur = Decimal(str(p_premium_val or 0).replace(',', '.'))
                     p_sum_cur = Decimal(str(p_sum_val or 0).replace(',', '.'))
                     
                     p_total_som = (p_total_cur * exchange_rate).quantize(Decimal('0.01'))
                     p_sum_som = (p_sum_cur * exchange_rate).quantize(Decimal('1.00'))
                     
-                    # Итого с учетом НСП
+                    # Расчет НСП (Налог С Продаж) 2%
                     p_netto_som = (p_total_som * nsp_factor).quantize(Decimal('0.01'))
                     p_nsp_som = (p_netto_som - p_total_som).quantize(Decimal('0.01'))
                     
-                    # Нетто в валюте (если нужно для шаблона)
+                    # Сумма нетто в валюте для отображения
                     p_netto_cur = (p_total_cur * nsp_factor).quantize(Decimal('0.01'))
 
+                    # Наполняем структуру застрахованного лица для передачи в контекст шаблона
                     insured_persons.append({
                         'full_name': names[i].strip().upper(),
                         'passport_number': passports[i].strip().upper() if i < len(passports) else '',
                         'date_of_birth': formatted_dob,
-                        'age': age,  # Передаем возраст для условий в HTML
-                        'age_coeff': age_coeff, # Передаем коэффициент
+                        'age': age,  
+                        'age_coeff': age_coeff, 
                         'sum_insured_currency': p_sum_cur,
                         'sum_insured_som': p_sum_som,
                         'premium_currency': p_total_cur,
@@ -236,16 +297,22 @@ def policy_preview(request):
                         'nsp_amount_som': p_nsp_som,
                     })
                     
+                    # Аккумулируем общие итоги по всему документу
                     total_cur += p_total_cur
                     total_netto_som += p_netto_som
                     total_nsp_som += p_nsp_som
 
-            # Итоговые значения для всего полиса
+            # Страховка от пустой таблицы: если застрахованных нет, ставим дефолтную галочку "взрослый"
+            if not insured_persons:
+                preview_policy['has_adult'] = True
+
+            # Записываем агрегированные финансовые итоги в словарь проекта полиса
             preview_policy['total_premium_currency'] = total_cur
             preview_policy['total_premium_som'] = total_netto_som 
             preview_policy['total_netto_som'] = total_netto_som
             preview_policy['total_nsp_som'] = total_nsp_som
 
+            # Возвращаем сгенерированную страницу предпросмотра
             return render(request, 'insurance/policy_pdf.html', {
                 'policy': preview_policy,
                 'insured_persons_preview': insured_persons,
@@ -253,11 +320,11 @@ def policy_preview(request):
             })
             
         except Exception as e:
-            # Выводим конкретную ошибку для отладки
+            # Предотвращаем падение страницы белым экраном, выводим ошибку для быстрой отладки
             return HttpResponse(f"Ошибка подготовки предпросмотра: {str(e)}")
             
     return redirect('home')
-# --- АНАЛИТИКА (АДМИН) ---
+
 
 @login_required
 @user_passes_test(is_superadmin)

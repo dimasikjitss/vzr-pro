@@ -131,6 +131,18 @@ class BranchAdmin(admin.ModelAdmin):
     has_qr.short_description = 'QR-код'
     has_qr.boolean = True
 
+from .models import IndividualHolder, CompanyHolder
+
+@admin.register(IndividualHolder)
+class IndividualHolderAdmin(admin.ModelAdmin):
+    list_display = ('name', 'inn', 'phone', 'passport')
+    search_fields = ('name', 'inn', 'passport', 'phone')
+
+@admin.register(CompanyHolder)
+class CompanyHolderAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'inn', 'okpo', 'signatory_name', 'phone')
+    search_fields = ('company_name', 'inn', 'okpo')
+
 # Скрываем Profile и PolicyCounter из общего списка, так как они теперь 
 # либо внутри User, либо работают автоматически
 admin.site.register(PolicyCounter)

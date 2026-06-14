@@ -111,26 +111,45 @@
         </table>
 
         <div class="section-title">INTERNATIONAL INSURANCE POLICY / МЕЖДУНАРОДНЫЙ СТРАХОВОЙ ПОЛИС </div>
-
-        <table>
-            <tr>
-                <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
-                <td class="bold">{{ policy.holder_name|upper }}</td>
-            </tr>
-            <tr>
-                <th class="bold">Phone number, address / Номер телефона, адрес</th>
-                <td class="bold">{{ policy.holder_phone}} / {{policy.holder_address}}</td>
-            </tr>
-            <tr>
-                <th class="bold">Passport number, PIN / Номер паспорта, ИНН</th>
-                <td class="bold">{{ policy.holder_passport }} / {{ policy.holder_inn }}</td>
-            </tr>
-            <tr>
-                <th class="bold">Relative's contact / Контакт родственника</th>
-                <td class="bold">{{ policy.relative_contact }}</td>
-            </tr>
-        </table>
-
+        {% if policy.holder.company_name %}
+            <table>
+                <tr>
+                    <th class="bold">INSUREE, COMPANY / СТРАХОВАТЕЛЬ, наименование организации</th>
+                    <td class="bold">{{ policy.holder.company_name|upper }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">TIN, SOSC / ИНН, ОКПО </th>
+                    <td class="bold">{{ policy.holder.inn }} / {{ policy.holder.okpo }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Company phone number, address / Номер телефона, адрес организации</th>
+                    <td class="bold">{{ policy.holder.phone }} / {{ policy.holder.legal_address|upper }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Corporate representative / Представитель компании в лице</th>
+                    <td class="bold">{{ policy.holder.signatory_name|upper }}</td>
+                </tr>
+            </table>
+        {% else %}
+            <table>
+                <tr>
+                    <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
+                    <td class="bold">{{ policy.holder.name|upper }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Phone number, address / Номер телефона, адрес</th>
+                    <td class="bold">{{ policy.holder.phone}} / {{policy.holder.address}}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Passport number, PIN / Номер паспорта, ИНН</th>
+                    <td class="bold">{{ policy.holder.passport }} / {{ policy.holder.inn }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Insured's relative contact / Контакт родственника застрахованного</th>
+                    <td class="bold">{{ policy.holder.relative_contact }}</td>
+                </tr>
+            </table>
+        {% endif %}
         <div class="section-title">INSURANCE PACKAGE / СТРАХОВОЙ ПАКЕТ</div>
         <table>
             <tr>
@@ -244,11 +263,11 @@
                         <td class="bold">{{ person.date_of_birth }}</td>
                         <td class="bold">{{ person.passport_number }}</td>
                         <td class="bold">
-                            {{ person.sum_insured_currency|floatformat:0 }}{% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                            {{ person.sum_insured_currency|floatformat:0 }}{% if policy.territory == 'SCHENGEN' %} EUR{% else %}${% endif %}
                         </td>
                         <td class="bold">{{ person.sum_insured_som|floatformat:0 }}</td>
                         <td class="bold center">
-                            {{ person.premium_currency|floatformat:2 }}{% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                            {{ person.premium_currency|floatformat:2 }}{% if policy.territory == 'SCHENGEN' %} EUR{% else %}${% endif %}
                         </td>
                         <td class="bold center">{{ person.premium_som|floatformat:2 }}</td>
                         <td class="bold center">{{ person.nsp_amount_som|floatformat:2 }}</td>
@@ -262,11 +281,11 @@
                     <td class="bold">{{ person.date_of_birth|date:"d.m.Y" }}</td>
                     <td class="bold">{{ person.passport_number }}</td>
                     <td class="bold">{{ person.sum_insured_currency|floatformat:0 }}
-                        {% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                        {% if policy.territory == 'SCHENGEN' %} EUR{% else %}${% endif %}
                     </td>
                     <td class="bold">{{ person.sum_insured_som|floatformat:0 }}</td>
                     <td class="bold center">{{ person.premium_currency|floatformat:2 }}
-                        {% if policy.territory == 'SCHENGEN' %}EUR{% else %}${% endif %}
+                        {% if policy.territory == 'SCHENGEN' %} EUR{% else %}${% endif %}
                     </td>
                     <td class="bold center">{{ person.premium_som|floatformat:2 }}</td>
                     <td class="bold center">{{ person.nsp_amount_som|floatformat:2 }}</td>
