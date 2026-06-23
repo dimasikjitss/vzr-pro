@@ -15,6 +15,8 @@ from openpyxl.utils import get_column_letter # Добавь этот импор�
 from openpyxl.styles import Font, Alignment, PatternFill
 from django.contrib.contenttypes.models import ContentType
 from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch, IndividualHolder, CompanyHolder
+from student.models import StudentPolicy
+from nomad.models import NomadPolicy
 from .analytics_core import PRODUCT_ANALYTICS_MAP
 
 # --- УТИЛИТЫ ---
@@ -46,15 +48,45 @@ def home(request):
     tariffs_qs = list(InsuranceTariff.objects.all().values('program', 'territory', 'sum_insured', 'days_min', 'days_max', 'rate'))
     tariffs_json = json.dumps(tariffs_qs, default=str) # Это создаст правильную строку для JS
     nomad_tariffs = NomadTariff.objects.filter(program='BRONZE').values('days_min', 'days_max', 'percent_rate')
-    # Получаем последние 5 полисов агента для таблицы
-    last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date')[:5]
-    
+    # Списки последних полисов: админ видит вообще последние 5 в системе, обычный агент — только свои
+    if request.user.is_superuser:
+        last_policies = InsurancePolicy.objects.all().order_by('-issue_date')[:5]
+    else:
+        last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date')[:5]
+
     # Считаем сумму за месяц (не забудь импорт Sum в начале файла)
     start_month = date.today().replace(day=1)
-    monthly_total = InsurancePolicy.objects.filter(
-        agent=request.user, 
+
+    # Проверяем роль: если суперюзер/админ, то считаем ВСЁ. Если обычный агент — фильтруем по нему.
+    if request.user.is_superuser:
+        vzr_total = InsurancePolicy.objects.filter(
         issue_date__gte=start_month
-    ).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+        ).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+
+        nomad_total = NomadPolicy.objects.filter(
+            issue_date__gte=start_month
+        ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+
+        student_total = StudentPolicy.objects.filter(
+                issue_date__gte=start_month
+            ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+    else:
+        vzr_total = InsurancePolicy.objects.filter(
+            agent=request.user, 
+            issue_date__gte=start_month
+        ).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+
+        nomad_total = NomadPolicy.objects.filter(
+            agent=request.user, 
+            issue_date__gte=start_month
+        ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+
+        student_total = StudentPolicy.objects.filter(
+                agent=request.user,
+                issue_date__gte=start_month
+            ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+
+    monthly_total = student_total + vzr_total + nomad_total
 
     return render(request, 'insurance/new_home.html', { # Рендерим новый Dashboard
         'usd_rate': rates['USD'], 

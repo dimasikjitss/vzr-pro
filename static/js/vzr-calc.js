@@ -28,7 +28,7 @@ function switchTab(type) {
     currentTab = type;
     const dynamicBox = document.getElementById('dynamic-fields');
     const vBtn = document.getElementById('tab-vzr');
-    const nBtn = document.getElementById('tab-nomad');
+    const nBtn = document.getElementById('tab-students');
 
     // Визуальное переключение кнопок
     if (type === 'VZR') {
@@ -41,7 +41,7 @@ function switchTab(type) {
                 <select id="territory" onchange="updateSumOptions()" class="custom-input">
                     <option value="ASIA">Азия, СНГ, Африка</option>
                     <option value="SCHENGEN">Шенген и Европа</option>
-                    <option value="WORLD">Весь мир</option>
+                    <option value="WORLD">Северная и Южная Америка, Юго-Восточная Азия, Мальдивы</option>
                 </select>
             </div>
             <div>
@@ -66,7 +66,7 @@ function switchTab(type) {
                 </select>
             </div>
         `;
-    } else {
+    } else if (type === 'NOMAD') {
         vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
         nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         
@@ -80,6 +80,38 @@ function switchTab(type) {
             <div class="col-span-2">
                 <label class="input-label font-black text-blue-600">Сумма покрытия (СОМ)</label>
                 <select id="sum_insured" class="custom-input border-blue-100 bg-blue-50/30 font-black text-blue-700"></select>
+            </div>
+        `;
+    } else if (type === 'STUDENTS') {
+        vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
+        nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
+        
+        dynamicBox.innerHTML = `
+            <div class="col-span-2">
+                <label class="input-label">Период покрытия</label>
+                <select id="time_type" class="custom-input">
+                    <option value="24H">24 часа в сутки</option>
+                    <option value="SCHOOL">Только во время учебы</option>
+                </select>
+            </div>
+            <div class="col-span-2">
+                <label class="input-label">Занятия в спорт. секциях</label>
+                <div class="flex items-center h-12 px-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <input type="checkbox" id="is_sports_section" class="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500">
+                    <label for="is_sports_section" class="ml-2 text-sm text-slate-600 font-medium select-none">Включая тренировки и соревнования</label>
+                </div>
+            </div>
+            <div class="col-span-4">
+                <label class="input-label font-black text-teal-600">Сумма покрытия (СОМ)</label>
+                <select id="sum_insured" class="custom-input border-teal-100 bg-teal-50/30 font-black text-teal-700">
+                    <option value="" disabled selected hidden>Выберите сумму</option>
+                    <option value="50000">50 000 сом</option>
+                    <option value="100000">100 000 сом</option>
+                    <option value="200000">200 000 сом</option>
+                    <option value="300000">300 000 сом</option>
+                    <option value="500000">50 0000 сом</option>
+                    <option value="1000000">1 000 000 сом</option>
+                </select>
             </div>
         `;
     }

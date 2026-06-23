@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .glass-card { background: white; border-radius: 2.5rem; padding: 2.5rem; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); border: 1px solid #f1f5f9; }
+    .section-title { font-size: 2rem; font-weight: 900; text-transform: uppercase; font-style: italic; color: #1e293b; letter-spacing: -0.05em; line-height: 1; }
+    .input-label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.6rem; margin-left: 0.4rem; letter-spacing: 0.05em; display: block; }
+    .custom-input { width: 100%; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1.25rem; padding: 1.1rem 1.5rem; font-weight: 700; color: #1e293b; outline: none; transition: all 0.2s ease; appearance: none; }
+    .custom-input:focus { border-color: #0bb7a2; background-color: white; box-shadow: 0 0 0 4px rgba(11, 183, 162, 0.05); }
+    
+    select.custom-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1.5rem center;
+        background-size: 1.2rem;
+        padding-right: 3.5rem;
+    }
+</style>
+
+<main class="max-w-7xl mx-auto py-8">
+    {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+                <div class="p-4 rounded-xl {% if 'error' in message.tags %}bg-red-50 text-red-600 border border-red-100{% else %}bg-emerald-50 text-emerald-600 border border-emerald-100{% endif %} font-bold text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" id="student-form" action="{% url 'student_create' %}" class="space-y-10">
+        {% csrf_token %}
+        <div class="grid grid-cols-12 gap-8">
+            
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                
+                <div class="glass-card">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-14 h-14 bg-indigo-50 rounded-[1.2rem] flex items-center justify-center text-indigo-600"><i data-lucide="user" class="w-7 h-7"></i></div>
+                        <h2 class="section-title">Страхователь</h2>
+                    </div>
+                    
+                    <input type="hidden" name="holder_kind" id="holder_kind" value="individual">
+
+                    <div class="flex bg-slate-100 p-1 rounded-lg mb-8 max-w-md">
+                        <button type="button" id="tab-individual" onclick="switchHolderTab('individual')" class="flex-1 py-2 text-xs font-bold rounded-md bg-white text-slate-900 shadow-sm transition-all uppercase focus:outline-none">
+                            Физическое лицо
+                        </button>
+                        <button type="button" id="tab-company" onclick="switchHolderTab('company')" class="flex-1 py-2 text-xs font-bold rounded-md text-slate-500 hover:text-slate-900 transition-all uppercase focus:outline-none">
+                            Юридическое лицо
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2 holder-ind-field">
+                            <label class="input-label">ФИО страхователя (кириллица)</label>
+                            <input type="text" name="holder_name" id="holder_name" class="custom-input uppercase" placeholder="ИВАНОВ ИВАН ИВАНОВИЧ">
+                        </div>
+                        <div class="holder-ind-field">
+                            <label class="input-label">Паспорт (ID / Загран)</label>
+                            <input type="text" name="holder_passport" id="holder_passport" class="custom-input uppercase" placeholder="ID1234567">
+                        </div>
+                        <div class="holder-ind-field">
+                            <label class="input-label">ИНН (14 цифр)</label>
+                            <input type="text" name="holder_inn" id="holder_inn" maxlength="14" class="custom-input" placeholder="20101199012345">
+                        </div>
+
+                        <div class="md:col-span-2 holder-comp-field" style="display: none;">
+                            <label class="input-label">Наименование организации</label>
+                            <input type="text" name="company_name" id="company_name" class="custom-input uppercase" placeholder="ОСОО ШКОЛА-ГИМНАЗИЯ №1">
+                        </div>
+                        <div class="holder-comp-field" style="display: none;">
+                            <label class="input-label">ИНН Организации (14 цифр)</label>
+                            <input type="text" name="company_inn" id="company_inn" maxlength="14" class="custom-input" placeholder="00203199012345">
+                        </div>
+                        <div class="holder-comp-field" style="display: none;">
+                            <label class="input-label">ОКПО</label>
+                            <input type="text" name="company_okpo" id="company_okpo" class="custom-input" placeholder="12345678">
+                        </div>
+                        <div class="md:col-span-2 holder-comp-field" style="display: none;">
+                            <label class="input-label">ФИО Руководителя (Директора)</label>
+                            <input type="text" name="company_signatory" id="company_signatory" class="custom-input uppercase" placeholder="ТОКТОГАЗИЕВ АСАН БЕКОВИЧ">
+                        </div>
+
+                        <div>
+                            <label class="input-label">Номер телефона</label>
+                            <input type="text" name="holder_phone" required placeholder="+996" class="custom-input phone-field">
+                        </div>
+                        <div class="holder-ind-field">
+                            <label class="input-label">Контакт родственника (связь)</label>
+                            <input type="text" name="holder_relative" placeholder="+996" class="custom-input phone-field">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="input-label">Адрес проживания / Юридический адрес</label>
+                            <input type="text" name="holder_address" required class="custom-input uppercase" placeholder="Г. БИШКЕК, УЛ. КИЕВСКАЯ 10">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-14 h-14 bg-indigo-50 rounded-[1.2rem] flex items-center justify-center text-indigo-600"><i data-lucide="graduation-cap" class="w-7 h-7"></i></div>
+                        <h2 class="section-title">Учащийся</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="input-label">ФИО Ученика (полностью)</label>
+                            <input type="text" name="student_name[]" required class="custom-input uppercase" placeholder="АЛИЕВ САНЖАР МАКСАТОВИЧ">
+                        </div>
+                        <div>
+                            <label class="input-label">Дата рождения</label>
+                            <input type="date" name="student_dob[]" id="student_dob" required class="custom-input student-dob-input">
+                        </div>
+                        
+                        <div class="md:col-span-3 hidden" id="program-alert-box">
+                            <div class="p-4 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs text-teal-600 font-bold uppercase tracking-wider block">Автоматически подобранная программа ГСО:</span>
+                                    <span id="auto-program-name" class="text-lg font-black text-slate-800">---</span>
+                                    <input type="hidden" name="program" id="hidden_program_id">
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-teal-600 font-bold uppercase tracking-wider block">Возраст:</span>
+                                    <span id="auto-student-age" class="text-lg font-black text-slate-800">0 лет</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="input-label">Свидетельство / Паспорт</label>
+                            <input type="text" name="student_doc[]" required class="custom-input uppercase" placeholder="ГР №123456">
+                        </div>
+                        <div>
+                            <label class="input-label">Школа / Садик / ВУЗ</label>
+                            <input type="text" name="student_school[]" required class="custom-input uppercase" placeholder="УВК №6">
+                        </div>
+                        <div>
+                            <label class="input-label">Класс / Группа</label>
+                            <input type="text" name="student_grade[]" required class="custom-input uppercase" placeholder="4-Г КЛАСС">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="input-label">ФИО Выгодоприобретателя </label>
+                            <input type="text" name="beneficiary_name[]" class="custom-input uppercase" placeholder="АЛИЕВА НАЗИРА">
+                        </div>
+                        <div>
+                            <label class="input-label">Законный представитель</label>
+                            <input type="text" name="beneficiary_relation[]" class="custom-input uppercase" placeholder="Родитель/Опекун">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="flex items-center gap-5 mb-10">
+                        <div class="w-14 h-14 bg-emerald-50 rounded-[1.2rem] flex items-center justify-center text-emerald-600"><i data-lucide="shield" class="w-7 h-7"></i></div>
+                        <h2 class="section-title">Параметры договора</h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="input-label">Период действия</label>
+                            <select name="time_type" id="time_type" class="custom-input">
+                                <option value="" disabled selected hidden>Выберите период действия</option>
+                                <option value="24H" selected>24 часа в сутки</option>
+                                <option value="12H">12 часов (07:00 – 19:00)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="input-label italic font-black">Сумма покрытия (сом)</label>
+                            <select name="sum_insured" id="sum_insured" class="custom-input text-emerald-600 text-xl font-black">
+                                <option value="" disabled selected hidden>Выберите сумму</option>                                
+                                <option value="50000">50 000 сом</option>
+                                <option value="100000">100 000 сом</option>
+                                <option value="150000">150 000 сом</option>
+                                <option value="200000">200 000 сом</option>
+                                <option value="250000">250 000 сом</option>
+                                <option value="300000">300 000 сом</option>
+                                <option value="350000">350 000 сом</option>
+                                <option value="400000">400 000 сом</option>
+                                <option value="450000">450 000 сом</option>
+                                <option value="500000">500 000 сом</option>
+                                <option value="550000">550 000 сом</option>
+                                <option value="600000">600 000 сом</option>
+                                <option value="650000">650 000 сом</option>
+                                <option value="700000">700 000 сом</option>
+                                <option value="750000">750 000 сом</option>
+                                <option value="800000">800 000 сом</option>
+                                <option value="850000">850 000 сом</option>
+                                <option value="900000">900 000 сом</option>
+                                <option value="950000">950 000 сом</option>
+                                <option value="1000000">1 000 000 сом</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="input-label italic">Дата начала</label>
+                            <input type="date" name="start_date" id="start_date" required class="custom-input">
+                        </div>
+                        <div>
+                            <label class="input-label italic">Дата окончания</label>
+                            <input type="date" name="end_date" id="end_date" required class="custom-input">
+                        </div>
+                        
+                        <div class="flex items-center px-4 h-full pt-6 md:col-span-2">
+                            <label class="flex items-center gap-3 cursor-pointer select-none">
+                                <input type="checkbox" name="is_sports" id="is_sports" value="true" class="w-5 h-5 text-teal-600 border-slate-300 rounded focus:ring-teal-500">
+                                <div>
+                                    <span class="text-sm font-bold text-slate-800">Включая занятия спортом</span>
+                                    <span class="text-xs text-slate-400 block">Расчет по спортивной сетке тарифов</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-12 lg:col-span-4">
+                <div class="sticky top-28 bg-white rounded-[3rem] p-10 text-slate-900 shadow-xl border border-slate-100 relative overflow-hidden">
+                    <div class="relative z-10 mb-10">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Итого к оплате</p>
+                        <div class="flex items-baseline gap-2">
+                            <span id="calc-total" class="text-6xl font-black tracking-tighter text-slate-900">0.00</span>
+                            <span class="text-xl font-bold" style="color: #0bb7a2;">сом</span>
+                        </div>
+                    </div>
+                    <div class="relative z-10 space-y-5 border-t border-slate-100 pt-8 mb-10 text-[10px] font-bold uppercase tracking-widest">
+                        <div class="flex justify-between items-center"><span class="text-slate-500 italic">Дней действия:</span><span id="calc-days" class="text-slate-800 text-sm">0</span></div>
+                        <div class="flex justify-between items-center"><span class="text-slate-500 italic">Сумма без НСП:</span><span id="res-netto" class="text-slate-800 text-sm">0.00</span></div>
+                        <div class="flex justify-between items-center text-teal-500"><span class="italic">НСП (2%):</span><span id="res-nsp" class="text-sm">0.00</span></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button type="submit" formaction="{% url 'student_preview' %}" formtarget="_blank" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="eye" class="w-4 h-4"></i> Черновик
+                        </button>
+                        <button type="submit" id="submit-btn" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-30" style='background-color:#0bb7a2'>
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> Оформить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+
+<script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    function switchHolderTab(kind) {
+        document.getElementById('holder_kind').value = kind;
+        const tabIndividual = document.getElementById('tab-individual');
+        const tabCompany = document.getElementById('tab-company');
+        const indFields = document.querySelectorAll('.holder-ind-field');
+        const compFields = document.querySelectorAll('.holder-comp-field');
+
+        const activeClasses = ['bg-white', 'text-slate-900', 'shadow-sm'];
+        const inactiveClasses = ['text-slate-500', 'hover:text-slate-900'];
+
+        if (kind === 'company') {
+            tabIndividual.classList.remove(...activeClasses);
+            tabIndividual.classList.add(...inactiveClasses);
+            tabCompany.classList.remove(...inactiveClasses);
+            tabCompany.classList.add(...activeClasses);
+            indFields.forEach(el => el.style.display = 'none');
+            compFields.forEach(el => el.style.display = 'block');
+            document.getElementById('company_name').required = true;
+            document.getElementById('company_inn').required = true;
+            document.getElementById('holder_name').required = false;
+            document.getElementById('holder_passport').required = false;
+        } else {
+            tabCompany.classList.remove(...activeClasses);
+            tabCompany.classList.add(...inactiveClasses);
+            tabIndividual.classList.remove(...inactiveClasses);
+            tabIndividual.classList.add(...activeClasses);
+            indFields.forEach(el => el.style.display = 'block');
+            compFields.forEach(el => el.style.display = 'none');
+            document.getElementById('company_name').required = false;
+            document.getElementById('company_inn').required = false;
+            document.getElementById('holder_name').required = true;
+            document.getElementById('holder_passport').required = true;
+        }
+    }
+
+    function calculatePremium() {
+        const timeType = document.getElementById('time_type').value;
+        const sumInsured = document.getElementById('sum_insured').value;
+        const isSports = document.getElementById('is_sports').checked;
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        const dobInput = document.getElementById('student_dob').value;
+
+        const btn = document.getElementById('submit-btn');
+        const alertBox = document.getElementById('program-alert-box');
+
+        if (!startDate || !endDate || !dobInput) {
+            resetCalc();
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('time_type', timeType);
+        formData.append('sum_insured', sumInsured);
+        formData.append('is_sports_section', isSports);
+        formData.append('start_date', startDate);
+        formData.append('end_date', endDate);
+        formData.append('birth_dates[]', dobInput);
+
+        fetch("{% url 'student_calculate' %}", {
+            method: "POST",
+            headers: { "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const fmt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+                
+                // Раскрываем блок автоподбора программы
+                alertBox.classList.remove('hidden');
+                document.getElementById('auto-program-name').innerText = data.program_name;
+                document.getElementById('auto-student-age').innerText = data.student_age + " лет";
+                
+                // Передаем программно вычисленную ID программы в скрытый инпут для POST запроса
+                document.getElementById('hidden_program_id').value = data.program_id;
+
+                // Отрендеренные итоги стоимости
+                document.getElementById('calc-days').innerText = data.days_count;
+                document.getElementById('res-netto').innerText = parseFloat(data.netto).toLocaleString('ru-RU', fmt);
+                document.getElementById('res-nsp').innerText = parseFloat(data.nsp).toLocaleString('ru-RU', fmt);
+                document.getElementById('calc-total').innerText = parseFloat(data.gross).toLocaleString('ru-RU', fmt);
+                btn.disabled = false;
+                btn.style.opacity = "1";
+            } else {
+                resetCalc();
+                if (data.error) alert(data.error);
+            }
+        })
+        .catch(() => resetCalc());
+    }
+
+    function resetCalc() {
+        document.getElementById('res-netto').innerText = "0.00";
+        document.getElementById('res-nsp').innerText = "0.00";
+        document.getElementById('calc-total').innerText = "0.00";
+        document.getElementById('calc-days').innerText = "0";
+        document.getElementById('program-alert-box').classList.add('hidden');
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('submit-btn').style.opacity = "0.3";
+    }
+
+    // Слушатели событий
+    ['time_type', 'sum_insured', 'is_sports', 'start_date', 'end_date', 'student_dob'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', calculatePremium);
+    });
+
+    function initPhoneMask(selector) {
+        document.querySelectorAll(selector).forEach(input => {
+            input.addEventListener('focus', function() { if (!this.value) this.value = '+996'; });
+            input.addEventListener('input', function() {
+                let val = this.value;
+                if (!val.startsWith('+996')) val = '+996';
+                this.value = val.replace(/[^\d+]/g, '').substring(0, 13);
+            });
+        });
+    }
+    
+    switchHolderTab('individual');
+    initPhoneMask('.phone-field');
+</script>
+{% endblock %}

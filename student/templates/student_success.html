@@ -1,0 +1,199 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Полис создан | Учащиеся</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <a href="{% url 'student_create' %}" class="inline-flex items-center text-slate-500 hover:text-teal-600 mb-6 transition-colors font-semibold text-sm">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            Вернуться к оформлению
+        </a>
+
+        <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 overflow-hidden">
+            
+            <!-- Шапка перекрашена под стиль учащихся (#0bb7a2) -->
+            <div class="bg-teal-50 px-8 py-6 border-b border-teal-100 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-teal-900 tracking-tight">Полис успешно создан!</h1>
+                    <p class="text-teal-700 opacity-80 text-sm">Зарегистрирован в системе под № <b>{{ policy.policy_number }}</b></p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-[10px] font-bold text-teal-600 uppercase tracking-widest">Агент / Филиал</p>
+                        <p class="text-xs font-bold text-teal-900">{{ policy.agent.get_full_name|default:policy.agent.username }} ({{ policy.branch.name }})</p>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl shadow-sm" style="color: #0bb7a2;">
+                        <i data-lucide="check-circle" class="w-8 h-8"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8 space-y-10">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <!-- Страхователь: Динамически понимает физ или юр лицо -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <i data-lucide="user" class="w-3 h-3"></i> Страхователь
+                        </h3>
+                        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">ФИО / Название организации</p>
+                            <p class="font-bold text-slate-800 text-lg leading-tight uppercase">{{ policy.holder_name }}</p>
+                            
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">ИНН</p>
+                                    <p class="font-semibold text-slate-700">{{ policy.holder_inn|default:"---" }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Телефон</p>
+                                    <p class="font-semibold text-slate-700">{{ policy.holder_phone }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Параметры новой программы -->
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <i data-lucide="shield" class="w-3 h-3"></i> Параметры полиса
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Программа</span>
+                                <span class="font-bold text-slate-700">{{ policy.program.name }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Срок действия</span>
+                                <span class="font-bold text-slate-700" style="font-size: 10pt;">
+                                    с {{ policy.date_from|date:"d.m.Y" }} по {{ policy.date_to|date:"d.m.Y" }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Период покрытия</span>
+                                <span class="font-bold text-teal-600">
+                                    {% if policy.time_type == 'SCHOOL' %}Во время учебы{% else %}24 часа в сутки{% endif %}
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-slate-50">
+                                <span class="text-slate-400 text-xs font-bold uppercase">Спорт. секция</span>
+                                <span class="font-bold {% if policy.is_sports_section %}text-amber-600{% else %}text-slate-500{% endif %}">
+                                    {% if policy.is_sports_section %}Да (Коэф 1.5){% else %}Нет{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Таблица застрахованных детей -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <i data-lucide="users" class="w-3 h-3"></i> Список застрахованных учащихся
+                    </h3>
+                    <div class="overflow-x-auto border border-slate-100 rounded-2xl">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-slate-50 text-slate-400 font-bold uppercase tracking-tighter">
+                                <tr>
+                                    <th class="px-4 py-3 border-r border-slate-100">Ученик / Ребенок</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Дата рождения</th>
+                                    <th class="px-3 py-3 border-r border-slate-100">Документ</th>
+                                    <th class="px-3 py-3 border-r border-slate-100">Учебное заведение / Класс</th>
+                                    <th class="px-4 py-3 border-r border-slate-100">Выгодоприобретатель</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                {% for person in policy.insured_students.all %}
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-4 py-4 font-bold text-slate-800 uppercase border-r border-slate-50">{{ person.full_name }}</td>
+                                    <td class="px-3 py-4 text-slate-600 text-center border-r border-slate-50">{{ person.date_of_birth|date:"d.m.Y" }}</td>
+                                    <td class="px-3 py-4 text-slate-600 font-mono border-r border-slate-50">{{ person.document_number }}</td>
+                                    <td class="px-3 py-4 text-slate-600 border-r border-slate-50">
+                                        {{ person.educational_institution }} <span class="text-slate-400 font-bold">({{ person.grade_or_group }})</span>
+                                    </td>
+                                    <td class="px-4 py-4 text-slate-700 border-r border-slate-50">
+                                        <p class="font-bold uppercase text-[10px] leading-tight">{{ person.beneficiary_name }}</p>
+                                        <p class="text-[9px] text-slate-400 font-semibold mt-0.5">{{ person.beneficiary_relation }}</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Финансовые итоги -->
+                <div class="flex flex-col md:flex-row gap-6 pt-6 border-t border-slate-100">
+                    <div class="flex-1 bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden">
+                        <div class="absolute -right-10 -bottom-10 w-40 h-40 rounded-full blur-3xl" style="background-color: rgba(11, 183, 162, 0.2);"></div>
+                        
+                        <div class="flex justify-between items-start mb-8 relative z-10">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Итого к оплате</p>
+                                <h2 class="text-5xl font-black tracking-tighter">
+                                    {{ policy.total_premium_gross|floatformat:2 }} <span class="text-xl font-bold" style="color: #0bb7a2;">SOM</span>
+                                </h2>
+                            </div>
+                            <div class="text-right text-[10px] font-bold uppercase text-slate-400 space-y-1">
+                                <p>Нетто: <span class="text-white text-sm ml-1 font-mono">{{ policy.total_premium_netto|floatformat:2 }}</span></p>
+                                <p>НСП (2%): <span class="text-teal-400 text-sm ml-1 font-mono">{{ policy.total_nsp_amount|floatformat:2 }}</span></p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10 relative z-10">
+                            <i data-lucide="shield-check" class="w-5 h-5" style="color: #0bb7a2;"></i>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Общий лимит покрытия по документу</p>
+                                <p class="font-bold text-teal-400">
+                                    {{ policy.total_sum_insured|floatformat:0 }} СОМ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QR-код филиала -->
+                    <div class="bg-white border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center min-w-[220px]">
+                        <div class="bg-slate-50 p-4 rounded-2xl mb-3">
+                            {% if policy.branch.qr_code %}
+                                <img src="{{ policy.branch.qr_code.url }}" alt="QR {{ policy.branch.name }}" class="w-32 h-32 mix-blend-multiply">
+                            {% else %}
+                                <img src="{% static 'qr.png' %}" alt="Default QR" class="w-32 h-32 mix-blend-multiply opacity-20">
+                            {% endif %}
+                        </div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase text-center leading-tight tracking-widest">
+                            Оплата для филиала:<br>
+                            <span style="color: #0bb7a2;">{{ policy.branch.name }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Кнопки управления -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <a href="{% url 'print_policy' policy.pk %}" target="_blank" class="flex-[2] text-white font-black py-5 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 group text-sm uppercase tracking-widest shadow-teal-100 hover:shadow-none" style="background-color: #0bb7a2;">
+                        <i data-lucide="printer" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                        Распечатать полис
+                    </a>
+                    <a href="{% url 'student_create' %}" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                        Новый
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <p class="text-center text-slate-400 text-[10px] mt-8 uppercase tracking-[0.3em] font-bold">Система контроля страховой документации v2.1 • GSO Digital</p>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

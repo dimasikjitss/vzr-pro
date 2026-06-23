@@ -62,19 +62,20 @@
                         <p class="text-[10px] text-slate-400 mt-2 opacity-80">По всему Кыргызстану</p>
                     </a>
 
-                    <a href="#" class="card-grad relative group overflow-hidden  p-6 rounded-[2rem] text-white" style='background-color:#0bb7a2'>
-                        <i data-lucide="map-pin" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
-                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">VT</span>
-                        <h3 class="text-lg font-black mt-2 leading-none">GSO Work</h3>
-                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Оформление полисов для работников за рубежом</p>
+                    <a href="{% url 'student_create' %}" class="card-grad relative group overflow-hidden  p-6 rounded-[2rem] text-white" style='background-color:#0bb7a2'>
+                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">UCH</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">Дети / Студенты</h3>
+                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Страхование учащихся</p>
                     </a>
+                
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-blue-500/5 rotate-12"></i>
-                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">Дети</h3>
-                        <p class="text-[10px] text-slate-400 mt-2">Страхование школьников</p>
+                        <i data-lucide="map-pin" class="absolute -right-2 -top-2 w-20 h-20 text-blue-500/5 rotate-12"></i>
+                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">GSO Work</h3>
+                        <p class="text-[10px] text-slate-400 mt-2">Оформление полисов для работников за рубежом</p>
                     </a>
 
                     <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm text-orange-600">
@@ -107,7 +108,7 @@
 
     <div class="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tighter italic">Быстрый расчет</h2>
+        <h2 class="text-3xl font-black text-slate-800 uppercase tracking-tighter italic">Расчет стоимости</h2>
         <i data-lucide="zap" class="text-blue-600 w-6 h-6 fill-blue-600"></i> 
     </div>
 
@@ -118,11 +119,11 @@
         </button>
         <button type="button" id="tab-nomad" onclick="switchTab('NOMAD')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
             <i data-lucide="tent" class="w-4 h-4"></i>
-            <span class="text-[10px] font-black uppercase tracking-widest">Номад</span>
+            <span class="text-[10px] font-black uppercase tracking-widest">Nomad</span>
         </button>
-        <button type="button" disabled class="flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 cursor-not-allowed group relative">
-            <i data-lucide="map-pin" class="w-4 h-4"></i>
-            <span class="text-[10px] font-black uppercase tracking-widest">ВТ</span>
+        <button type="button" id="tab-students" onclick="switchTab('STUDENTS')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">Дети</span>
             <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
         </button>
     </div>

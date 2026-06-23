@@ -1,0 +1,471 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Печать полиса {{ policy.policy_number }}</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <style>
+        /* Глобальные настройки листа A4 */
+        @page { size: A4; margin: 0; }
+        body { background-color: #525659; margin: 0; padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
+        
+        .page {
+            background: white;
+            width: 210mm;
+            height: 297mm;
+            padding: 8mm 12mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 9pt;
+            color: #000;
+            line-height: 1.1;
+            position: relative;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .page-blank {
+            /* Добавляем отступ 33мм сверху, 12мм по бокам и снизу */
+            padding: 24mm 12mm 8mm 12mm !important; 
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .page { box-shadow: none; margin: 0; page-break-after: always; }
+            .no-print { display: none !important; }
+        }
+
+        /* Кнопки управления */
+        .no-print { margin-bottom: 20px; background: #2c3e50; padding: 10px 30px; border-radius: 8px; display: flex; gap: 15px; }
+        .no-print button { padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        /* Шапка */
+        .header-main { display: flex; justify-content: space-between; align-items: center; }
+        .org-name { width: 40%; font-weight: bold; font-size: 9pt; color: #1a4a7c; text-transform: uppercase; }
+        .logo-box { width: 20%; text-align: center; }
+        .logo-box img { width: 60px; }
+        .divider { width: 100%; height: 2px; background: #1a4a7c; margin: 3px 0; }
+
+        /* Таблицы */
+        table { width: 100%; border-collapse: collapse; margin-bottom: -1px; }
+        td, th { border: 1pt solid black; padding: 2px 5px; vertical-align: middle; }
+        th { font-weight: normal; text-align: left; width: 48%; font-size: 9pt; }
+        
+        .section-title { background: #e9e9e9; font-weight: bold; text-align: center; font-size: 9.5pt; border: 1pt solid black; padding: 3px; margin-top: 5px; }
+        
+        /* Символы выбора (X) */
+        .marked { font-family: "Courier New", monospace; font-weight: bold; font-size: 13pt; line-height: 0; display: block; text-align: center; }
+        .bold { font-weight: bold; }
+        .center { text-align: center; }
+        .small-text { font-size: 6.8pt; line-height: 1; }
+
+        /* Вторая страница (Правила) */
+        .rules-wrapper { 
+            font-family: 'Calibri', sans-serif; 
+            transform: scale(0.65); /* Сжимаем до 5px на печати */
+            transform-origin: top left; 
+            width: 153%; 
+            text-align: justify;
+        }
+        .rules-cols { display: flex; gap: 8mm; }
+        .rules-col { width: 50%; line-height: 1.1; }
+        .rules-title-box { font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 10px; font-size: 10pt; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="{% static 'js/nomad-pdf.js' %}"></script>
+
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">ПЕЧАТЬ (2 ЛИСТА)</button>
+        <button onclick="window.history.back()" style="background:#7f8c8d;">НАЗАД</button>
+        <button onclick="downloadPDF('{{ policy.policy_number|escapejs }}', '{{ policy.holder_name|escapejs }}')" 
+                    style="background:#e67e22;">
+                СОХРАНИТЬ PDF
+        </button>
+    </div>
+
+    <div class="page">
+        <div class="page-blank">
+            <div class="center" style="font-size: 7.5pt; font-style: italic; margin-top: 10px;">
+                <b>Мамлекеттик лицензиясы 2017 - жылдын 26 - январындагы Серия С№0041 /</b><br>
+                <b>Государственная лицензия Серия С №0041 от 26.01.2017 г. / State license Series C No. 0041 dated January 26, 2017</b>
+            </div>
+        </div>
+        
+
+        <table>
+            <tr>
+                <th class="bold">Policy issue date / Дата оформления полиса</th>
+                <td class="bold">{{ policy.issue_date|date:"d.m.Y" }}</td>
+            </tr>
+            <tr>
+                <th class="bold">POLICY № / ПОЛИС №</th>
+                <td class="bold">{{ policy.policy_number }}</td>
+            </tr>
+            <tr>
+                <th class="bold">Agent's full name, company / ФИО, компания агента</th>
+                <td class="bold">{{ policy.agent.get_full_name|upper }}</td> 
+            </tr>
+        </table>
+
+        <div class="section-title">ОКУУЧУЛАР КЫРСЫКТАРАДАН ЫКТЫЯРДУУ КАМСЫЗДАНДЫРУУ ПОЛИСИ <br>
+                                    СТРАХОВОЙ ПОЛИС ПО СТРАХОВАНИЮ УЧАЩИХСЯ ОТ НЕСЧАСТНОГО СЛУЧАЯ
+        </div>
+
+        <table>
+            <tr>
+                <th class="bold">Камсыздандыруучу /<br>Страховщик</th>
+                <td>
+                    <b>Открытое Акционерное Общество «Государственная Страховая Организация» (далее - ОАО "ГСО")</b><br>
+                    Кыргызская Республика, г. Бишкек, пр. Ч. Айтматова, 1 , стр. 2.<br>
+                    +996 553 545400; +996 707 545400
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу окуясы /<br>Страховой случай</th>
+                <td>
+                    а) Травмы в результате несчастного случая (по Таблице размеров выплат страхового возмещения при наступлении несчастного случая. Утверждено Протоколом Правления ОАО «ГСО» к «Правилам добровольного страхования от несчастных случаев и болезней») №22 от 24.06.2022 г.;<br>
+                    б) инвалидность; в) смерть.
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу эрежелери /<br>Условия страхования</th>
+                <td>
+                    “Программа страхования учащихся (дошкольников, школьников, студентов) от несчастного случая”. Утверждено Протоколом Правления ОАО «ГСО», №72 от 26.05.2026 г.<br> «Правила добровольного страхования от несчастных случаев и болезней». Утверждено Протоколом Правления ОАО «ГСО», №22 от 24.06.2022 г.
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу аймагы /<br>Территория страхования</th>
+                <td class="bold uppercase">КЫРГЫЗСКАЯ РЕСПУБЛИКА</td>
+            </tr>
+        </table>
+     
+
+        <div class="section-title">КАМСЫЗДАНДЫРУУ ТОПТОМ / ПАКЕТ СТРАХОВАНИЯ </div>
+        <table>
+            <tr>
+                <th class="bold" style="width: 48% ;">Келишимдин колдонулуу мөөнөтү Срок действия договора</th> 
+                <td class="bold" width="10%">с</td>
+                <td class="center"><span class="bold" style="font-size: 11pt;">{{ policy.date_from|date:"d.m.Y" }}</span></td>
+                <td class="bold" width="10%">по</td>
+                <td class="center"><span class="bold" style="font-size: 11pt;">{{ policy.date_to|date:"d.m.Y" }}</span></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th class="bold">Камсыздандыруучу /<br>Страхователь</th>
+                <td class="bold uppercase">{{ policy.holder_name }}</td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандырылуучунун маалыматтары /<br>Данные Страхователя (паспорт, адрес, телефон)</th>
+                    <td class="bold uppercase">
+                        {% if is_draft %}
+                            {# ЛОГИКА ДЛЯ ЧЕРНОВИКА #}
+                            {% if policy.holder.company_name %}
+                                <b>ИНН компании:</b> {{ policy.holder.inn|default:"---" }}
+                            {% else %}
+                                <b>Паспорт:</b> {{ policy.holder.passport|default:"---" }}
+                            {% endif %}
+                        {% else %}
+                            {# ЛОГИКА ДЛЯ ЧИСТОВИКА (ДАННЫЕ ИЗ КЭШ-ПОЛЕЙ ПОЛИСА) #}
+                            {% if policy.holder_passport == "ЮР. ЛИЦО" %}
+                                <b>ИНН компании:</b> {{ policy.holder_inn|default:"---" }}
+                            {% else %}
+                                <b>Паспорт:</b> {{ policy.holder.passport|default:"---" }}
+                            {% endif %}
+                        {% endif %}
+                        
+                        <br>
+                        <b>Тел:</b> {{ policy.holder_phone|default:"---" }}<br>
+                        <b>Адрес:</b> <span class="uppercase">{{ policy.holder_address|default:"---" }}</span>
+                    </td>
+            </tr>
+            <tr>
+            <th class="bold">Пайда табуучу /<br>Выгодоприобретатель</th>
+                <td class="bold uppercase">
+                    {% if is_draft %}
+                        {# Логика для Черновика (Превью) #}
+                        {% with student=insured_students_preview|first %}
+                            {% if policy.holder.company_name %}
+                                {{ student.beneficiary_name }}
+                            {% else %}
+                                {{ policy.holder_name }}
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        {# Логика для Чистовика (из Базы Данных) #}
+                        {% if policy.holder_kind == 'company' %}
+                            Согласно приложенному списку учащихся (Законные представители / Родители)
+                        {% else %}
+                            {{ policy.holder_name }} 
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандырылган /<br>Застрахованный</th>
+                <td class="bold">
+                    {% if is_draft %}
+                        {# Извлекаем первого ребенка из массива превью для черновика #}
+                        {% with person=insured_students_preview|first %}
+                            {% if person %}
+                                <span class="uppercase">{{ person.full_name }}</span> <br>
+                                Дата рождения: {{ person.date_of_birth }} <br>
+                                Документ: {{ person.document_number }}<br>
+                                Учреждение: <span class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</span>
+                            {% else %}
+                                НЕ УКАЗАН
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        {# Извлекаем первого ребенка из связи для чистовика из базы #}
+                        {% with person=policy.insured_students.all|first %}
+                            {% if person %}
+                                <span class="uppercase">{{ person.full_name }}</span> <br>
+                                Дата рождения:{{ person.date_of_birth|date:"d.m.Y" }} <br>
+                                Документ: {{ person.document_number }} <br>
+                                Учреждение: <span class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</span>
+                            {% else %}
+                                НЕ УКАЗАН
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу келишиминин аракеттенүү программасы<br>Программа действия договора страхования</th>
+                <td class="bold uppercase">
+                    <b> {{ policy.program.name }}</b>
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу суммасы /<br>Общая страховая сумма</th>
+                <td class="bold">{{ policy.total_sum_insured|floatformat:0 }} СОМ</td>
+            </tr>
+            <tr>
+                <th class="bold">Франшиза безусловная</th>
+                <td></td>
+            </tr>
+            <tr>
+                <th class="bold">Өзгөчө белгилер /<br>Особые отметки</th>
+                <td><b>Режим покрытия:</b> {% if policy.time_type == '24H' %}24 часа в сутки{% else %}12 часов во время учебы (07:00 - 19:00){% endif %}<br>
+                    <b>Спортивная секция:</b> {% if policy.is_sports_section %}ВКЛЮЧАЯ СПОРТ (Коэффициент учтен){% else %}НЕТ{% endif %}</td>
+            </tr>
+        </table>
+        <table style="margin-top: 0px;">
+            <tr>
+                <th class="bold" rowspan="3" style="width: 35%;">
+                    Камсыздандыруу сый төлөмү/<br>Страховая премия<br>
+                    <!-- Добавляем font-weight: normal, чтобы убрать жирность, и font-style: italic для курсива -->
+                    <span style="font-weight: normal; font-style: italic; font-size: 7.2pt; display: block; margin-top: 5px; line-height: 1.1;">
+                        Эгерде кызматташуу жөнүндө келишимде башкача каралбаса, Полисти тариздөө бир убакта төлөнүүгө тийиш. Төлөмсүз жараксыз болуп саналат.  /<br>
+                        Подлежит оплате единовременно при оформлении полиса, если иное не оговорено договором о сотрудничестве. Без оплаты не действителен.
+                    </span>
+                </th>   
+                <td class="bold" style="width: 35%;">Сатуудан алынуучу салыксыз төлөм / Сумма без НСП</td>
+                <td class="right" style="font-size: 9pt;">{{ policy.total_premium_netto|floatformat:2 }} сом</td>
+            </tr>
+            <tr>
+                <td class="bold">Сатуудан алынуучу салык / Налог с продаж (2%)</td>
+                <td class="right">{{ policy.total_nsp_amount|floatformat:2 }} сом</td>
+            </tr>
+            <tr>
+                <td class="bold" style="background: #f8fafc;">Төлөмдүн жыйынтыгы / Итого к оплате</td>
+                <td class="bold right" style="font-size: 11pt; background: #f8fafc;">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
+            </tr>
+        </table>
+            
+
+        <div style="font-size: 6.5pt; text-align: justify; margin: 6px 0;">
+            <b>
+                Программа жана Эреже №22 менен тааныштым жана бардык талаптарды аткарууга милдеттенем. Ушул камсыздандыруу келишимине кол коюу менен, Камсыздандыруучу жана Пайда табуучу өздөрунун жеке маалыматтарын чогултууга, иштетүүгө макулдук беришет. / С Программой и Правилами №22 ознакомлен(а) и обязуюсь выполнить все требования. Подписывая настоящий страховой Договор, Страхователь и Выгодоприобретатель предоставляют согласие на сбор, обработку, хранение и использование своих персональных данных.
+            </b>
+        </div>
+        <table style="width: 100%; margin-top: 1px; border: 0.75pt solid black; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; border: none; border-right: 0.75pt solid black; padding: 6px 12px; height: 80px; position: relative; vertical-align: top;">
+                    <div class="bold" style="font-size: 8pt;">Камсыздандырылуучу /</div>
+                    <div style="font-size: 8pt;">Страхователь:</div>
+                    
+                    <div style="position: absolute; bottom: 6px; left: 12px; right: 12px;">
+                        <div style="border-bottom: 0.75pt solid black; width: 80%; margin: 0 auto 2px auto;"></div>
+                        <div class="center" style="font-size: 7pt; font-style: italic; margin-bottom: 5px;">(колу) / (подпись)</div>
+                        <div class="bold" style="font-size: 8.5pt; text-align: left;">М.О./М.П.</div>
+                    </div>
+                </td>
+                
+                <td style="width: 50%; border: none; padding: 6px 12px; height: 80px; position: relative; vertical-align: top;">
+                    <div class="bold" style="font-size: 8pt;">Камсыздандыруучу /</div>
+                    <div style="font-size: 8pt; margin-bottom: 2px;">Страховщик:</div>
+                    <div class="bold" style="font-size: 8pt;">ОАО «Государственная Страховая Организация»</div>
+                    
+                    <div style="position: absolute; bottom: 6px; left: 12px; right: 12px;">
+                        <div style="border-bottom: 0.75pt solid black; width: 80%; margin: 0 auto 2px auto;"></div>
+                        <div class="center" style="font-size: 7pt; font-style: italic; margin-bottom: 5px;">(колу) / (подпись)</div>
+                        <div class="bold" style="font-size: 8.5pt; text-align: left;">М.О./М.П.</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+   <div class="page">
+        <table style="width: 100%; border: 0.75pt solid black; border-collapse: collapse; font-family: 'Times New Roman', Times, serif; font-size: 6.8pt; line-height: 1.2; text-align: justify;">
+            
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруунун шарттары:</b><br>
+                    Ушул келишимдин (Полистин) жоболору «Окуучуларды (мектепке чейинки курактагы балдарды, мектеп окуучуларын, студенттерди) кырсыктан камсыздандыруу Программасынын», «Кырсыктан ыктыярдуу жана оорулардан камсыздандыруу Эрежелеринин» шарттарына ылайык келет (мындан ары – Программа, Эрежелер). Ушул келишимде жазылбаган, жогоруда айтылган Эреженин жобосу Келишимдин ажыратылгыс бөлүгү болуп саналат жана ал Камсыздандырылуучу үчүн милдеттүү болуп саналат. Бул Келишимге кол коюп жатып, Камсыздандырылуучу Эрежени алгандыгын, аны менен таанышкандыгын жана анда көрсөтүлгөндөрдү аткарууга милдеттенет.
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Условия страхования:</b><br>
+                    Положения настоящего Договора (Полиса) соответствуют условиям «Программы страхования учащихся (дошкольников, школьников, студентов) от несчастного случая», «Правилам добровольного страхования от несчастных случаев и болезней (далее – Программа, Правила)». Положения вышеприведенных Правил, не прописанные в настоящем Полисе, являются его неотъемлемой частью и обязательными для Страхователя. Подписывая настоящий Договор, Страхователь подтверждает, что получил Правила, ознакомлен с ними и обязуется выполнять.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу объекттилери болуп саналат:</b><br>
+                    Кыргыз Республикасынын колдонуудагы мыйзамдарына каршы келбеген, камсыздандырылган жактын (Пайда табуучунун) өмүрүнө жана ден соолугуна зян келтирүүгө, ошондой эле күтүүсүз кырсыктын кесепетинен каза болууга байланышкан мүлктүк кызыкчылыктары камсыздандыруу объектиси болуп саналат.
+                </td>
+                <td style="border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Объектами страхования являются:</b><br>
+                    Объектом страхования являются не противоречащие действующему законодательству Кыргызской Республики имущественные интересы Застрахованного лица (Выгодоприобретателя), связанные с причинением вреда жизни и здоровью Застрахованного лица, а также в связи со смертью в результате несчастного случая.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Окуучуларды кырсыктан камсыздандыруу келишими</b> бекитилген камсыздандыруу шарттарына ылайык, камсыздандыруу суммалары менен айырмаланган пакеттердин категориясын тандоо мүмкүнчүлүгүн караштырат. Тиркеме Камсыздандырылган жактардын маалыматтарын көрсөтүү менен жамааттык келишим түзүү мүмкүнчүлүгүн камтыйт.
+                </td>
+                <td style="border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Договор страхования учащихся от несчастного случая </b> предусматривает возможность выбора категории пакетов, различающихся страховыми суммами в соответствии с установленными условиями страхования, а также предусматривает возможность заключения группового договора с указанием данных Застрахованных лиц в Приложении №1.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу полисинин колдонуу мөнөөтү:</b><br>
+                     а) 1 күндөн 1 жылга чейин; б) суткасына 12 саат; в) суткасына 24 саат
+
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Период действия страхового полиса:</b><br>
+                    а) от 1 дня до 1 года; б) 12 часов в сутки; в) 24 часа в сутки.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>«Окуучуларды (мектепке чейинки курактагы балдарды, мектеп окуучуларын, студенттерди) кырсыктан камсыздандыруу программасына» ылайык камсыздандыруу пакеттери:</b><br>
+                    ЭРКЕ (3 жаштан 6 жашка чейин)<br>
+                    УЧУР (7 жаштан 17 жашка чейин)<br>
+                    КЕЛЕЧЕК (18 жаштан 25 жашка чейин)
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Пакеты страхования согласно «Программе страхования учащихся (дошкольников, школьников, студентов) от несчастного случая»:</b><br>
+                    ЭРКЕ (от 3 до 6 лет включительно)<br>
+                    УЧУР (от 7 до 17 лет включительно)<br>
+                    КЕЛЕЧЕК (от 18 до 25 лет включительно)
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу окуясы -</b>
+                    камсыздандыруу келишиминде каралган окуя, анын болушу менен камсыздандыруучунун камсыздандырылуучуга, камсыздандырылган жакка же болбосо пайда табуучуга камсыздандыруу төлөмүн төлөп берүүгө милдеттүүлүгү келип чыгат.
+                    Камсыздандыруу окуясынын белгилери бар окуя болгондон кийин камсыздандырылуучу (пайда табуучу же камсыздандырылган) төмөнкүлөргө милдеттүү:
+                    Камсыздандырылган адам менен камсыздандыруу окуясы башталганда Камсыздандыруучу (Пайда табуучу же Камсыздандырылган адам) бул тууралуу Камсыздандыруучуга ага камсыздандыруу окуясы башталгандыгы жөнүндө белгилүү болгондо, эгерде камсыздандыруу Келишиминде башка нерсе макулдашылбаган болсо ага билдирүү фактысын обьективдүү каттоого мүмкүнчүлүк бере турган кайсы гана болбосун жеткиликтүү ыкма менен 10 күндүн ичинде кабарлашы керек. Эгерде Камсыздандыруучу дагы (Пайда табуучу), Камсыздандырылган адам дагы, Камсыздандыруучуга Эреженин 8.2-п., белгиленген мөөнөт ичинде камсыздандыруу окусы башталгандыгы жөнүндө кабарлоо мүмкүнчүлүгүнө ээ болбосо, Камсыздандыруучу Кыргыз Республикасынын учурдагы мыйзамында белгиленген камсыздандыруу доо арызынын мөөнөтүнүн чегинде ордун толтурууга белгиленген дооматтарды карап чыгууга кабыл алууга милдеттенет. Бирок Камсыздандыруучу өз учурунда кабарлоо мүмкүнчүлүгү жок болгондугунун аны канааттандыруучу далилдерин талап кылуу укугун өзүнө калтырат.  
+
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Страховой случай – </b>
+                    свершившееся событие, предусмотренное договором страхования, с наступлением которого возникает обязанность страховщика произвести страховую выплату страхователю, застрахованному лицу либо выгодоприобретателю.  
+                    При наступлении события, имеющего признаки страхового случая, Страхователь (Выгодоприобретатель или Застрахованный) обязан:
+                    При наступлении с Застрахованным страхового случая Страхователь (Выгодоприобретатель или Застрахованный) должен известить об этом Страховщика в течение 10-ти дней, начиная со дня, когда ему стало известно о наступлении страхового случая, любым доступным ему способом, позволяющим объективно зафиксировать факт сообщения, если иное не оговорено в Договоре страхования. 
+                    Если ни Страхователь, ни Застрахованный (Выгодоприобретатель) не имели возможности известить Страховщика о наступлении страхового случая в пределах указанного в п.8.2. Правил срока, Страховщик обязуется принять к рассмотрению претензию на страховое возмещение в пределах срока исковой давности, установленной действующим законодательством Кыргызской Республики. Однако Страховщик оставляет за собой право требовать удовлетворяющие его доказательства того, что возможность своевременного извещения действительно отсутствовала.
+
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу төлөмү: <br> Төмөнкү учурларда:</b><br>
+                    а) жаракат алганда (Эреже 22нин 6 – тиркемесине ылайык камсыздандыруу суммасынан %); б) 1 – топтогу майыптыкта – 100%; в) 2 – топтогу майыптыкта – 75%; г) 3 – топтогу майыптыкта – 50%; д) каза болгондо – 100%.  
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Страховая выплата:</b><br>
+                    В случае: а) травмы (% от страховой суммы согласно Приложению №6 Правил №22) 
+                    б) инвалидности 1 группы – 100%; в) инвалидности 2 группы – 75%; 
+                    г) инвалидности 3 группы -50%, д) смерти – 100%.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу төлөмүн ишке ашыруу (ордун толтуруу) тартиби:</b><br>
+                    Камсыздандыруунунун ордун толтуруп төлөтүп алуу үчүн Камсыздандыруучу (Пайда табуучу, Камсыздандырылган адам) Камсыздандыруучуга  Камсыздандырылган адамдын фамилиясын, атын жана атасынын атын, камсыздандыруу окуясы башталган күндү жана кырдаалды, бардык зарыл болгон реквизиттерди көрсөтүү аркылуу камсыздандыруунун ордун толтуруп төлөөнү алуунун каалаган формасын көрсөтүү менен жазуу жүзүндөгү арызды жөнөтүүгө тийиш.
+                    Камсыздандыруу төлөмдөрүн төлөө маселесин чечүү үчүн Камсыздандыруу эрежелеринин 8.21-пунктуна ылайык документтер берилүүгө тийиш. 
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Порядок осуществления страховой выплаты (возмещения):</b><br>
+                    Для получения страхового возмещения Страхователь (Застрахованный, Выгодоприобретатель) должен направить Страховщику письменное заявление с указанием фамилии, имени и отчества Застрахованного лица, даты и обстоятельств наступления страхового случая, желаемой формы получения страхового возмещения с указанием всех необходимых реквизитов.
+                    Для решения вопроса о выплате страхового возмещения должны быть предоставлены документы согласно пункту 8.21. Правил страхования.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Атайын Шарттар: </b>
+                    Камсыздандыруу полисинде сый төлөмдү төлөөчү күн катары  белгиленген мөөнөттө сый төлөмү төлөнбөсө келишим күчүнө кирген жок деп эсептелет жана тараптарды кандайдыр бир укуктук жоопкерчиликтерге кириптер кылбайт.
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Специальное условие:</b><br>
+                     При неуплате премии в срок, установленный в полисе страхования, как дата уплаты премии, договор считается не вступившим в силу и не влечет каких-либо правовых последствий для его сторон.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Камсыздандыруу полисинин шарттарын өзгөртүү:</b>
+                    Полиске толуктоо киргизүүнү тариздөө жолу менен Камсыздандырылуучунун жазуу жүзүндөгү арызынын негизинде, тараптардын макулдуктары боюнча, Полис колдонулуп жаткан мезгилде бул  Полистин шарттары өзгөртүлүшү мүмкүн, эки тарап кол койгон макулдашуу бул Полистин ажыратылгыс бөлүгү болуп калат.
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Изменение условий страхового полиса: </b><br>
+                    Все изменения в условия настоящего Полиса, в период его действия могут вноситься по соглашению сторон с письменного заявления Страхователя путем оформления Дополнений к Полису, которые после их подписания обеими Сторонами становятся неотъемлемой частью настоящего Полиса.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    Келип чыккан дооматтар боюнча камсыздандыруу уюмдарынын ишин жөнгө салуучу Органга кайрылсаңыздар болот: 
+                    Кыргыз Республикасынын Экономика жана Коммерция министрлигинине караштуу финансы рыногун тескөө жана көзөмөлдөө мамлекеттик кызматы, Бишкек шаары, Чүй пр.114 Телефон: +996 (312) 62 44 60, +996 (312) 62 44 70.
+                </td>
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    По возникающим претензиям Вы можете обращаться в Орган, регулирующий деятельность страховых организаций:
+                    Государственная служба регулирования и надзора за финансовым рынком при Министерстве экономики и коммерции Кыргызской  Республики, г. Бишкек, пр. Чуй 114, Телефон: +996 (312) 62 44 60, +996 (312) 62 44 70.
+                </td>
+            </tr>
+
+            <tr>
+                <td style="width: 50%; width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Башкы офистин дареги: </b><br>
+                    Кыргыз Республикасы, Бишкек шаары, Ч. Айтматов пр.1; тел.: +996 (553) 545400; +996 (707) 545400.<br><br>
+                    _______________________________
+                </td>
+                
+                <td style="width: 50%; border: 0.75pt solid black; padding: 6px 10px; vertical-align: top;">
+                    <b>Адрес головного офиса: </b><br>
+                    Кыргызская Республика, г. Бишкек, пр. Ч. Айтматова 1, тел.: +996 (553) 545400; +996 (707) 545400.<br><br>
+                    _______________________________
+                </td>        
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

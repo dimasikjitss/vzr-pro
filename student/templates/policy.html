@@ -1,0 +1,351 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Печать полиса {{ policy.policy_number }}</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <style>
+        /* Настройки листа A4 */
+        @page { size: A4; margin: 0; }
+        body { background-color: #525659; margin: 0; padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
+        
+        .page {
+            background: white;
+            width: 210mm;
+            height: 297mm;
+            padding: 10mm 15mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 8pt;
+            color: #000;
+            line-height: 1.15;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .page { box-shadow: none; margin: 0; page-break-after: always; }
+            .no-print { display: none !important; }
+        }
+
+        /* Управление */
+        .no-print { margin-bottom: 20px; background: #2c3e50; padding: 10px 30px; border-radius: 8px; display: flex; gap: 15px; }
+        .no-print button { padding: 8px 16px; background: #0bb7a2; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .no-print button:hover { opacity: 0.9; }
+
+        /* Стили бланка ГСО */
+        .licence-text { text-align: center; font-size: 7.5pt; font-style: italic; font-weight: bold; text-decoration: underline; margin-bottom: 15px; }
+        .main-title { text-align: center; font-weight: bold; font-size: 10pt; margin: 15px 0 5px 0; letter-spacing: 0.5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: -1px; }
+        td, th { border: 0.75pt solid black; padding: 4px 6px; vertical-align: top; font-size: 8pt; }
+        th { font-weight: normal; text-align: left; width: 35%; }
+        
+        .section-header { background: #ffffff; font-weight: bold; text-align: center; font-size: 9pt; border: 0.75pt solid black; padding: 4px; text-transform: uppercase; }
+        
+        .marked { font-family: "Courier New", monospace; font-weight: bold; font-size: 12pt; display: block; text-align: center; line-height: 1; }
+        .bold { font-weight: bold; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .uppercase { text-transform: uppercase; }
+
+        /* Вторая страница (Правила) */
+        .rules-wrapper { 
+            font-family: 'Calibri', 'Arial', sans-serif; 
+            transform: scale(0.67);
+            transform-origin: top left; 
+            width: 149%; 
+            text-align: justify;
+        }
+        .rules-cols { display: flex; gap: 6mm; }
+        .rules-col { width: 50%; line-height: 1.1; font-size: 7.5pt; }
+        .rules-title-box { font-weight: bold; text-align: center; text-transform: uppercase; margin-bottom: 8px; font-size: 9.5pt; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">ПЕЧАТЬ (2 ЛИСТА)</button>
+        <button onclick="window.history.back()" style="background:#7f8c8d;">НАЗАД</button>
+    </div>
+
+    <div class="page page-blank">
+        <div>
+            <div class="center" style="font-size: 6.5pt; font-style: italic; margin-top: 10px;">
+                <b>STATE INSURANCE ORGANIZATION</b><br>
+                <b>Государственная лицензия Серия С №0041 от 26.01.2017 г. / State license Series C No. 0041 dated January 26, 2017</b>
+            </div>
+        </div>
+
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; margin-bottom: -1px;">
+            <tr>
+                <th class="bold" style="width: 50%; box-sizing: border-box;">Дата оформления полиса / Полисти тариздөө күнү</th>
+                <td class="bold" style="width: 50%; box-sizing: border-box;">{{ policy.issue_date|date:"d.m.Y" }}</td>
+            </tr>
+            <tr>
+                <th class="bold" style="width: 50%; box-sizing: border-box;">POLICY № / ПОЛИС №</th>
+                <td class="bold" style="width: 50%; box-sizing: border-box;">{{ policy.policy_number }}</td>
+            </tr>
+            <tr>
+                <th class="bold" style="width: 50%; box-sizing: border-box;">Agent's full name, company / ФИО, компания агента</th>
+                <td class="bold uppercase" style="width: 50%; box-sizing: border-box;">{{ policy.agent.get_full_name|upper }}</td> 
+            </tr>
+        </table>
+        
+
+        <div class="main-title">
+            ОКУУЧУЛАР КЫРСЫКТАРДАН ЫКТЫЯРДУУ КАМСЫЗДАНДЫРУУ ПОЛИСИ<br>
+            СТРАХОВОЙ ПОЛИС ПО СТРАХОВАНИЮ УЧАЩИЕСЯ ОТ НЕСЧАСТНОГО СЛУЧАЯ
+        </div>
+
+        <table>
+            <tr>
+                <th class="bold">Камсыздандыруучу /<br>Страховщик</th>
+                <td>
+                    <b>Открытое Акционерное Общество «Государственная Страховая Организация» (далее - ОАО "ГСО")</b><br>
+                    Кыргызская Республика, г. Бишкек, пр. Ч. Айтматова, 1 , стр. 2.<br>
+                    +996 553 545400; +996 707 545400
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу окуясы /<br>Страховой случай</th>
+                <td>
+                    а) Травмы в результате несчастного случая (по Таблице размеров выплат страхового возмещения при наступлении несчастного случая. Утверждено Протоколом Правления ОАО «ГСО» к «Правилам добровольного страхования от несчастных случаев и болезней»);<br>
+                    б) инвалидность; в) смерть.
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу эрежелери /<br>Условия страхования</th>
+                <td>
+                    “Программа страхования учащихся (дошкольников, школьников, студентов) от несчастного случая”. Утверждено Протоколом Правления ОАО «ГСО», №72 «Правила добровольного страхования от несчастных случаев и болезней». Утверждено Протоколом Правления ОАО «ГСО», №22 от 24.06.2022 г.
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу аймагы /<br>Территория страхования</th>
+                <td class="bold uppercase">КЫРГЫЗСКАЯ РЕСПУБЛИКА</td>
+            </tr>
+        </table>
+
+        <div class="section-header" style="margin-top: 5px;">КАМСЫЗДАНДЫРУУ ТОПТОМУ / ПАКЕТ СТРАХОВАНИЯ</div>
+
+        <table>
+            <tr>
+                <th class="bold">Келишимдин колдонулуу мөөнөтү /<br>Срок действия договора</th>
+                <td class="bold">
+                    с {{ policy.date_from|date:"d.m.Y" }} по {{ policy.date_to|date:"d.m.Y" }} 
+                    ({% if policy.days_count %}{{ policy.days_count }}{% else %}{{ policy.days_count }}{% endif %} дн.)
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруучу /<br>Страхователь</th>
+                <td class="bold uppercase">{{ policy.holder_name }}</td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандырылуучунун маалыматтары /<br>Данные Страхователя (паспорт, адрес, телефон)</th>
+                    <td>
+                        <b>Паспорт:</b> 
+                        {% if is_draft %}
+                            {{ policy.holder.passport|default:"ЮР. ЛИЦО" }}
+                        {% else %}
+                            {% if policy.holder_passport %}{{ policy.holder_passport }}{% else %}{{ policy.holder.passport|default:"ЮР. ЛИЦО" }}{% endif %}
+                        {% endif %}
+                        <br>
+                        <b>Тел:</b> {{ policy.holder_phone }}<br>
+                        <b>Адрес:</b> <span class="uppercase">{{ policy.holder_address }}</span>
+                    </td>
+            </tr>
+            <tr>
+            <th class="bold">Пайда табуучу /<br>Выгодоприобретатель</th>
+                <td class="bold uppercase">
+                    {% if is_draft %}
+                        {# Логика для Черновика (Превью) #}
+                        {% if policy.holder.company_name %}
+                            Согласно приложенному списку учащихся (Законные представители / Родители)
+                        {% else %}
+                            {{ policy.holder_name }}
+                        {% endif %}
+                    {% else %}
+                        {# Логика для Чистовика (из Базы Данных) #}
+                        {% if policy.holder_kind == 'company' %}
+                            Согласно приложенному списку учащихся (Законные представители / Родители)
+                        {% else %}
+                            {{ policy.holder_name }} 
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандырылган(дар) /<br>Застрахованный(е)</th>
+                <td class="bold">
+                    {% if is_draft %}
+                        {# Извлекаем первого ребенка из массива превью для черновика #}
+                        {% with person=insured_students_preview|first %}
+                            {% if person %}
+                                ФИО: <span class="uppercase">{{ person.full_name }}</span> | 
+                                Дата рожд: {{ person.date_of_birth }} | <br>
+                                Документ: {{ person.document_number }}<br>
+                                Учреждение: <span class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</span>
+                            {% else %}
+                                НЕ УКАЗАН
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        {# Извлекаем первого ребенка из связи для чистовика из базы #}
+                        {% with person=policy.insured_students.all|first %}
+                            {% if person %}
+                                ФИО: <span class="uppercase">{{ person.full_name }}</span> | 
+                                Дата рожд: {{ person.date_of_birth|date:"d.m.Y" }} <br>
+                                Документ: {{ person.document_number }}
+                                Учреждение: <span class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</span>
+                            {% else %}
+                                НЕ УКАЗАН
+                            {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу келишиминин аракеттенүү программасы /<br>Программа действия договора страхования</th>
+                <td>
+                    <b>Программа:</b> {{ policy.program.name }} | 
+                    <b>Режим покрытия:</b> {% if policy.time_type == '24H' %}24 часа в сутки{% else %}12 часов во время учебы (07:00 - 19:00){% endif %}<br>
+                    <b>Спортивная секция:</b> {% if policy.is_sports_section %}ВКЛЮЧАЯ СПОРТ (Коэффициент учтен){% else %}НЕ ВКЛЮЧАЯ СПОРТ{% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th class="bold">Камсыздандыруу суммасы /<br>Общая страховая сумма</th>
+                <td class="bold">{{ policy.total_sum_insured|floatformat:0 }} СОМ</td>
+            </tr>
+            <tr>
+                <th class="bold">Франшиза безусловная</th>
+                <td></td>
+            </tr>
+            <tr>
+                <th class="bold">Өзгөчө белгилер /<br>Особые отметки</th>
+                <td></td>
+            </tr>
+        </table>
+
+        <!-- <table style="margin-top: 5px; font-size: 7pt; text-align: center;">
+            <tr style="background: #f5f5f5; font-weight: bold;">
+                <td style="width: 25%;">ФИО Ученика / Застрахованного</td>
+                <td style="width: 10%;">Дата рожд.</td>
+                <td style="width: 15%;">Документ</td>
+                <td style="width: 20%;">Учреждение / Класс</td>
+                <td style="width: 30%;">Выгодоприобретатель (Родитель)</td>
+            </tr>
+            
+            {% if is_draft %}
+                {% for person in insured_students_preview %}
+                <tr>
+                    <td class="bold uppercase text-left">{{ person.full_name }}</td>
+                    <td>{{ person.date_of_birth }}</td>
+                    <td class="font-mono">{{ person.document_number }}</td>
+                    <td class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</td>
+                    <td class="text-left uppercase"><b>{{ person.beneficiary_name }}</b><br><span class="small-text text-slate-500">({{ person.beneficiary_relation }})</span></td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                {% for person in policy.insured_students.all %}
+                <tr>
+                    <td class="bold uppercase text-left">{{ person.full_name }}</td>
+                    <td>{{ person.date_of_birth|date:"d.m.Y" }}</td>
+                    <td class="font-mono">{{ person.document_number }}</td>
+                    <td class="uppercase">{{ person.educational_institution }} ({{ person.grade_or_group }})</td>
+                    <td class="text-left uppercase"><b>{{ person.beneficiary_name }}</b><br><span style="font-size: 6.5pt; color:#666;">({{ person.beneficiary_relation }})</span></td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </table> -->
+
+        <table style="margin-top: 5px;">
+            <tr>
+                <th class="bold" rowspan="3" style="width: 35%;">Камсыздандыруу сый төлөмү/<br>Страховая премия</th>
+                <td class="bold" style="width: 35%;">Сатуудан алынуучу салыксыз төлөм / Сумма без НСП</td>
+                <td class="bold right" style="font-size: 9pt;">{{ policy.total_premium_netto|floatformat:2 }} сом</td>
+            </tr>
+            <tr>
+                <td class="bold" style="color: #4b5563;">Сатуудан алынуучу салык / Налог с продаж (2%)</td>
+                <td class="right" style="color: #4b5563;">{{ policy.total_nsp_amount|floatformat:2 }} сом</td>
+            </tr>
+            <tr>
+                <td class="bold" style="background: #f8fafc;">Төлөмдүн жыйынтыгы / Итого к оплате</td>
+                <td class="bold right" style="font-size: 10pt; background: #f8fafc; color: #0bb7a2;">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
+            </tr>
+        </table>
+
+        <div class="small-text" style="text-align: justify; margin: 8px 0; font-size: 6.8pt; line-height: 1.1;">
+            Программа жана Эреже №22 менен толук тааныштым жана бардык талаптарды аткарууга милдеттенем. Ушул камсыздандыруу келишимине кол коюу менен, Камсыздандыруучуга жана Пайда табуучу өзүнүн жеке маалыматтарын чогултууга, иштетүүгө макулдук беришет. / С Программой и Правилами №22 ознакомлен(а) и обязуюсь выполнять все требования. Подписывая настоящий Договор, Страхователь и Выгодоприобретатель предоставляют согласие на сбор, обработку, хранение и использование своих персональных данных.
+            <br><b>Без оплаты не действителен.</b>
+        </div>
+
+        <table style="margin-top: 10px; border: none;">
+            <tr>
+                <td style="width: 50%; border: none; padding: 0 10px 0 0;">
+                    <span class="bold">Камсыздандырылуучу / Страхователь:</span><br><br><br>
+                    <div style="border-bottom: 0.75pt solid black; width: 100%;"></div>
+                    <div class="center small-text">(колу) / (подпись)</div>
+                    <span class="bold">М.О./М.П.</span>
+                </td>
+                <td style="width: 50%; border: none; padding: 0 0 0 10px;">
+                    <span class="bold">Камсыздандыруучу / Страховщик:</span><br>
+                    <b>ОАО «Государственная Страховая Организация»</b><br><br>
+                    <div style="border-bottom: 0.75pt solid black; width: 100%;"></div>
+                    <div class="center small-text">(колу) / (подпись)</div>
+                    <span class="bold">М.О./М.П.</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="page">
+        <div class="rules-wrapper">
+            <div class="rules-title-box">ИЗВЛЕЧЕНИЕ ИЗ ПРАВИЛ ДОБРОВОЛЬНОГО СТРАХОВАНИЯ ОТ НЕСЧАСТНЫХ СЛУЧАЕВ И БОЛЕЗНЕЙ №22 ОТ 24 ИЮНЯ 2022 ГОДА.</div>
+            <div class="rules-cols">
+                <div class="rules-col">
+                    <p><b>Статья 1. ОБЩИЕ ПОЛОЖЕНИЯ</b><br>
+                    1.1. Правила добровольного страхования от несчастных случаев и болезней открытого акционерного общества «Государственная Страховая Организация» определяют условия и порядок добровольного страхования от несчастных случаев и болезней с физическими и юридическими лицами.<br>
+                    1.2. В соответствии с настоящими Правилами страхования Страховщик обязуется при наступлении страховых случаев выплатить застрахованному лицу, а в случае его смерти - Выгодоприобретателю обусловленную Договором страховую сумму полностью или частично.<br>
+                    1.3. Страхователями могут выступать дееспособные физические лица, а также юридические лица любой организационно-правовой формы.<br>
+                    1.5. Договор страхования не заключается в отношении лиц, страдающих психическими, онкологическими заболеваниями или заболеванием сердечно-сосудистой системы, в том числе слабоумием, тяжёлыми расстройствами нервной системы, а также в отношении полностью парализованных лиц и инвалидов I и II группы.<br>
+                    1.7. Основные понятия:<br>
+                    6) Застрахованный – физическое лицо в возрасте от 3 до 25 лет (согласно рамкам программ ЭРКЕ, УЧУР, САПАР), чьи имущественные интересы застрахованы по договору.<br>
+                    7) Несчастный случай – внезапное, непредвиденное и непреднамеренное для застрахованного лица событие, произошедшее в период действия договора страхования и сопровождающееся травмами, ранениями, увечьями или смертью.<br>
+                    <b>Статья 2. ОБЪЕКТЫ СТРАХОВАНИЯ</b><br>
+                    2.1. Объектом страхования являются не противоречащие законодательству КР имущественные интересы, связанные с причинением вреда здоровью Застрахованного, а также с его смертью в результате несчастного случая.<br>
+                    2.2. Не являются несчастным случаем любые формы остро возникших или хронических заболеваний и их осложнения (как ранее диагностированные, так и впервые выявленные), в том числе: инфаркт миокарда, инсульт, аневризмы, опухоли, функциональная недостаточность органов.
+                    </p>
+                </div>
+                <div class="rules-col">
+                    <p><b>Статья 4. СТРАХОВЫЕ СЛУЧАИ</b><br>
+                    4.2. Страховыми событиями являются:<br>
+                    1) травма, полученная в результате несчастного случая;<br>
+                    2) укусы животных, змей и ядовитых насекомых;<br>
+                    3) случайное острое отравление химическими веществами или ядовитыми растениями;<br>
+                    4) заболевание клещевым энцефалитом или полиомиелитом;<br>
+                    7) инвалидность I, II, III группы, наступившая у Застрахованного в период действия договора от перечисленных несчастных случаев;<br>
+                    8) смерть застрахованного, наступившая в период действия договора от вышеперечисленных событий.<br>
+                    4.5. События не признаются страховыми случаями, если они наступили в результате совершения умышленного преступления, самоубийства, умышленного причинения себе телесных повреждений, а также нахождения в состоянии алкогольного, наркотического или токсического опьянения.<br>
+                    <b>Статья 8. ПОРЯДОК ОСУЩЕСТВЛЕНИЯ ВЫПЛАТ</b><br>
+                    8.2. При наступлении страхового случая Страхователь (Выгодоприобретатель) должен известить Страховщика в течение 5 (пяти) дней по телефонам: +996 553 545400 или электронной почте vzr@gso.kg.<br>
+                    8.8. Размеры выплат по группам инвалидности:<br>
+                    - за I группу инвалидности – 100% от страховой суммы;<br>
+                    - за II группу инвалидности – 75% от страховой суммы;<br>
+                    - за III группу инвалидности – 50% от страховой суммы.<br>
+                    8.9. При наступлении смерти Застрахованного Выгодоприобретателю выплачивается 100% страховой суммы.<br>
+                    8.21. Для получения выплаты предоставляются: полис, заявление, оригиналы документов из медицинского учреждения со штампами врача и клиники, рентген/МРТ с описанием, копия паспорта/свидетельства о рождении, банковские реквизиты.
+                    </p>
+                    <br><br>
+                    <div style="border-bottom: 0.5pt solid #333; width: 100%;"></div>
+                    <div style="font-size: 7pt; margin-top: 4px;">Ознакомлен и согласен / ФИО Страхователя: _____________________________________</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
