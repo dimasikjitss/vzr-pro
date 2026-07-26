@@ -1,18 +1,18 @@
 // 1. Инициализация глобальных данных
 let vzrTariffs = window.tariffsData || [];
 let nomadTariffs = window.nomadTariffsData || []; 
+let kidsTariffs = window.kidsTariffsData || []; 
 const usdRate = window.usdRate || 0;
 const eurRate = window.eurRate || 0;
-let currentTab = 'VZR'; // По умолчанию начинаем с ВЗР
+let currentTab = 'VZR'; 
 
-// Глобальный объект элементов (используем функции, так как элементы пересоздаются)
+// Глобальный объект элементов
 const el = {
     h_dob: () => document.getElementById('h_dob'),
     start: () => document.getElementById('start_date'),
     end: () => document.getElementById('end_date'),
     calcBtn: document.getElementById('calc-btn'),
     resetBtn: document.getElementById('reset-btn'),
-    // Элементы правой панели (результаты)
     resPrice: document.getElementById('preview-price'),
     resNsp: document.getElementById('preview-nsp'),
     resNetto: document.getElementById('res-netto'),
@@ -28,13 +28,15 @@ function switchTab(type) {
     currentTab = type;
     const dynamicBox = document.getElementById('dynamic-fields');
     const vBtn = document.getElementById('tab-vzr');
-    const nBtn = document.getElementById('tab-students');
+    const nBtn = document.getElementById('tab-nomad');
+    const kBtn = document.getElementById('tab-students');
 
-    // Визуальное переключение кнопок
+    [vBtn, nBtn, kBtn].forEach(b => {
+        if(b) b.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
+    });
+
     if (type === 'VZR') {
-        vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
-        nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
-        
+        if(vBtn) vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div>
                 <label class="input-label">Территория</label>
@@ -67,9 +69,7 @@ function switchTab(type) {
             </div>
         `;
     } else if (type === 'NOMAD') {
-        vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
-        nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
-        
+        if(nBtn) nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div class="col-span-2">
                 <label class="input-label">Программа</label>
@@ -83,15 +83,13 @@ function switchTab(type) {
             </div>
         `;
     } else if (type === 'STUDENTS') {
-        vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
-        nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
-        
+        if(kBtn) kBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div class="col-span-2">
                 <label class="input-label">Период покрытия</label>
                 <select id="time_type" class="custom-input">
                     <option value="24H">24 часа в сутки</option>
-                    <option value="SCHOOL">Только во время учебы</option>
+                    <option value="12H">12 часов (07:00 - 19:00)</option>
                 </select>
             </div>
             <div class="col-span-2">
@@ -103,15 +101,7 @@ function switchTab(type) {
             </div>
             <div class="col-span-4">
                 <label class="input-label font-black text-teal-600">Сумма покрытия (СОМ)</label>
-                <select id="sum_insured" class="custom-input border-teal-100 bg-teal-50/30 font-black text-teal-700">
-                    <option value="" disabled selected hidden>Выберите сумму</option>
-                    <option value="50000">50 000 сом</option>
-                    <option value="100000">100 000 сом</option>
-                    <option value="200000">200 000 сом</option>
-                    <option value="300000">300 000 сом</option>
-                    <option value="500000">50 0000 сом</option>
-                    <option value="1000000">1 000 000 сом</option>
-                </select>
+                <select id="sum_insured" class="custom-input border-teal-100 bg-teal-50/30 font-black text-teal-700"></select>
             </div>
         `;
     }
@@ -141,9 +131,14 @@ function updateSumOptions() {
             let opt = new Option(s.toLocaleString('ru-RU') + ' ' + currency, s);
             sumEl.add(opt);
         });
-    } else {
-        // Лимиты Номада: от 50к до 2млн
+    } else if (currentTab === 'NOMAD') {
         for (let i = 50000; i <= 2000000; i += 50000) {
+            let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
+            if (i === 100000) opt.selected = true;
+            sumEl.add(opt);
+        }
+    } else if (currentTab === 'STUDENTS') {
+        for (let i = 50000; i <= 1000000; i += 50000) {
             let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
             if (i === 100000) opt.selected = true;
             sumEl.add(opt);
@@ -157,7 +152,7 @@ function runCalculation() {
     const endVal = el.end().value;
     const dobVal = el.h_dob().value;
 
-    if (!startVal || !endVal) return alert("Укажите даты поездки");
+    if (!startVal || !endVal) return alert("Укажите даты поездки/страхования");
     
     const startDate = new Date(startVal);
     const endDate = new Date(endVal);
@@ -184,7 +179,6 @@ function runCalculation() {
         const rate = (territoryVal === 'SCHENGEN') ? eurRate : usdRate;
         const actCoeff = activityVal === 'A+' ? 1.25 : activityVal === 'E+' ? 1.75 : activityVal === 'S+' ? 2.0 : 1.0;
 
-        // Возрастные коэффициенты ВЗР
         if (age < 5) ageCoeff = 2.0;
         else if (age >= 65) ageCoeff = 2.5;
 
@@ -200,8 +194,7 @@ function runCalculation() {
             premiumNettoSom = parseFloat(match.rate) * days * ageCoeff * actCoeff * rate;
             if(el.resRate) el.resRate.innerText = rate.toFixed(2) + (territoryVal === 'SCHENGEN' ? ' EUR' : ' USD');
         }
-    } else {
-        // Логика НОМАД
+    } else if (currentTab === 'NOMAD') {
         if (age <= 5) ageCoeff = 2.0;
         else if (age <= 13) ageCoeff = 1.8;
 
@@ -215,6 +208,59 @@ function runCalculation() {
             premiumNettoSom = (sumVal * percentRate / 100) * ageCoeff;
             if(el.resRate) el.resRate.innerText = "1.00 (KGS)";
         }
+    } else if (currentTab === 'STUDENTS') {
+        const timeType = document.getElementById('time_type').value;
+        const isSports = document.getElementById('is_sports_section').checked;
+
+        // Собираем данные в FormData для отправки на бэкенд
+        const formData = new FormData();
+        formData.append('time_type', timeType);
+        formData.append('sum_insured', sumVal);
+        formData.append('is_sports_section', isSports ? 'true' : 'false');
+        formData.append('start_date', startVal);
+        formData.append('end_date', endVal);
+        
+        // Передаем дату рождения в массив birth_dates[]
+        formData.append('birth_dates[]', dobVal); 
+
+        // Добавляем CSRF-токен, который Django требует для POST-запросов
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+        fetch('/student/calculate/', {  // Проверь этот URL (урл твоей вьюхи student_calculate)
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const fmt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+                
+                // Выводим точные данные, прилетевшие с бэкенда
+                el.resPrice.innerText = parseFloat(data.gross).toLocaleString('ru-RU', fmt);
+                el.resNsp.innerText = parseFloat(data.nsp).toLocaleString('ru-RU', fmt);
+                el.resNetto.innerText = parseFloat(data.netto).toLocaleString('ru-RU', fmt);
+                el.resDays.innerText = data.days_count;
+                el.resAge.innerText = data.student_age + " лет";
+                el.resAgeCoeff.innerText = "1.0"; // Либо выведи коэффициент, если добавишь его в JSON вьюхи
+                el.resProg.innerText = data.program_name + ' ' + sumVal.toLocaleString('ru-RU');
+                if(el.resRate) el.resRate.innerText = "1.00";
+
+                // Записываем полученный program_id в скрытое поле формы, если оно есть
+                const hiddenProgInput = document.getElementById('id_program') || document.querySelector('[name=program]');
+                if (hiddenProgInput) hiddenProgInput.value = data.program_id;
+            } else {
+                alert(data.error || "Ошибка при расчете тарифа");
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Ошибка соединения с сервером при расчете");
+        });
+        
+        return; // Прерываем выполнение стандартного JS-расчета
     }
 
     // Отрисовка результатов
@@ -229,9 +275,9 @@ function runCalculation() {
         el.resDays.innerText = days;
         el.resAge.innerText = dobVal ? age + " лет" : "---";
         el.resAgeCoeff.innerText = ageCoeff.toFixed(1);
-        el.resProg.innerText = (currentTab === 'VZR' ? 'VZR ' : 'NOMAD ') + sumVal.toLocaleString('ru-RU');
+        el.resProg.innerText = (currentTab === 'STUDENTS' ? 'ДЕТИ ' : currentTab + ' ') + sumVal.toLocaleString('ru-RU');
     } else {
-        alert("Тариф не найден для периода " + days + " дн.");
+        alert("Тариф не найден для выбранных параметров.");
     }
 }
 
@@ -249,14 +295,24 @@ function resetOutputs() {
 
 // 6. Слушатели и инициализация
 document.addEventListener('DOMContentLoaded', () => {
-    switchTab('VZR'); // Стартуем с ВЗР
+    switchTab('VZR'); 
     
-    el.calcBtn.onclick = runCalculation;
+    if(el.calcBtn) el.calcBtn.onclick = runCalculation;
     
-    el.resetBtn.onclick = () => {
-        el.h_dob().value = '';
-        el.start().value = '';
-        el.end().value = '';
-        switchTab(currentTab);
-    };
+    if(el.resetBtn) {
+        el.resetBtn.onclick = () => {
+            el.h_dob().value = '';
+            el.start().value = '';
+            el.end().value = '';
+            switchTab(currentTab);
+        };
+    }
+    
+    const tabVzrBtn = document.getElementById('tab-vzr');
+    const tabNomadBtn = document.getElementById('tab-nomad');
+    const tabKidsBtn = document.getElementById('tab-students');
+    
+    if(tabVzrBtn) tabVzrBtn.onclick = () => switchTab('VZR');
+    if(tabNomadBtn) tabNomadBtn.onclick = () => switchTab('NOMAD');
+    if(tabKidsBtn) tabKidsBtn.onclick = () => switchTab('STUDENTS');
 });

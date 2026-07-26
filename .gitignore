@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+venv/
+*.sql
+*.sqlite3
+nohup.out
+media/

@@ -1,0 +1,19 @@
+[0;1;32m●[0m crm.service - Gunicorn instance to serve CRM
+     Loaded: loaded (/etc/systemd/system/crm.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Mon 2026-06-15 00:26:12 +06; 8s ago
+   Main PID: 57116 (gunicorn)
+      Tasks: 4 (limit: 2286)
+     Memory: 93.6M
+     CGroup: /system.slice/crm.service
+             ├─57116 /var/www/my_crm/venv/bin/python3.9 /var/www/my_crm/venv/bin/gunicorn --workers 3 --bind unix:/var/www/my_crm/crm.sock polis.wsgi:application
+             ├─57129 /var/www/my_crm/venv/bin/python3.9 /var/www/my_crm/venv/bin/gunicorn --workers 3 --bind unix:/var/www/my_crm/crm.sock polis.wsgi:application
+             ├─57130 /var/www/my_crm/venv/bin/python3.9 /var/www/my_crm/venv/bin/gunicorn --workers 3 --bind unix:/var/www/my_crm/crm.sock polis.wsgi:application
+             └─57131 /var/www/my_crm/venv/bin/python3.9 /var/www/my_crm/venv/bin/gunicorn --workers 3 --bind unix:/var/www/my_crm/crm.sock polis.wsgi:application
+
+Jun 15 00:26:12 vzr systemd[1]: Started Gunicorn instance to serve CRM.
+Jun 15 00:26:12 vzr gunicorn[57116]: [2026-06-15 00:26:12 +0600] [57116] [INFO] Starting gunicorn 23.0.0
+Jun 15 00:26:12 vzr gunicorn[57116]: [2026-06-15 00:26:12 +0600] [57116] [INFO] Listening at: unix:/var/www/my_crm/crm.sock (57116)
+Jun 15 00:26:12 vzr gunicorn[57116]: [2026-06-15 00:26:12 +0600] [57116] [INFO] Using worker: sync
+Jun 15 00:26:12 vzr gunicorn[57129]: [2026-06-15 00:26:12 +0600] [57129] [INFO] Booting worker with pid: 57129
+Jun 15 00:26:12 vzr gunicorn[57130]: [2026-06-15 00:26:12 +0600] [57130] [INFO] Booting worker with pid: 57130
+Jun 15 00:26:13 vzr gunicorn[57131]: [2026-06-15 00:26:13 +0600] [57131] [INFO] Booting worker with pid: 57131

@@ -143,7 +143,16 @@ class CompanyHolderAdmin(admin.ModelAdmin):
     list_display = ('company_name', 'inn', 'okpo', 'signatory_name', 'phone')
     search_fields = ('company_name', 'inn', 'okpo')
 
-# Скрываем Profile и PolicyCounter из общего списка, так как они теперь 
-# либо внутри User, либо работают автоматически
-admin.site.register(PolicyCounter)
-# admin.site.register(Profile) # Можно закомментировать, если настроен Inline выше
+@admin.register(PolicyCounter)
+class PolicyCounterAdmin(admin.ModelAdmin):
+    # Поля, которые будут видны в виде таблицы в списке
+    list_display = ('branch_code', 'policy_type', 'current_id')
+    
+    # Справа появится удобный фильтр по типу полиса и коду филиала
+    list_filter = ('policy_type', 'branch_code')
+    
+    # Позволяет быстро менять текущий номер счетчика прямо из таблицы, не заходя внутрь карточки
+    list_editable = ('current_id',)
+    
+    # Поиск по коду филиала или типу полиса
+    search_fields = ('branch_code', 'policy_type')

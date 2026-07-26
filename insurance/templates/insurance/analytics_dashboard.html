@@ -12,49 +12,79 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 pt-8 space-y-8">
    
-    <div class="bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200 mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+   <div class="max-w-7xl mx-auto px-4 pt-8 space-y-8">
+   
+    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-8 flex flex-col gap-6">
     
-        <div class="flex bg-slate-100 p-1 rounded-lg self-start lg:self-auto">
-            <button onclick="switchProduct('vzr')" id="tab-vzr" class="text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm">
-                ВЗР (Выездной)
-            </button>
-            <button onclick="switchProduct('vt')" id="tab-vt" class="text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider text-slate-500 hover:text-slate-700">
-                ВТ (Внутренний)
-            </button>
-        </div>
-
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full lg:w-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center w-full">
             
-            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-1.5 shadow-inner">
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">с</span>
-
-                <input type="date" id="date_from" 
-                    class="bg-transparent border-0 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-0 px-2 py-1 cursor-pointer" 
-                    onchange="loadAnalytics()">
-                
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">по</span>
-                
-                <input type="date" id="date_to" 
-                    class="bg-transparent border-0 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-0 px-2 py-1 cursor-pointer" 
-                    onchange="loadAnalytics()">
+            <div class="lg:col-span-5 flex bg-slate-100 p-1.5 rounded-2xl w-full">
+                <button onclick="switchProduct('vzr')" id="tab-vzr" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50">
+                    <i data-lucide="plane" class="w-4 h-4"></i>
+                    <span>ВЗР</span>
+                </button>
+                <button onclick="switchProduct('vt')" id="tab-vt" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800">
+                    <i data-lucide="tent" class="w-4 h-4"></i>
+                    <span>Nomad</span>
+                </button>
+                <button onclick="switchProduct('student')" id="tab-student" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Дети</span>
+                </button>
             </div>
 
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-                <button onclick="downloadAccountingReport()" 
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-black bg-slate-950 text-white px-4 py-3 rounded-lg hover:bg-slate-800 active:scale-95 transition-all uppercase tracking-wider shadow-sm">
-                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Отчет Бухгалтерия</span>
-                </button>
+            <div class="lg:col-span-3 relative w-full">
+                <select id="report_branch" {% if not is_admin %}disabled{% endif %} onchange="loadAnalytics()" class="w-full bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700 rounded-2xl px-4 py-3.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                    {% if is_admin %}
+                        <option value="">Все филиалы</option>
+                    {% endif %}
+                    {% for b in branches %}
+                        <option value="{{ b.id }}" {% if user_branch_id == b.id %}selected{% endif %}>{{ b.code }}-{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+                
+                {% if not is_admin %}
+                    <input type="hidden" id="report_branch_hidden" value="{{ user_branch_id }}">
+                {% endif %}
 
-                <button onclick="downloadSavitarReport()" id="btn-savitar" 
-                        class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-xs font-black bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-wider shadow-sm">
-                    <i data-lucide="send" class="w-4 h-4 text-blue-200"></i>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl p-2 shadow-inner w-full">
+                <div class="flex items-center gap-1 flex-1 px-2">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">с</span>
+                    <input type="date" id="date_from" class="bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 w-full cursor-pointer py-1.5" onchange="loadAnalytics()">
+                </div>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex items-center gap-1 flex-1 px-3">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">по</span>
+                    <input type="date" id="date_to" class="bg-transparent border-none text-sm font-bold text-slate-700 focus:outline-none focus:ring-0 w-full cursor-pointer py-1.5" onchange="loadAnalytics()">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="h-px bg-slate-100 w-full"></div>
+
+        <div class="flex items-center justify-end gap-3 w-full min-h-[48px]">
+            {% if is_admin %}
+                <button onclick="downloadSavitarReport()" id="btn-savitar" class="w-full sm:w-auto flex items-center justify-center gap-2.5 text-xs font-black bg-blue-600 text-white px-6 py-3.5 rounded-2xl hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-wider shadow-md hover:shadow-blue-200 hover:shadow-lg whitespace-nowrap">
+                    <i data-lucide="send" class="w-4 h-4 text-blue-100"></i>
                     <span>Отчет Савитар</span>
                 </button>
-            </div>
+            {% endif %}
 
+            <button onclick="downloadAccountingReport()" id="btn-accounting" class="w-full sm:w-auto flex items-center justify-center gap-2.5 text-xs font-black bg-emerald-50 text-emerald-600 px-6 py-3.5 rounded-2xl hover:bg-emerald-100/80 active:scale-95 transition-all uppercase tracking-wider shadow-sm border border-emerald-200/40 whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i>
+                <span>Отчет Бухгалтерия</span>
+            </button>
         </div>
+
     </div>
+    
+    
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500 flex items-center justify-between">
@@ -113,218 +143,342 @@
     </div>
     
 </div>
+<div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden mt-8">
+    <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/30">
+        <h2 class="font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <i data-lucide="history" class="w-5 h-5 text-blue-600"></i> Журнал полисов за выбранный период
+        </h2>
+
+        <!-- Переключатели вкладок журнала теперь вызывают функцию переключения продуктов -->
+        <div class="flex p-1 bg-slate-100 rounded-xl w-full max-w-xs md:max-w-sm shrink-0">
+            <button type="button" id="jtab-vzr" onclick="switchProduct('vzr')" class="journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer">
+                <i data-lucide="plane" class="w-3.5 h-3.5"></i>
+                <span class="text-[9px] font-black uppercase tracking-widest">ВЗР</span>
+            </button>
+            
+            <button type="button" id="jtab-vt" onclick="switchProduct('vt')" class="journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+                <i data-lucide="tent" class="w-3.5 h-3.5"></i>
+                <span class="text-[9px] font-black uppercase tracking-widest">Nomad</span>
+            </button>
+            
+            <button type="button" id="jtab-student" onclick="switchProduct('student')" class="journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span class="text-[9px] font-black uppercase tracking-widest">Дети</span>
+            </button>
+        </div>
+        
+        <div class="relative w-full md:w-80">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5"></i>
+            <input type="text" id="journal-search" oninput="filterJournalRows()" placeholder="Поиск по ФИО или номеру..." 
+                class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm">
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-white text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                <tr>
+                    <th class="px-6 py-4 text-left">Дата</th>
+                    <th class="px-6 py-4 text-left">Страхователь / Полис</th>
+                    <th class="px-6 py-4 text-left">Детали / Территория</th>
+                    <th class="px-6 py-4 text-left">Программа</th>
+                    <th class="px-6 py-4 text-left">Лимит (Покрытие)</th>
+                    <th class="px-6 py-4 text-left">Спец. условия</th>
+                    <th class="px-6 py-4 text-left">Премия</th>
+                    <th class="px-6 py-4 text-center">Печать</th>
+                </tr>
+            </thead>
+            <!-- Единый динамический контейнер для всех типов полисов -->
+            <tbody id="dynamic-journal-body" class="divide-y divide-slate-50">
+                <tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Загрузка журнала...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let currentProduct = 'vzr';
     let chartInstance = null;
+    let loadedPoliciesData = []; // Хранилище для живого поиска
 
     document.addEventListener("DOMContentLoaded", function() {
         if (typeof lucide !== 'undefined') { lucide.createIcons(); }
         
         const to = new Date();
-        const from = new Date();
-        from.setDate(to.getDate() - 30);
+        const from = new Date(to.getFullYear(), to.getMonth(), 1);
+
+        const formatDate = (dateObj) => {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
         
-        document.getElementById('date_to').value = to.toISOString().split('T')[0];
-        document.getElementById('date_from').value = from.toISOString().split('T')[0];
-        
+        document.getElementById('date_to').value = formatDate(to);
+        document.getElementById('date_from').value = formatDate(from);
+
         loadAnalytics();
     });
 
-    function switchProduct(product) {
+function switchProduct(product) {
     currentProduct = product;
     
-    // 1. Находим обе кнопки табов
-    const tabVzr = document.getElementById('tab-vzr');
-    const tabVt = document.getElementById('tab-vt');
+    // Элементы верхних табов
+    const tabs = {
+        'vzr': document.getElementById('tab-vzr'),
+        'vt': document.getElementById('tab-vt'),
+        'student': document.getElementById('tab-student')
+    };
     
-    // Шаблоны классов, чтобы код не превращался в кашу
-    const activeClass = "text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm";
-    const inactiveClass = "text-xs font-bold px-4 py-2.5 rounded-md transition-all uppercase tracking-wider text-slate-500 hover:text-slate-700";
+    // Элементы табов журнала
+    const jTabs = {
+        'vzr': document.getElementById('jtab-vzr'),
+        'vt': document.getElementById('jtab-vt'),
+        'student': document.getElementById('jtab-student')
+    };
     
-    // 2. Жестко переключаем оформление в зависимости от выбранного продукта
-    if (product === 'vzr') {
-        tabVzr.className = activeClass;
-        tabVt.className = inactiveClass;
-    } else {
-        tabVzr.className = inactiveClass;
-        tabVt.className = activeClass;
-    }
+    const activeClass = "flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50";
+    const inactiveClass = "flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800";
     
-    // 3. Логика скрытия/показа кнопки Савитар
+    const jActiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer";
+    const jInactiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer";
+
+    // Сбрасываем и применяем классы для верхних табов и табов журнала одновременно
+    Object.keys(tabs).forEach(key => {
+        if (tabs[key]) tabs[key].className = (key === product) ? activeClass : inactiveClass;
+        if (jTabs[key]) jTabs[key].className = (key === product) ? jActiveClass : jInactiveClass;
+    });
+    
     const savitarBtn = document.getElementById('btn-savitar');
-    if (savitarBtn) { // проверка на случай, если кнопка еще не рендерилась
-        if (product === 'vt') {
-            savitarBtn.classList.add('hidden'); // убираем кнопку для ВТ
+    if (savitarBtn) {
+        if (product === 'vzr') {
+            savitarBtn.classList.remove('hidden', 'invisible'); 
         } else {
-            savitarBtn.classList.remove('hidden'); // возвращаем для ВЗР
+            savitarBtn.classList.add('invisible');
         }
     }
     
-    // 4. Перезагружаем AJAX-метрики и график под новый продукт
+    // Очищаем инпут поиска при смене вкладки
+    const searchInput = document.getElementById('journal-search');
+    if (searchInput) searchInput.value = '';
+
     loadAnalytics();
 }
 
-    function loadAnalytics() {
-        const dateFrom = document.getElementById('date_from').value;
-        const dateTo = document.getElementById('date_to').value;
-        
-        if (!dateFrom || !dateTo) return;
-
-        fetch(`/api/analytics/?product=${currentProduct}&date_from=${dateFrom}&date_to=${dateTo}`)
-            .then(res => {
-                if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
-                return res.json();
-            })
-            .then(data => {
-                document.getElementById('stat-count').innerText = (data.total_count || 0) + ' шт.';
-                document.getElementById('stat-amount').innerText = (data.total_amount || 0).toLocaleString('ru-RU');
-                
-                const tbody = document.getElementById('top-agents-table');
-                tbody.innerHTML = '';
-
-                if (data.top_agents && data.top_agents.length > 0) {
-                    data.top_agents.forEach((agent, index) => {
-                        let rankBadge = '';
-
-                        if (index === 0) {
-                            rankBadge = `<span class="flex items-center text-amber-500 font-bold shrink-0">
-                                            <i data-lucide="trophy" class="w-4 h-4 fill-amber-500"></i>
-                                        </span>`;
-                        } else if (index === 1) {
-                            rankBadge = `<span class="flex items-center text-slate-400 font-bold shrink-0">
-                                            <i data-lucide="medal" class="w-4 h-4 fill-slate-300"></i>
-                                        </span>`;
-                        } else if (index === 2) {
-                            rankBadge = `<span class="flex items-center text-amber-700 font-bold shrink-0">
-                                            <i data-lucide="medal" class="w-4 h-4 fill-amber-600/50"></i>
-                                        </span>`;
-                        } else {
-                            rankBadge = `<span class="text-xs font-bold text-slate-400 pl-1 w-4 block text-center shrink-0">${index + 1}</span>`;
-                        }
-
-                        // ИСПРАВЛЕНО: Добавили truncate для имени и запрет переноса строк whitespace-nowrap для числовых значений
-                        tbody.innerHTML += `
-                            <tr class="text-sm text-slate-700 hover:bg-slate-50/50 transition-colors">
-                                <td class="py-3.5 flex items-center gap-2 font-semibold text-slate-800 min-w-0">
-                                    ${rankBadge}
-                                    <span class="truncate block" title="${agent.name}">${agent.name}</span>
-                                </td>
-                                <td class="py-3.5 text-right text-slate-500 font-medium whitespace-nowrap">${agent.count}</td>
-                                <td class="py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">${agent.sales.toLocaleString('ru-RU')} сом</td>
-                            </tr>
-                        `;
-                    });
-
-                    if (typeof lucide !== 'undefined') {
-                        lucide.createIcons();
-                    }
-                } else {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="3" class="text-center py-8 text-xs font-bold text-slate-400 uppercase italic tracking-wider">
-                                Нет продаж за выбранный период
-                            </td>
-                        </tr>`;
-                }
-
-                renderChart(data.chart || []);
-            })
-            .catch(err => {
-                console.error("Ошибка обновления дашборда аналитики:", err);
-            });
-    }
-
-    function renderChart(chartData) {
-        const canvas = document.getElementById('salesChart');
-        if (!canvas) return;
-        
-        const ctx = canvas.getContext('2d');
-        const labels = chartData.map(item => item.date);
-        const sums = chartData.map(item => item.sum);
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Сборы (сомы)',
-                    data: sums,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.04)',
-                    borderWidth: 2.5,
-                    fill: true,
-                    tension: 0.2,
-                    pointBackgroundColor: '#2563eb',
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#f1f5f9' },
-                        ticks: {
-                            color: '#94a3b8',
-                            font: { size: 11, weight: '500' }
-                        }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: {
-                            color: '#94a3b8',
-                            font: { size: 11, weight: '500' }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function downloadAccountingReport() {
+function loadAnalytics() {
     const dateFrom = document.getElementById('date_from').value;
     const dateTo = document.getElementById('date_to').value;
     
-    if (!dateFrom || !dateTo) {
-        alert("Пожалуйста, выберите период (даты НАЧАЛА и ОКОНЧАНИЯ) для формирования отчета.");
+    let branch = '';
+    const branchSelect = document.getElementById('report_branch');
+    const hiddenInput = document.getElementById('report_branch_hidden');
+
+    if (branchSelect) {
+        branch = (branchSelect.disabled && hiddenInput) ? hiddenInput.value : branchSelect.value;
+    }
+    
+    if (!dateFrom || !dateTo) return;
+
+    let url = `/api/analytics/?product=${currentProduct}&date_from=${dateFrom}&date_to=${dateTo}`;
+    if (branch) {
+        url += `&branch=${branch}`;
+    }
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            document.getElementById('stat-count').innerText = (data.total_count || 0) + ' шт.';
+            document.getElementById('stat-amount').innerText = (data.total_amount || 0).toLocaleString('ru-RU');
+            
+            // Заполняем ТОП-5
+            const tbody = document.getElementById('top-agents-table');
+            tbody.innerHTML = '';
+
+            if (data.top_agents && data.top_agents.length > 0) {
+                data.top_agents.forEach((agent, index) => {
+                    let rankBadge = '';
+                    if (index === 0) rankBadge = `<span class="flex items-center text-amber-500 font-bold shrink-0"><i data-lucide="trophy" class="w-4 h-4 fill-amber-500"></i></span>`;
+                    else if (index === 1) rankBadge = `<span class="flex items-center text-slate-400 font-bold shrink-0"><i data-lucide="medal" class="w-4 h-4 fill-slate-300"></i></span>`;
+                    else if (index === 2) rankBadge = `<span class="flex items-center text-amber-700 font-bold shrink-0"><i data-lucide="medal" class="w-4 h-4 fill-amber-600/50"></i></span>`;
+                    else rankBadge = `<span class="text-xs font-bold text-slate-400 pl-1 w-4 block text-center shrink-0">${index + 1}</span>`;
+
+                    tbody.innerHTML += `
+                        <tr class="text-sm text-slate-700 hover:bg-slate-50/50 transition-colors">
+                            <td class="py-3.5 flex items-center gap-2 font-semibold text-slate-800 min-w-0">
+                                ${rankBadge}
+                                <span class="truncate block" title="${agent.name}">${agent.name}</span>
+                            </td>
+                            <td class="py-3.5 text-right text-slate-500 font-medium whitespace-nowrap">${agent.count}</td>
+                            <td class="py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">${agent.sales.toLocaleString('ru-RU')} сом</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-8 text-xs font-bold text-slate-400 uppercase italic tracking-wider">Нет продаж за выбранный период</td></tr>`;
+            }
+
+            // --- ДИНАМИЧЕСКАЯ ОТРИСОВКА ЖУРНАЛА ПОЛИСОВ ---
+            loadedPoliciesData = data.recent_policies || [];
+            renderJournalTable(loadedPoliciesData);
+
+            renderChart(data.chart || []);
+            if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+        })
+        .catch(err => {
+            console.error("Ошибка обновления дашборда аналитики:", err);
+        });
+}
+
+function renderJournalTable(policies) {
+    const journalBody = document.getElementById('dynamic-journal-body');
+    if (!journalBody) return;
+    journalBody.innerHTML = '';
+
+    if (policies.length === 0) {
+        journalBody.innerHTML = `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400 font-medium">Полисы по выбранным фильтрам не найдены</td></tr>`;
         return;
     }
 
-    // Динамически определяем URL в зависимости от активного таба (currentProduct)
-    let downloadUrl = '';
-    if (currentProduct === 'vt') {
-        downloadUrl = `/analytics/export-vt/?date_from=${dateFrom}&date_to=${dateTo}`;
-    } else {
-        downloadUrl = `/analytics/export/?date_from=${dateFrom}&date_to=${dateTo}`;
+    // Задаем цвет бейджа серии в зависимости от продукта
+    let badgeClass = "bg-blue-50 text-blue-600";
+    if (currentProduct === 'vt') badgeClass = "bg-indigo-50 text-indigo-600";
+    if (currentProduct === 'student') badgeClass = "bg-teal-50 text-teal-600";
+
+    policies.forEach(p => {
+        const specStyle = p.spec === 'NONE' || p.spec === 'Без спорта' ? 'text-slate-400' : 'text-orange-600 font-bold';
+        
+        journalBody.innerHTML += `
+            <tr class="hover:bg-slate-50/50 transition-colors group">
+                <td class="px-6 py-4">
+                    <span class="text-xs font-bold text-slate-700">${p.date}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">${p.holder_name}</p>
+                    <p class="text-[9px] text-slate-500 font-mono tracking-tighter mt-0.5">${p.policy_number}</p>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[10px] text-slate-600 font-semibold italic">${p.details}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase ${badgeClass}">${p.program}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[10px] text-slate-700 font-bold">${p.limit}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[9px] ${specStyle}">${p.spec}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-black text-slate-900 text-xs">${p.premium.toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                        <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <a href="${p.print_url}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                    </a>
+                </td>
+            </tr>
+        `;
+    });
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+}
+
+// ФУНКЦИЯ МГНОВЕННОГО ЖИВОГО ПОИСКА ПО ЖУРНАЛУ
+function filterJournalRows() {
+    const query = document.getElementById('journal-search').value.toLowerCase().strip();
+    if (!query) {
+        renderJournalTable(loadedPoliciesData);
+        return;
     }
+    const filtered = loadedPoliciesData.filter(p => 
+        p.holder_name.toLowerCase().includes(query) || 
+        p.policy_number.toLowerCase().includes(query)
+    );
+    renderJournalTable(filtered);
+}
+
+function renderChart(chartData) {
+    const canvas = document.getElementById('salesChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const labels = chartData.map(item => item.date);
+    const sums = chartData.map(item => item.sum);
+
+    if (chartInstance) { chartInstance.destroy(); }
+
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Сборы (сомы)',
+                data: sums,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.04)',
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0.2,
+                pointBackgroundColor: '#2563eb',
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11, weight: '500' } } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '500' } } }
+            }
+        }
+    });
+}
+
+function downloadAccountingReport() {
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    let branch = '';
+    const branchSelect = document.getElementById('report_branch');
+    const hiddenInput = document.getElementById('report_branch_hidden');
+
+    if (branchSelect) {
+        branch = (branchSelect.disabled && hiddenInput) ? hiddenInput.value : branchSelect.value;
+    }
+    if (!dateFrom || !dateTo) {
+        alert("Пожалуйста, выберите период для формирования отчета.");
+        return;
+    }
+    let params = `date_from=${dateFrom}&date_to=${dateTo}`;
+    if (branch) params += `&branch=${branch}`; 
+
+    let downloadUrl = '';
+    if (currentProduct === 'vt') downloadUrl = `/analytics/export-vt/?${params}`;
+    else if (currentProduct === 'student') downloadUrl = `/analytics/export-student/?${params}`;
+    else downloadUrl = `/analytics/export/?${params}`; 
     
     window.location.href = downloadUrl;
 }
-    function downloadSavitarReport() {
-        const dateFrom = document.getElementById('date_from').value;
-        const dateTo = document.getElementById('date_to').value;
-        
-        if (!dateFrom || !dateTo) {
-            alert("Пожалуйста, выберите период для формирования партнерского отчета.");
-            return;
-        }
 
-        // Стучимся на новый созданный URL
-        const downloadUrl = `/analytics/export-savitar/?date_from=${dateFrom}&date_to=${dateTo}`;
-        window.location.href = downloadUrl;
+function downloadSavitarReport() {
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    if (!dateFrom || !dateTo) {
+        alert("Пожалуйста, выберите период для формирования партнерского отчета.");
+        return;
     }
+    const downloadUrl = `/analytics/export-savitar/?date_from=${dateFrom}&date_to=${dateTo}`;
+    window.location.href = downloadUrl;
+}
 </script>
 {% endblock %}

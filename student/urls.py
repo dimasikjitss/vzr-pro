@@ -6,7 +6,7 @@ urlpatterns = [
     path('calculate/', views.student_calculate, name='student_calculate'),
     path('preview/', views.student_preview, name='student_preview'),
     path('success/<int:pk>/', views.student_success, name='student_success'),    # Сюда потом добавим печать PDF и список полисов
-    path('print/<int:pk>/', views.print_policy, name='print_policy'), # Использует ту же вьюху, но для чистовика
+    path('print/<int:pk>/', views.print_policy, name='print_student_policy'), # Использует ту же вьюху, но для чистовика
 ]
 
 
