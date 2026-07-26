@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Страница не найдена</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 flex flex-col items-center justify-center h-screen">
+    <h1 class="text-6xl font-black text-slate-900">404</h1>
+    <p class="text-xl text-slate-500 mt-4">Ой! Указанный полис или страница не существуют.</p>
+    <a href="{% url 'home' %}" class="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-md hover:bg-blue-700 transition-colors">
+        Вернуться на главную
+    </a>
+</body>
+</html>

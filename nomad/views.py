@@ -217,7 +217,6 @@ def nomad_success(request, pk):
     policy = get_object_or_404(NomadPolicy, pk=pk)
     return render(request, 'nomad_success.html', {'policy': policy})
 
-
 def nomad_print(request, pk):
     policy = get_object_or_404(NomadPolicy, pk=pk)
     insured = policy.insured_persons.first() # Берем застрахованного

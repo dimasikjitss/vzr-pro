@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ошибка сервера (500)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 flex flex-col items-center justify-center h-screen px-4">
+    <div class="text-center max-w-md">
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-red-100 text-red-600 rounded-full mb-6">
+            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        
+        <h1 class="text-4xl font-black text-slate-900 tracking-tight">Что-то пошло не так</h1>
+        <p class="text-lg text-slate-500 mt-4 leading-relaxed">
+            На сервере произошла ошибка. Мы уже в курсе и занимаемся её устранением. Пожалуйста, попробуйте обновить страницу позже.
+        </p>
+        
+        <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <button onclick="window.location.reload()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-sm hover:bg-blue-700 transition-colors cursor-pointer">
+                Обновить страницу
+            </button>
+            <a href="{% url 'home' %}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold shadow-sm hover:bg-slate-50 transition-colors text-center">
+                На главную
+            </a>
+        </div>
+        
+        <div class="text-[10px] text-slate-400 font-mono mt-12 uppercase tracking-widest">
+            Error Code: 500 / Internal Server Error
+        </div>
+    </div>
+</body>
+</html>

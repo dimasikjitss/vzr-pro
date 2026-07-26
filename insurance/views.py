@@ -5,7 +5,7 @@ from decimal import Decimal
 import json  # <--- Добавьте это
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden 
 from django.contrib import messages
 from django.db.models import Sum, Count
 from nomad.models import NomadTariff, NomadPolicy
@@ -15,9 +15,9 @@ from openpyxl.utils import get_column_letter # Добавь этот импор�
 from openpyxl.styles import Font, Alignment, PatternFill
 from django.contrib.contenttypes.models import ContentType
 from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch, IndividualHolder, CompanyHolder
-from student.models import StudentPolicy
+from student.models import StudentPolicy, StudentTariff
 from nomad.models import NomadPolicy
-from .analytics_core import PRODUCT_ANALYTICS_MAP
+from .analytics_core import PRODUCT_ANALYTICS_MAP, AnalyticsManager
 
 # --- УТИЛИТЫ ---
 
@@ -46,16 +46,27 @@ def home(request):
     rates = get_nbkr_rates()
     # Получаем все тарифы из базы, чтобы JS мог считать на лету
     tariffs_qs = list(InsuranceTariff.objects.all().values('program', 'territory', 'sum_insured', 'days_min', 'days_max', 'rate'))
-    tariffs_json = json.dumps(tariffs_qs, default=str) # Это создаст правильную строку для JS
+    tariffs_json = json.dumps(tariffs_qs, default=str) 
+    
     nomad_tariffs = NomadTariff.objects.filter(program='BRONZE').values('days_min', 'days_max', 'percent_rate')
-    # Списки последних полисов: админ видит вообще последние 5 в системе, обычный агент — только свои
+    
+    # --- ДОБАВЛЯЕМ СТРОКУ ПОЛУЧЕНИЯ ДЕТСКИХ/СТУДЕНЧЕСКИХ ТАРИФОВ ИЗ БАЗЫ ---
+    # Внимание: если модель называется иначе (например, StudentTariff), поменяй имя класса
+    student_tariffs = StudentTariff.objects.all().values('time_type', 'is_sports', 'percent_rate')
+    student_tariffs_json = json.dumps(list(student_tariffs), cls=DjangoJSONEncoder)# Списки последних полисов: админ видит вообще последние 5 в системе, обычный агент — только свои
     if request.user.is_superuser:
-        last_policies = InsurancePolicy.objects.all().order_by('-issue_date')[:5]
+        last_policies = InsurancePolicy.objects.all().order_by('-issue_date','-id')
+        last_policies_nomad = NomadPolicy.objects.all().order_by('-issue_date','-id')
+        last_policies_student = StudentPolicy.objects.all().order_by('-issue_date','-id')
     else:
-        last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date')[:5]
+        last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date')
+        last_policies_nomad = NomadPolicy.objects.filter(agent=request.user).order_by('-issue_date')
+        last_policies_student = StudentPolicy.objects.filter(agent=request.user).order_by('-issue_date')
 
     # Считаем сумму за месяц (не забудь импорт Sum в начале файла)
     start_month = date.today().replace(day=1)
+    end_month = date.today()
+    
 
     # Проверяем роль: если суперюзер/админ, то считаем ВСЁ. Если обычный агент — фильтруем по нему.
     if request.user.is_superuser:
@@ -92,9 +103,16 @@ def home(request):
         'usd_rate': rates['USD'], 
         'eur_rate': rates['EUR'],
         'last_policies': last_policies,
+        'last_policies_nomad': last_policies_nomad,
+        'last_policies_student': last_policies_student,
         'monthly_total': monthly_total,
         'tariffs_data': tariffs_json,
         'tariffs_nomad_json': json.dumps(list(nomad_tariffs), cls=DjangoJSONEncoder),
+        # --- ПЕРЕДАЕМ ПЕРЕМЕННУЮ В ШАБЛОН ---
+        'tariffs_student_json': student_tariffs_json,
+        # ------------------------------------
+        'start_month': start_month,
+        'end_month': end_month,
     })
 
     """ Оформление ВЗР """
@@ -358,94 +376,259 @@ def policy_preview(request):
     return redirect('home')
 
 
+# @login_required
+# def admin_dashboard(request):
+#     """Панель аналитики и отчетов (Доступна админам и агентам с разграничением по филиалам)"""
+#     branch_id = request.GET.get('branch')
+#     date_from_raw = request.GET.get('date_from')
+#     date_to_raw = request.GET.get('date_to')
+#     today = date.today()
+
+#     # 1. ЛОГИКА ДАТ: По умолчанию берем с 1-го числа ТЕКУЩЕГО месяца по ТЕКУЩИЙ день
+#     if date_from_raw and date_to_raw:
+#         try:
+#             d_from = date.fromisoformat(date_from_raw)
+#             d_to = date.fromisoformat(date_to_raw)
+#             current_period = 'custom'
+#         except ValueError:
+#             d_from = today.replace(day=1)
+#             d_to = today
+#             current_period = 'month'
+#     else:
+#         d_from = today.replace(day=1)
+#         d_to = today
+#         current_period = 'month'
+
+#     # 2. ОГРАНИЧЕНИЕ ПРАВ: Если не суперюзер, то принудительно берем только филиал сотрудника
+#     is_admin = request.user.is_superuser
+#     user_branch = getattr(request.user, 'branch', None)
+
+#     if not is_admin:
+#         if user_branch:
+#             branch_id = str(user_branch.id)
+#         else:
+#             # Если у пользователя нет филиала и он не админ — возвращаем пустой дашборд во избежание утечки
+#             return render(request, 'insurance/admin_dashboard.html', {'error': 'Вы не привязаны к филиалу'})
+
+#     # 3. ФОРМИРОВАНИЕ QUERYSETS
+#     # Базовые фильтры по датам
+#     vzr_filter = {'issue_date__range': [d_from, d_to]}
+#     student_filter = {'issue_date__range': [d_from, d_to]} # Предполагается поле issue_date в StudentPolicy
+
+#     if branch_id:
+#         vzr_filter['branch_id'] = branch_id
+#         student_filter['branch_id'] = branch_id
+
+#     policies_vzr = InsurancePolicy.objects.filter(**vzr_filter).select_related('agent', 'branch').order_by('-issue_date')
+#     policies_student = StudentPolicy.objects.filter(**student_filter).select_related('agent', 'branch').order_by('-issue_date')
+
+#     # Инициализация структур для графиков и KPI
+#     sales_by_day = {}
+#     regions_map = {}
+#     agents_map = {}
+#     total_som = 0
+#     total_count = 0
+
+#     all_territories = ['ASIA', 'SCHENGEN', 'WORLD', 'KYRGYZSTAN'] # Добавили КР для детских полисов
+#     all_programs = ['BRONZE', 'SILVER', 'GOLD', 'CHILD_PROG']
+#     prog_territory_map = {prog: {terr: 0 for terr in all_territories} for prog in all_programs}
+
+#     # ОБРАБОТКА ВЗР ПОЛИСОВ
+#     for p in policies_vzr:
+#         val = float(p.total_premium_som or 0)
+#         total_som += val
+#         total_count += 1
+        
+#         day = p.issue_date.strftime('%d.%m') if p.issue_date else "??.??"
+#         sales_by_day[day] = sales_by_day.get(day, 0) + val
+        
+#         reg = str(p.territory or "Не указано").upper()
+#         regions_map[reg] = regions_map.get(reg, 0) + val
+        
+#         prog = str(p.program).upper() if p.program else "BRONZE"
+#         if prog in prog_territory_map and reg in prog_territory_map[prog]:
+#             prog_territory_map[prog][reg] += val
+
+#         ag_name = f"{p.agent.first_name} {p.agent.last_name}" if p.agent else "Неизвестный"
+#         if ag_name not in agents_map: agents_map[ag_name] = {'count': 0, 'total': 0}
+#         agents_map[ag_name]['count'] += 1
+#         agents_map[ag_name]['total'] += val
+
+#     # ОБРАБОТКА ДЕТСКИХ ПОЛИСОВ (Интеграция в общую аналитику)
+#     for p in policies_student:
+#         val = float(p.total_premium_gross or 0) # Суммируем брутто сбор по детям
+#         total_som += val
+#         total_count += 1
+        
+#         day = p.issue_date.strftime('%d.%m') if p.issue_date else "??.??"
+#         sales_by_day[day] = sales_by_day.get(day, 0) + val
+        
+#         # Детские полисы по умолчанию относятся к территории КР
+#         regions_map['KYRGYZSTAN'] = regions_map.get('KYRGYZSTAN', 0) + val
+        
+#         prog_name = str(p.program.name).upper() if p.program else "CHILD_PROG"
+#         if prog_name not in prog_territory_map:
+#             prog_territory_map[prog_name] = {terr: 0 for terr in all_territories}
+#         if 'KYRGYZSTAN' in prog_territory_map[prog_name]:
+#             prog_territory_map[prog_name]['KYRGYZSTAN'] += val
+
+#         ag_name = f"{p.agent.first_name} {p.agent.last_name}" if p.agent else "Неизвестный"
+#         if ag_name not in agents_map: agents_map[ag_name] = {'count': 0, 'total': 0}
+#         agents_map[ag_name]['count'] += 1
+#         agents_map[ag_name]['total'] += val
+
+#     # Формирование данных для графиков ApexCharts
+#     chart_program_series = []
+#     for terr in all_territories:
+#         chart_program_series.append({
+#             'name': terr,
+#             'data': [round(prog_territory_map.get(prog, {}).get(terr, 0), 2) for prog in prog_territory_map.keys()]
+#         })
+
+#     # Сбор статистики по филиалам
+#     branch_stats = policies_vzr.values('branch__name').annotate(total=Sum('total_premium_som'), count=Count('id')).order_by('-total')
+
+#     context = {
+#         'policies': policies_vzr,
+#         'student_policies': policies_student,
+#         'branches': Branch.objects.all() if is_admin else [user_branch], # Обычный агент видит только свой филиал в селекторе
+#         'branch_stats': branch_stats,
+#         'total_som': total_som,
+#         'total_count': total_count,
+#         'date_from': d_from.isoformat(),
+#         'date_to': d_to.isoformat(),
+#         'current_period': current_period,
+#         'selected_branch': branch_id,
+#         'is_admin': is_admin,
+#         'chart_daily_labels': list(sales_by_day.keys())[::-1],
+#         'chart_daily_values': list(sales_by_day.values())[::-1],
+#         'chart_region_labels': list(regions_map.keys()),
+#         'chart_region_values': list(regions_map.values()),
+#         'chart_program_labels': list(prog_territory_map.keys()),
+#         'chart_program_series': chart_program_series,
+#         'agent_performance': [{'name': n, 'count': d['count'], 'avg_check': round(d['total']/d['count'], 0)} for n, d in agents_map.items()]
+#     }
+#     return render(request, 'insurance/admin_dashboard.html', context)
+
+
 @login_required
-@user_passes_test(is_superadmin)
+# def admin_dashboard(request):
+    # """Глобальная панель аналитики по 3 продуктам (Строго для Суперпользователей)"""
+    # # Доступ только суперюзеру по требованию заказчика
+    # if not request.user.is_superuser:
+    #     return HttpResponseForbidden("Доступ к сводной аналитике разрешен только суперпользователям.")
+
+    # branch_id = request.GET.get('branch')
+    # date_from_raw = request.GET.get('date_from')
+    # date_to_raw = request.GET.get('date_to')
+    # today = date.today()
+
+    # if date_from_raw and date_to_raw:
+    #     try:
+    #         d_from = date.fromisoformat(date_from_raw)
+    #         d_to = date.fromisoformat(date_to_raw)
+    #         current_period = 'custom'
+    #     except ValueError:
+    #         d_from = today.replace(day=1)
+    #         d_to = today
+    #         current_period = 'month'
+    # else:
+    #     d_from = today.replace(day=1)
+    #     d_to = today
+    #     current_period = 'month'
+
+    # # Вызываем наше новое архитектурное решение
+    # metrics = AnalyticsManager.get_global_summary_metrics(d_from, d_to, branch_id=branch_id)
+
+    # context = {
+    #     'branches': Branch.objects.all().order_by('code'),
+    #     'date_from': d_from.isoformat(),
+    #     'date_to': d_to.isoformat(),
+    #     'current_period': current_period,
+    #     'selected_branch': branch_id,
+    #     'is_admin': True,
+        
+    #     # Общие KPI
+    #     'total_som': metrics['total_som'],
+    #     'total_count': metrics['total_count'],
+        
+    #     # Доли продуктов для отображения круговых графиков (если нужно)
+    #     'v_count': metrics['v_count'], 'v_sum': metrics['v_sum'],
+    #     'n_count': metrics['n_count'], 'n_sum': metrics['n_sum'],
+    #     's_count': metrics['s_count'], 's_sum': metrics['s_sum'],
+        
+    #     # Данные графиков ApexCharts/Chart.js
+    #     'chart_daily_labels': metrics['chart_daily_labels'],
+    #     'chart_daily_values': metrics['chart_daily_values'],
+    #     'chart_program_labels': metrics['chart_program_labels'],
+    #     'chart_program_series': metrics['chart_program_series'],
+        
+    #     # Таблицы лидеров
+    #     'agent_performance': metrics['agent_performance'],
+    #     'branch_stats': metrics['branch_stats'],
+    # }
+    # return render(request, 'insurance/admin_dashboard.html', context)
+# --- изменил длЯ новой аналитики тест ---
 def admin_dashboard(request):
-    period = request.GET.get('period', 'today')
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("Доступ к сводной аналитике разрешен только суперпользователям.")
+
     branch_id = request.GET.get('branch')
     date_from_raw = request.GET.get('date_from')
     date_to_raw = request.GET.get('date_to')
+    active_tab = request.GET.get('tab', 'ALL') # По умолчанию вкладка ВСЕ
+    
     today = date.today()
 
-    try:
-        if date_from_raw and date_to_raw:
-            d_from, d_to = date.fromisoformat(date_from_raw), date.fromisoformat(date_to_raw)
-            period = 'custom'
-        else:
-            periods = {'today': (today, today), 'week': (today - timedelta(days=7), today), 'month': (today - timedelta(days=30), today)}
-            d_from, d_to = periods.get(period, (today, today))
-    except:
-        d_from, d_to = today, today
+    # По требованию заказчика: по умолчанию с 1-го числа текущего месяца
+    if date_from_raw and date_to_raw:
+        try:
+            d_from = date.fromisoformat(date_from_raw)
+            d_to = date.fromisoformat(date_to_raw)
+        except ValueError:
+            d_from = today.replace(day=1)
+            d_to = today
+    else:
+        d_from = today.replace(day=1)
+        d_to = today
 
-    policies_qs = InsurancePolicy.objects.filter(issue_date__range=[d_from, d_to]).select_related('agent', 'branch').order_by('-issue_date')
-    if branch_id:
-        policies_qs = policies_qs.filter(branch_id=branch_id)
-
-    # Инициализация структур данных
-    sales_by_day, regions_map, agents_map, total_som = {}, {}, {}, 0
-    
-    # Новая структура для группировки Программы + Направления
-    all_territories = ['ASIA', 'SCHENGEN', 'WORLD']
-    all_programs = ['BRONZE', 'SILVER', 'GOLD']
-    prog_territory_map = {prog: {terr: 0 for terr in all_territories} for prog in all_programs}
-
-    for p in policies_qs:
-        val = float(p.total_premium_som or 0)
-        total_som += val
-        
-        # Динамика
-        day = p.issue_date.strftime('%d.%m') if p.issue_date else "??.??"
-        sales_by_day[day] = sales_by_day.get(day, 0) + val
-        
-        # Регионы (для Donut Chart)
-        reg = str(p.territory or "Не указано")
-        regions_map[reg] = regions_map.get(reg, 0) + val
-        
-        # Группировка программ по направлениям (для Grouped Bar Chart)
-        prog = str(p.program).upper() if p.program else "BRONZE"
-        terr = str(p.territory).upper() if p.territory else "ASIA"
-        if prog in prog_territory_map and terr in prog_territory_map[prog]:
-            prog_territory_map[prog][terr] += val
-
-        # Агенты
-        ag_name = f"{p.agent.first_name} {p.agent.last_name}" if p.agent else "Неизвестный"
-        if ag_name not in agents_map: agents_map[ag_name] = {'count': 0, 'total': 0}
-        agents_map[ag_name]['count'] += 1
-        agents_map[ag_name]['total'] += val
-
-    # Формируем series для ApexCharts: [{name: 'ASIA', data: [100, 200, 300]}, ...]
-    chart_program_series = []
-    for terr in all_territories:
-        chart_program_series.append({
-            'name': terr,
-            'data': [round(prog_territory_map[prog][terr], 2) for prog in all_programs]
-        })
-
-    branch_stats = policies_qs.values('branch__name').annotate(total=Sum('total_premium_som'), count=Count('id')).order_by('-total')
+    # Сбор обогащенных структурированных данных
+    data = AnalyticsManager.get_global_summary_metrics(d_from, d_to, branch_id=branch_id)
 
     context = {
-        'policies': policies_qs,
-        'branches': Branch.objects.all(),
-        'branch_stats': branch_stats,
-        'total_som': total_som,
-        'total_count': policies_qs.count(),
+        'branches': Branch.objects.all().order_by('code'),
         'date_from': d_from.isoformat(),
         'date_to': d_to.isoformat(),
-        'current_period': period,
         'selected_branch': branch_id,
-        'chart_daily_labels': list(sales_by_day.keys())[::-1],
-        'chart_daily_values': list(sales_by_day.values())[::-1],
-        'chart_region_labels': list(regions_map.keys()),
-        'chart_region_values': list(regions_map.values()),
-        # НОВЫЕ ДАННЫЕ ДЛЯ ГРАФИКА ПРОГРАММ
-        'chart_program_labels': all_programs,
-        'chart_program_series': chart_program_series,
-        'agent_performance': [{'name': n, 'count': d['count'], 'avg_check': round(d['total']/d['count'], 0)} for n, d in agents_map.items()]
+        'active_tab': active_tab,
+
+        # Сборы за отчетный период
+        'period_total_som': data['period_total_som'],
+        'period_total_count': data['period_total_count'],
+        'v_sum': data['v_sum'], 'v_count': data['v_count'],
+        'n_sum': data['n_sum'], 'n_count': data['n_count'],
+        's_sum': data['s_sum'], 's_count': data['s_count'],
+
+        # Сборы за ВСЁ время (All-time)
+        'all_time_total_som': data['all_time_total_som'],
+        'all_time_total_count': data['all_time_total_count'],
+        'all_time_vzr_sum': data['all_time_vzr_sum'],
+        'all_time_nomad_sum': data['all_time_nomad_sum'],
+        'all_time_student_sum': data['all_time_student_sum'],
+
+        # Сериализация списков для безопасной передачи в ApexCharts
+        'chart_dates_json': json.dumps(data['chart_dates']),
+        'chart_vzr_json': json.dumps(data['chart_vzr_line']),
+        'chart_nomad_json': json.dumps(data['chart_nomad_line']),
+        'chart_student_json': json.dumps(data['chart_student_line']),
+        
+        'branch_labels_json': json.dumps(data['branch_labels']),
+        'branch_values_json': json.dumps(data['branch_values']),
+        
+        'agent_performance_json': json.dumps(data['agent_performance'], cls=DjangoJSONEncoder),
     }
+
     return render(request, 'insurance/admin_dashboard.html', context)
-
-# --- ЭКСПОРТ И ДОП ---
-
 @login_required
 @user_passes_test(is_superadmin)
 def export_excel(request):
@@ -543,20 +726,17 @@ def print_policy(request, pk):
 def get_tariffs_api(request):
     return JsonResponse(list(InsuranceTariff.objects.all().values('program', 'territory', 'sum_insured', 'days_min', 'days_max', 'rate')), safe=False)
 
-
+@login_required
 def analytics_page(request):
-    """Просто рендерит пустую страницу аналитики с фильтрами"""
-    return render(request, 'insurance/analytics_dashboard.html')
-
-def analytics_api(request):
-
-    """Возвращает данные в формате JSON для графиков и карточек"""
-    product_type = request.GET.get('product', 'vzr').lower()
+    """Рендерит страницу аналитики с отфильтрованным журналом полисов"""
+    is_admin = request.user.is_superuser
     
-    # По умолчанию берем последние 30 дней
+    # 1. Читаем параметры фильтра из URL (если они есть)
     d_from_raw = request.GET.get('date_from')
     d_to_raw = request.GET.get('date_to')
-    
+    branch_id_raw = request.GET.get('branch')
+
+    # Устанавливаем даты по умолчанию (последние 30 дней), если ничего не передано
     try:
         d_from = date.fromisoformat(d_from_raw)
         d_to = date.fromisoformat(d_to_raw)
@@ -564,23 +744,144 @@ def analytics_api(request):
         d_to = date.today()
         d_from = d_to - timedelta(days=30)
 
-    # Проверяем, есть ли такой продукт в маппинге
+    # 2. Формируем базовый фильтр по датам
+    filters = {'issue_date__range': [d_from, d_to]}
+    user_branch_id = None
+
+    # 3. АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ (как в отчетах)
+    if not is_admin:
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.branch:
+            user_branch_id = profile.branch.id
+            filters['branch_id'] = user_branch_id
+        else:
+            # Подстраховка: если у сотрудника нет филиала, ставим нереальный ID, 
+            # чтобы не выводить чужие данные
+            filters['branch_id'] = -1 
+    else:
+        # Для админа: если он выбрал конкретный филиал в фильтре
+        if branch_id_raw and str(branch_id_raw).strip():
+            filters['branch_id'] = branch_id_raw
+            # Сохраняем ID для селекта на фронтенде, чтобы он не сбрасывался
+            try:
+                user_branch_id = int(branch_id_raw)
+            except ValueError:
+                pass
+
+    # 4. Выгружаем отфильтрованные полисы 
+    # (Ограничиваем до 100 штук, чтобы страница не висла, если выберут период за 5 лет)
+    last_policies = InsurancePolicy.objects.filter(**filters).select_related('agent', 'branch').prefetch_related('insured_persons').order_by('-issue_date')[:100]
+    last_policies_nomad = NomadPolicy.objects.filter(**filters).select_related('agent', 'branch').order_by('-issue_date')[:100]
+    last_policies_student = StudentPolicy.objects.filter(**filters).select_related('agent', 'branch').order_by('-issue_date')[:100]
+
+    context = {
+        'is_admin': is_admin,
+        'user_branch_id': user_branch_id,
+        'branches': Branch.objects.all().order_by('code'),
+        # Передаем списки в шаблон для таблицы
+        'last_policies': last_policies,
+        'last_policies_nomad': last_policies_nomad,
+        'last_policies_student': last_policies_student,
+        # Передаем текущие даты обратно в шаблон, чтобы подставить в инпуты
+        'default_date_from': d_from.strftime('%Y-%m-%d'),
+        'default_date_to': d_to.strftime('%Y-%m-%d'),
+    }
+    return render(request, 'insurance/analytics_dashboard.html', context)
+
+@login_required
+def analytics_api(request):
+    """Возвращает JSON для графиков, карточек и журнала с фильтрацией по дате и филиалу"""
+    product_type = request.GET.get('product', 'vzr').lower()
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    branch_id = request.GET.get('branch')
+
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_to = date.today()
+        d_from = d_to - timedelta(days=30)
+
+    # Жесткая архитектурная проверка прав
+    if not request.user.is_superuser:
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.branch:
+            branch_id = profile.branch.id
+        else:
+            return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+
     if product_type not in PRODUCT_ANALYTICS_MAP:
         return JsonResponse({'error': 'Неизвестный продукт'}, status=400)
 
-    # Вызываем нужную функцию сбора данных
     metrics_func = PRODUCT_ANALYTICS_MAP[product_type]
-    data = metrics_func(d_from, d_to)
+    data = metrics_func(d_from, d_to, branch_id=branch_id)
 
+    # --- ДОБАВЛЯЕМ ВЫГРУЗКУ ЖУРНАЛА СТРОГО ЗА ВЫБРАННЫЙ ПЕРИОД ---
+    filters = {'issue_date__range': [d_from, d_to]}
+    if branch_id and str(branch_id).strip():
+        filters['branch_id'] = branch_id
+
+    policies_list = []
+
+    if product_type == 'vzr':
+        policies = InsurancePolicy.objects.filter(**filters).select_related('agent').prefetch_related('insured_persons').order_by('-issue_date')[:50]
+        for p in policies:
+            first_person = p.insured_persons.first()
+            limit_val = f"{int(first_person.sum_insured_currency)} EUR" if p.territory == "SCHENGEN" else f"{int(first_person.sum_insured_currency)} USD" if first_person else "-"
+            policies_list.append({
+                'date': p.issue_date.strftime('%d.%m.%Y'),
+                'holder_name': p.holder_name,
+                'policy_number': p.policy_number,
+                'details': f"{p.territory} / {p.to_country or ''}",
+                'program': p.program.name if hasattr(p.program, 'name') else str(p.program),
+                'limit': limit_val,
+                'spec': p.activity_type,
+                'premium': float(p.total_premium_som),
+                'print_url': f"/insurance/print/{p.pk}/" # Проверь свой урл для печати ВЗР
+            })
+            
+    elif product_type == 'vt':
+        policies = NomadPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date')[:50]
+        for p in policies:
+            policies_list.append({
+                'date': p.issue_date.strftime('%d.%m.%Y'),
+                'holder_name': p.holder_name,
+                'policy_number': p.policy_number,
+                'details': "Кыргызстан",
+                'program': str(p.program),
+                'limit': f"{int(p.total_sum_insured)} СОМ",
+                'spec': "—",
+                'premium': float(p.total_premium_gross),
+                'print_url': f"/nomad/print/{p.pk}/" # Проверь урл для печати Nomad
+            })
+            
+    elif product_type == 'student':
+        policies = StudentPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date')[:50]
+        for p in policies:
+            spec_val = "Спорт. секции" if p.is_sports_section else "Без спорта"
+            policies_list.append({
+                'date': p.issue_date.strftime('%d.%m.%Y'),
+                'holder_name': p.holder_name,
+                'policy_number': p.policy_number,
+                'details': "Покрытие 24ч" if p.time_type == "24H" else "Во время учебы",
+                'program': p.program.name if hasattr(p.program, 'name') else str(p.program),
+                'limit': f"{int(p.total_sum_insured)} СОМ",
+                'spec': spec_val,
+                'premium': float(p.total_premium_gross),
+                'print_url': f"/student/print/{p.pk}/" # Проверь урл для печати Детей
+            })
+
+    data['recent_policies'] = policies_list
     return JsonResponse(data)
 
 @login_required
-@user_passes_test(is_superadmin)
 def export_excel_buh(request):
 
     # 1. Получаем параметры периода из запроса
     d_from_raw = request.GET.get('date_from')
     d_to_raw = request.GET.get('date_to')
+    branch_id = request.GET.get('branch') # ЛОВИМ ФИЛИАЛ ИЗ ШАБЛОНА
     
     try:
         d_from = date.fromisoformat(d_from_raw)
@@ -591,10 +892,26 @@ def export_excel_buh(request):
     date_from_str = d_from.strftime('%d.%m.%Y')
     date_to_str = d_to.strftime('%d.%m.%Y')
 
-    # 2. Выгружаем полисы с СОРТИРОВКОЙ от старых к новым
-    policies = InsurancePolicy.objects.filter(
-        issue_date__range=[d_from, d_to]
-    ).select_related('agent', 'branch').prefetch_related('insured_persons').order_by('issue_date', 'id')
+   # 2. АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ И ФИЛЬТРАЦИЯ ПО ФИЛИАЛУ
+    filters = {'issue_date__range': [d_from, d_to]}
+    
+    if not request.user.is_superuser:
+        # ИСПРАВЛЕНО: Залезаем в профиль обычного сотрудника для проверки филиала
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.branch:
+            filters['branch_id'] = profile.branch.id
+        else:
+            return HttpResponse("Вы не привязаны к филиалу", status=403)
+    else:
+        # Если админ И выбрал конкретный филиал в фильтре шаблона
+        if branch_id and str(branch_id).strip():
+            filters['branch_id'] = branch_id
+
+    # Выгружаем полисы с учетом динамических фильтров
+    policies = InsurancePolicy.objects.filter(**filters)\
+        .select_related('agent', 'branch')\
+        .prefetch_related('insured_persons')\
+        .order_by('issue_date', 'id')
 
     # 3. Создаем Excel книгу
     wb = Workbook()
@@ -911,11 +1228,11 @@ def export_excel_savitar(request):
     return response
 
 @login_required
-@user_passes_test(is_superadmin)
 def export_excel_buh_vt(request):
-    # 1. Получаем параметры периода
+    # 1. Получаем параметры периода и филиала из запроса
     d_from_raw = request.GET.get('date_from')
     d_to_raw = request.GET.get('date_to')
+    branch_id = request.GET.get('branch') # Ловим филиал из шаблона
     
     try:
         d_from = date.fromisoformat(d_from_raw)
@@ -926,10 +1243,26 @@ def export_excel_buh_vt(request):
     date_from_str = d_from.strftime('%d.%m.%Y')
     date_to_str = d_to.strftime('%d.%m.%Y')
 
-    # 2. Выгружаем полисы NOMAD (ВТ) за период с подгрузкой агента и застрахованных
-    policies = NomadPolicy.objects.filter(
-        issue_date__range=[d_from, d_to]
-    ).select_related('agent').prefetch_related('insured_persons').order_by('issue_date', 'id')
+    # 2. АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ И ФИЛЬТРАЦИЯ ПО ФИЛИАЛУ
+    filters = {'issue_date__range': [d_from, d_to]}
+    
+    if not request.user.is_superuser:
+        # Для обычного сотрудника лезем строго в профиль
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.branch:
+            filters['branch_id'] = profile.branch.id
+        else:
+            return HttpResponse("Вы не привязаны к филиалу", status=403)
+    else:
+        # Если админ И выбрал конкретный филиал в фильтре
+        if branch_id and str(branch_id).strip():
+            filters['branch_id'] = branch_id
+
+    # Выгружаем полисы NOMAD (ВТ) с учетом разграничения прав
+    policies = NomadPolicy.objects.filter(**filters)\
+        .select_related('agent', 'branch')\
+        .prefetch_related('insured_persons')\
+        .order_by('issue_date', 'id')
 
     # 3. Создаем книгу Excel
     wb = Workbook()
@@ -965,41 +1298,38 @@ def export_excel_buh_vt(request):
         cell.font = font_bold
         cell.alignment = align_center
 
-    # 4. Наполнение данными на основе твоей вьюшки nomad_create
+    # 4. Наполнение данными
     for p in policies:
         for person in p.insured_persons.all():
             
-            # Безопасный перевод финансовых полей в Decimal на случай пустых значений в старых записях
-            p_som = Decimal(str(p.total_premium_netto or '0.00'))      # Премия без НСП берется из полиса
-            p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  # Премия с НСП
-            nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       # Сумма НСП 2%
+            p_som = Decimal(str(p.total_premium_netto or '0.00'))      
+            p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  
+            nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       
 
-            # Защита / Фолбэк для архивных полисов (если брутто/gross не посчиталось и упало в 0)
             if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
                 final_premium_gross = p_som
             else:
                 final_premium_gross = p_nsp_som
 
             row_data = [
-                'VT',                                              # Серия vt константа
-                p.policy_number,                                   # Номер полиса
-                p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", # Дата оформления
-                p.holder_name,                                     # Страхователь
-                person.passport_number,                            # Номер паспорта застрахованного
-                p.citizenship,                                     # Гражданство (берется из полиса)
-                person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "", # Дата рождения
-                p.holder_phone,                                    # Телефон
-                p.date_from.strftime('%d.%m.%Y') if p.date_from else "", # Дата начала
-                p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     # Окончание действия
-                person.sum_insured,                                # Страховая сумма (из NomadInsuredPerson)
-                p_som,                                             # Премия без нсп
-                nsp_val,                                           # нсп
-                final_premium_gross,                               # стр премия с нсп
-                p.agent.get_full_name() or p.agent.username        # Кто оформил
+                'VT',                                              
+                p.policy_number,                                   
+                p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", 
+                p.holder_name,                                     
+                person.passport_number,                            
+                p.citizenship,                                     
+                person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "", 
+                p.holder_phone,                                    
+                p.date_from.strftime('%d.%m.%Y') if p.date_from else "", 
+                p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     
+                person.sum_insured,                                
+                p_som,                                             
+                nsp_val,                                           
+                final_premium_gross,                               
+                p.agent.get_full_name() or p.agent.username        
             ]
             ws.append(row_data)
             
-            # Центрируем каждую ячейку в строке контента
             current_row = ws.max_row
             ws.row_dimensions[current_row].height = 20
             for cell in ws[current_row]:
@@ -1024,6 +1354,175 @@ def export_excel_buh_vt(request):
 
     # 6. Генерируем HTTP-ответ для скачивания файла
     filename = f"VT_Nomad_Accounting_Report_{d_from}_{d_to}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    
+    return response
+
+@login_required
+def export_excel_buh_student(request):
+    # 1. Получаем параметры периода и филиала из запроса
+    d_from_raw = request.GET.get('date_from')
+    d_to_raw = request.GET.get('date_to')
+    branch_id = request.GET.get('branch')
+    
+    try:
+        d_from = date.fromisoformat(d_from_raw)
+        d_to = date.fromisoformat(d_to_raw)
+    except (TypeError, ValueError):
+        d_from = d_to = date.today()
+
+    date_from_str = d_from.strftime('%d.%m.%Y')
+    date_to_str = d_to.strftime('%d.%m.%Y')
+
+    # 2. АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ И ФИЛЬТРАЦИЯ ПО ФИЛИАЛУ
+    filters = {'issue_date__range': [d_from, d_to]}
+    
+    if not request.user.is_superuser:
+        profile = getattr(request.user, 'profile', None)
+        if profile and profile.branch:
+            filters['branch_id'] = profile.branch.id
+        else:
+            return HttpResponse("Вы не привязаны к филиалу", status=403)
+    else:
+        if branch_id and str(branch_id).strip():
+            filters['branch_id'] = branch_id
+
+    # Находим имя связи с застрахованными через метаданные Django, чтобы prefetch не падал
+    prefetch_name = None
+    for rel in StudentPolicy._meta.related_objects:
+        if rel.one_to_many and 'insured' in rel.name.lower():
+            prefetch_name = rel.get_accessor_name()
+            break
+            
+    # Если связь определена динамически — подгружаем её, иначе просто забираем полисы
+    policies = StudentPolicy.objects.filter(**filters).select_related('agent', 'branch')
+    if prefetch_name:
+        policies = policies.prefetch_related(prefetch_name)
+
+    # 3. Создаем книгу Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчет Дети Бухгалтерия"
+
+    font_title = Font(name='Arial', size=14, bold=True, color="1E293B")
+    font_bold = Font(name='Arial', size=10, bold=True)
+    font_regular = Font(name='Arial', size=10, bold=False)
+    align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+    # --- ГЛАВНЫЙ ЗАГОЛОВОК ---
+    ws.append([f"Отчет по полисам ДЕТИ (Студент) за период с {date_from_str} по {date_to_str}"])
+    ws.row_dimensions[1].height = 35
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15)
+    ws.cell(row=1, column=1).font = font_title
+    ws.cell(row=1, column=1).alignment = align_center
+
+    ws.append([])
+    ws.row_dimensions[2].height = 15
+
+    # --- ШАПКА ТАБЛИЦЫ ---
+    headers = [
+        'Серия', 'Номер полиса', 'Дата оформления', 'Страхователь', 
+        'Застрахованный (Ребенок)', 'Номер паспорта/Свидетельства', 'Дата рождения', 'Телефон', 
+        'Дата начала', 'Окончание действия', 'Страховая сумма', 
+        'Премия без НСП', 'НСП', 'Стр. премия с НСП', 'Кто оформил'
+    ]
+    ws.append(headers)
+    
+    ws.row_dimensions[3].height = 28
+    for cell in ws[3]:
+        cell.font = font_bold
+        cell.alignment = align_center
+
+    # 4. Наполнение данными
+    for p in policies:
+        # Извлекаем финансовые показатели строго по твоей модели:
+        p_som = Decimal(str(p.total_premium_netto or '0.00'))      
+        p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  
+        nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       
+
+        if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
+            final_premium_gross = p_som
+        else:
+            final_premium_gross = p_nsp_som
+
+        # Получаем застрахованных детей, если связь найдена
+        kids = getattr(p, prefetch_name).all() if prefetch_name else []
+
+        if kids:
+            # Если дети есть в связанной таблице — бежим по ним циклом
+            for kid in kids:
+                kid_name = getattr(kid, 'full_name', getattr(kid, 'name', p.holder_name))
+                kid_passport = getattr(kid, 'passport_number', getattr(kid, 'document_number', ""))
+                kid_dob_raw = getattr(kid, 'date_of_birth', None)
+                kid_dob = kid_dob_raw.strftime('%d.%m.%Y') if kid_dob_raw else ""
+                kid_sum = getattr(kid, 'sum_insured', p.total_sum_insured)
+
+                row_data = [
+                    'STUDENT',                                         
+                    p.policy_number,                                   
+                    p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", 
+                    p.holder_name,                                     
+                    kid_name,
+                    kid_passport,                            
+                    kid_dob, 
+                    p.holder_phone,                                    
+                    p.date_from.strftime('%d.%m.%Y') if p.date_from else "", 
+                    p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     
+                    kid_sum,                                
+                    p_som,                                             
+                    nsp_val,                                           
+                    final_premium_gross,                               
+                    p.agent.get_full_name() or p.agent.username        
+                ]
+                ws.append(row_data)
+        else:
+            # Фолбэк: если застрахованных лиц в базе не привязано, выводим одну строку с данными страхователя
+            row_data = [
+                'STUDENT',                                         
+                p.policy_number,                                   
+                p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", 
+                p.holder_name,                                     
+                p.holder_name, # Ребенок = страхователь
+                p.holder_passport or "",                            
+                "", 
+                p.holder_phone,                                    
+                p.date_from.strftime('%d.%m.%Y') if p.date_from else "", 
+                p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     
+                p.total_sum_insured,                                
+                p_som,                                             
+                nsp_val,                                           
+                final_premium_gross,                               
+                p.agent.get_full_name() or p.agent.username        
+            ]
+            ws.append(row_data)
+        
+        # Стилизуем добавленные строки
+        current_row = ws.max_row
+        ws.row_dimensions[current_row].height = 20
+        for cell in ws[current_row]:
+            cell.font = font_regular
+            cell.alignment = align_center
+
+    # 5. Автоподбор ширины колонок под контент
+    for col in ws.columns:
+        max_length = 0
+        column_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row == 1:
+                continue
+            try:
+                if cell.value:
+                    val_len = len(str(cell.value))
+                    if val_len > max_length:
+                        max_length = val_len
+            except:
+                pass
+        ws.column_dimensions[column_letter].width = min(max_length + 3, 30)
+
+    # 6. Генерируем HTTP-ответ для скачивания файла
+    filename = f"Student_Children_Accounting_Report_{d_from}_{d_to}.xlsx"
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
