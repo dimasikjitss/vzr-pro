@@ -115,15 +115,15 @@
     </div>
 
     <div class="flex p-1 bg-slate-100 rounded-2xl mb-10 w-full max-w-md">
-        <button type="button" id="tab-vzr" onclick="switchTab('VZR')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600">
+        <button type="button" id="calc-tab-vzr" onclick="switchCalcTab('VZR')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600">
             <i data-lucide="plane" class="w-4 h-4"></i>
             <span class="text-[10px] font-black uppercase tracking-widest">ВЗР</span>
         </button>
-        <button type="button" id="tab-nomad" onclick="switchTab('NOMAD')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+        <button type="button" id="calc-tab-nomad" onclick="switchCalcTab('NOMAD')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
             <i data-lucide="tent" class="w-4 h-4"></i>
             <span class="text-[10px] font-black uppercase tracking-widest">Nomad</span>
         </button>
-        <button type="button" id="tab-students" onclick="switchTab('STUDENTS')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+        <button type="button" id="calc-tab-students" onclick="switchCalcTab('STUDENTS')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
             <i data-lucide="book-open" class="w-4 h-4"></i>
             <span class="text-[10px] font-black uppercase tracking-widest">Дети</span>
             <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
@@ -193,7 +193,7 @@
                     <i data-lucide="history" class="w-5 h-5 text-blue-600"></i> Журнал последних полисов
                 </h2>
 
-                <div class="flex p-1 bg-slate-100 rounded-xl w-full max-w-xs md:max-w-sm shrink-0">
+                <!-- <div class="flex p-1 bg-slate-100 rounded-xl w-full max-w-xs md:max-w-sm shrink-0">
                     <button type="button" onclick="switchJournalTab('VZR_LIST')" class="journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer">
                         <i data-lucide="plane" class="w-3.5 h-3.5"></i>
                         <span class="text-[9px] font-black uppercase tracking-widest">ВЗР</span>
@@ -208,6 +208,26 @@
                         <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
                         <span class="text-[9px] font-black uppercase tracking-widest">Дети</span>
                     </button>
+                </div> -->
+
+                <div class="flex p-1 bg-slate-100 rounded-xl w-full max-w-xs md:max-w-sm shrink-0">
+                    <button type="button" id="hjtab-vzr" onclick="switchHomeJournal('vzr')" 
+                            class="home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer">
+                        <i data-lucide="plane" class="w-3.5 h-3.5"></i>
+                        <span class="text-[9px] font-black uppercase tracking-widest">ВЗР</span>
+                    </button>
+                    
+                    <button type="button" id="hjtab-vt" onclick="switchHomeJournal('vt')" 
+                            class="home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+                        <i data-lucide="tent" class="w-3.5 h-3.5"></i>
+                        <span class="text-[9px] font-black uppercase tracking-widest">Nomad</span>
+                    </button>
+                    
+                    <button type="button" id="hjtab-student" onclick="switchHomeJournal('student')" 
+                            class="home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                        <span class="text-[9px] font-black uppercase tracking-widest">Дети</span>
+                    </button>
                 </div>
                 
                 <div class="relative w-full md:w-80">
@@ -218,148 +238,24 @@
             </div>
 
             <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-        <thead class="bg-white text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
-            <tr>
-                <th class="px-6 py-4 text-left">Дата</th>
-                <th class="px-6 py-4 text-left">Страхователь / Полис</th>
-                <th class="px-6 py-4 text-left">Детали / Территория</th>
-                <th class="px-6 py-4 text-left">Программа</th>
-                <th class="px-6 py-4 text-left">Лимит (Покрытие)</th>
-                <th class="px-6 py-4 text-left">Спец. условия</th>
-                <th class="px-6 py-4 text-left">Премия</th>
-                <th class="px-6 py-4 text-center">Печать</th>
-            </tr>
-        </thead>
-
-        <!-- ================= ТЕЛО ТАБЛИЦЫ ВЗР ================= -->
-        <tbody id="table-body-vzr" class="divide-y divide-slate-50">
-            {% for p in last_policies %}
-            <tr class="hover:bg-slate-50/50 transition-colors group">
-                <td class="px-6 py-4">
-                    <span class="text-xs font-bold text-slate-700">{{ p.issue_date|date:"d.m.Y" }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">{{ p.holder_name }}</p>
-                    <p class="text-[9px] text-blue-500 font-mono tracking-tighter mt-0.5">{{ p.policy_number }}</p>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-600 font-semibold italic">{{ p.territory }} / {{p.to_country}}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{{ p.program }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-700 font-bold">
-                        {% with p.insured_persons.all|first as first_person %}
-                            {{ first_person.sum_insured_currency|floatformat:0 }} {% if p.territory == "SCHENGEN" %}EUR{% else %}USD{% endif %}
-                        {% endwith %}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[9px] font-bold {% if p.activity_type == 'NONE' %}text-slate-400{% else %}text-orange-600{% endif %}">{{ p.activity_type }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                        <span class="font-black text-slate-900 text-xs">{{ p.total_premium_som|floatformat:2 }}</span>
-                        <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <a href="{% url 'print_policy' p.pk %}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                        <i data-lucide="printer" class="w-4 h-4"></i>
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Полисы ВЗР не найдены</td></tr>
-            {% endfor %}
-        </tbody>
-
-        <!-- ================= ТЕЛО ТАБЛИЦЫ NOMAD ================= -->
-        <tbody id="table-body-nomad" class="divide-y divide-slate-50 hidden">
-            {% for p in last_policies_nomad %}
-            <tr class="hover:bg-slate-50/50 transition-colors group">
-                <td class="px-6 py-4">
-                    <span class="text-xs font-bold text-slate-700">{{ p.issue_date|date:"d.m.Y" }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">{{ p.holder_name }}</p>
-                    <p class="text-[9px] text-indigo-500 font-mono tracking-tighter mt-0.5">{{ p.policy_number }}</p>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-500">Кыргызстан</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[9px] font-black uppercase">{{p.program}}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-700 font-bold">{{ p.total_sum_insured|floatformat:0 }} СОМ</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-400">—</span>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                        <span class="font-black text-slate-900 text-xs">{{ p.total_premium_gross|floatformat:2 }}</span>
-                        <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <a href="{% url 'nomad:nomad_print' p.pk %}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                        <i data-lucide="printer" class="w-4 h-4"></i>
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Полисы Nomad еще не оформленны</td></tr>
-            {% endfor %}
-        </tbody>
-
-        <!-- ================= ТЕЛО ТАБЛИЦЫ ДЕТИ/СТУДЕНТЫ ================= -->
-        <tbody id="table-body-students" class="divide-y divide-slate-50 hidden">
-            {% for p in last_policies_student %}
-            <tr class="hover:bg-slate-50/50 transition-colors group">
-                <td class="px-6 py-4">
-                    <span class="text-xs font-bold text-slate-700">{{ p.issue_date|date:"d.m.Y" }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <!-- Предполагается, что у StudentPolicy есть поля child_name или holder_name -->
-                    <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">{{ p.holder_name }}</p>
-                    <p class="text-[9px] text-teal-500 font-mono tracking-tighter mt-0.5">{{ p.policy_number }}</p>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-600">{% if p.time_type == "24H" %}Покрытие 24 часа{% else %}Во время учебы{% endif %}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-2 py-1 bg-teal-50 text-teal-600 rounded-lg text-[9px] font-black uppercase">{{ p.program.name }}</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[10px] text-slate-700 font-bold">{{ p.total_sum_insured|floatformat:0 }} СОМ</span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="text-[9px] font-bold {% if p.is_sports_section %}text-teal-600{% else %}text-slate-400{% endif %}">
-                        {% if p.is_sports_section %}Спорт. секции включены{% else %}Без спорта{% endif %}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                        <span class="font-black text-slate-900 text-xs">{{ p.total_premium_gross|floatformat:2 }}</span>
-                        <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <a href="{% url 'print_student_policy' p.pk %}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
-                        <i data-lucide="printer" class="w-4 h-4"></i>
-                    </a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Детские полисы не были оформленны</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+                <table class="w-full text-sm">
+                        <thead class="bg-white text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Дата</th>
+                            <th class="px-6 py-4 text-left">Страхователь / Полис</th>
+                            <th class="px-6 py-4 text-left">Детали / Территория</th>
+                            <th class="px-6 py-4 text-left">Программа</th>
+                            <th class="px-6 py-4 text-left">Лимит (Покрытие)</th>
+                            <th class="px-6 py-4 text-left">Спец. условия</th>
+                            <th class="px-6 py-4 text-left">Премия</th>
+                            <th class="px-6 py-4 text-center">Печать</th>
+                        </tr>
+                    </thead>
+                    <tbody id="home-journal-body" class="divide-y divide-slate-50">
+                        <tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Загрузка журнала...</td></tr>
+                    </tbody>
+                </table>
+            </div>
 
 
 
@@ -376,4 +272,115 @@
     window.eurRate = parseFloat("{{ eur_rate }}".replace(',', '.'));
 </script>
 <script src="{% static 'js/vzr-calc.js' %}"></script>
+
+<script>
+let currentHomeProduct = 'vzr';
+
+function switchHomeJournal(product) {
+    currentHomeProduct = product;
+
+    // 1. Переключение стилей активной кнопки
+    const tabs = {
+        'vzr': document.getElementById('hjtab-vzr'),
+        'vt': document.getElementById('hjtab-vt'),
+        'student': document.getElementById('hjtab-student')
+    };
+
+    const activeClass = "home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer";
+    const inactiveClass = "home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer";
+
+    Object.keys(tabs).forEach(k => {
+        if (tabs[k]) {
+            tabs[k].className = (k === product) ? activeClass : inactiveClass;
+        }
+    });
+
+    // 2. Автоматические даты за текущий месяц
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    const dFrom = `${year}-${month}-01`;
+    const dTo = `${year}-${month}-${day}`;
+
+    // 3. Запрос на бэкенд
+    fetch(`/api/analytics/?product=${product}&date_from=${dFrom}&date_to=${dTo}`)
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            renderHomeJournalTable(data.recent_policies || []);
+        })
+        .catch(err => {
+            console.error("Ошибка загрузки журнала на главной:", err);
+        });
+}
+
+function renderHomeJournalTable(policies) {
+    const tbody = document.getElementById('home-journal-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!policies || policies.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400 font-medium">Полисы не найдены</td></tr>`;
+        return;
+    }
+
+    let badgeClass = "bg-blue-50 text-blue-600";
+    if (currentHomeProduct === 'vt') badgeClass = "bg-indigo-50 text-indigo-600";
+    if (currentHomeProduct === 'student') badgeClass = "bg-teal-50 text-teal-600";
+
+    policies.forEach(p => {
+        const specStyle = (p.spec === 'NONE' || p.spec === 'Без спорта' || !p.spec || p.spec === '—') 
+            ? 'text-slate-400' 
+            : 'text-orange-600 font-bold';
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-slate-50/50 transition-colors group">
+                <td class="px-6 py-4">
+                    <span class="text-xs font-bold text-slate-700">${p.date}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <p class="font-bold text-slate-800 uppercase text-[11px] leading-tight">${p.holder_name}</p>
+                    <p class="text-[9px] text-slate-500 font-mono tracking-tighter mt-0.5">${p.policy_number}</p>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[10px] text-slate-600 font-semibold italic">${p.details || '—'}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="px-2 py-1 rounded-lg text-[9px] font-black uppercase ${badgeClass}">${p.program}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[10px] text-slate-700 font-bold">${p.limit}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-[9px] ${specStyle}">${p.spec || '—'}</span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-black text-slate-900 text-xs">${Number(p.premium).toLocaleString('ru-RU', {minimumFractionDigits: 2})}</span>
+                        <span class="text-[8px] text-slate-400 font-bold uppercase">сом</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-center">
+                    <a href="${p.print_url}" target="_blank" class="inline-flex p-2.5 bg-slate-100 text-slate-400 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                    </a>
+                </td>
+            </tr>
+        `;
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+// Загружаем ВЗР при первой загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    switchHomeJournal('vzr');
+});
+</script>
 {% endblock %}

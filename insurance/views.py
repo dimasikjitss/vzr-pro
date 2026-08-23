@@ -825,7 +825,7 @@ def analytics_api(request):
     policies_list = []
 
     if product_type == 'vzr':
-        policies = InsurancePolicy.objects.filter(**filters).select_related('agent').prefetch_related('insured_persons').order_by('-issue_date')[:50]
+        policies = InsurancePolicy.objects.filter(**filters).select_related('agent').prefetch_related('insured_persons').order_by('-issue_date','-id')[:50]
         for p in policies:
             first_person = p.insured_persons.first()
             limit_val = f"{int(first_person.sum_insured_currency)} EUR" if p.territory == "SCHENGEN" else f"{int(first_person.sum_insured_currency)} USD" if first_person else "-"
@@ -842,7 +842,7 @@ def analytics_api(request):
             })
             
     elif product_type == 'vt':
-        policies = NomadPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date')[:50]
+        policies = NomadPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date','-id')[:50]
         for p in policies:
             policies_list.append({
                 'date': p.issue_date.strftime('%d.%m.%Y'),
@@ -857,7 +857,7 @@ def analytics_api(request):
             })
             
     elif product_type == 'student':
-        policies = StudentPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date')[:50]
+        policies = StudentPolicy.objects.filter(**filters).select_related('agent').order_by('-issue_date','-id')[:50]
         for p in policies:
             spec_val = "Спорт. секции" if p.is_sports_section else "Без спорта"
             policies_list.append({

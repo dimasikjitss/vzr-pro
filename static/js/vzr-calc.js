@@ -1,13 +1,17 @@
+// ==========================================
+// КАЛЬКУЛЯТОР СТРАХОВАНИЯ (ИЗОЛИРОВАННЫЙ)
+// ==========================================
+
 // 1. Инициализация глобальных данных
 let vzrTariffs = window.tariffsData || [];
 let nomadTariffs = window.nomadTariffsData || []; 
 let kidsTariffs = window.kidsTariffsData || []; 
 const usdRate = window.usdRate || 0;
 const eurRate = window.eurRate || 0;
-let currentTab = 'VZR'; 
+let currentCalcTab = 'VZR'; // Локальное состояние для калькулятора
 
-// Глобальный объект элементов
-const el = {
+// Селекторы элементов калькулятора
+const calcEl = {
     h_dob: () => document.getElementById('h_dob'),
     start: () => document.getElementById('start_date'),
     end: () => document.getElementById('end_date'),
@@ -23,20 +27,25 @@ const el = {
     resRate: document.getElementById('res-rate')
 };
 
-// 2. Функция переключения вкладок
-function switchTab(type) {
-    currentTab = type;
+// 2. Функция переключения вкладок КАЛЬКУЛЯТОРА
+function switchCalcTab(type) {
+    currentCalcTab = type;
     const dynamicBox = document.getElementById('dynamic-fields');
-    const vBtn = document.getElementById('tab-vzr');
-    const nBtn = document.getElementById('tab-nomad');
-    const kBtn = document.getElementById('tab-students');
+    if (!dynamicBox) return;
 
-    [vBtn, nBtn, kBtn].forEach(b => {
-        if(b) b.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400";
-    });
+    // Уникальные ID кнопок калькулятора
+    const vBtn = document.getElementById('calc-tab-vzr');
+    const nBtn = document.getElementById('calc-tab-nomad');
+    const kBtn = document.getElementById('calc-tab-students');
+
+    const activeClass = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600 font-bold cursor-pointer transition-all";
+    const inactiveClass = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 hover:text-slate-600 font-medium cursor-pointer transition-all";
+
+    if (vBtn) vBtn.className = (type === 'VZR') ? activeClass : inactiveClass;
+    if (nBtn) nBtn.className = (type === 'NOMAD') ? activeClass : inactiveClass;
+    if (kBtn) kBtn.className = (type === 'STUDENTS') ? activeClass : inactiveClass;
 
     if (type === 'VZR') {
-        if(vBtn) vBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div>
                 <label class="input-label">Территория</label>
@@ -69,7 +78,6 @@ function switchTab(type) {
             </div>
         `;
     } else if (type === 'NOMAD') {
-        if(nBtn) nBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div class="col-span-2">
                 <label class="input-label">Программа</label>
@@ -83,7 +91,6 @@ function switchTab(type) {
             </div>
         `;
     } else if (type === 'STUDENTS') {
-        if(kBtn) kBtn.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600";
         dynamicBox.innerHTML = `
             <div class="col-span-2">
                 <label class="input-label">Период покрытия</label>
@@ -96,7 +103,7 @@ function switchTab(type) {
                 <label class="input-label">Занятия в спорт. секциях</label>
                 <div class="flex items-center h-12 px-4 bg-slate-50 rounded-xl border border-slate-200">
                     <input type="checkbox" id="is_sports_section" class="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500">
-                    <label for="is_sports_section" class="ml-2 text-sm text-slate-600 font-medium select-none">Включая тренировки и соревнования</label>
+                    <label for="is_sports_section" class="ml-2 text-sm text-slate-600 font-medium select-none cursor-pointer">Включая тренировки и соревнования</label>
                 </div>
             </div>
             <div class="col-span-4">
@@ -117,7 +124,7 @@ function updateSumOptions() {
     if (!sumEl) return;
     sumEl.innerHTML = '';
 
-    if (currentTab === 'VZR') {
+    if (currentCalcTab === 'VZR') {
         const territory = document.getElementById('territory').value;
         const program = document.getElementById('program').value;
         const currency = (territory === 'SCHENGEN') ? 'EUR' : 'USD';
@@ -131,13 +138,13 @@ function updateSumOptions() {
             let opt = new Option(s.toLocaleString('ru-RU') + ' ' + currency, s);
             sumEl.add(opt);
         });
-    } else if (currentTab === 'NOMAD') {
+    } else if (currentCalcTab === 'NOMAD') {
         for (let i = 50000; i <= 2000000; i += 50000) {
             let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
             if (i === 100000) opt.selected = true;
             sumEl.add(opt);
         }
-    } else if (currentTab === 'STUDENTS') {
+    } else if (currentCalcTab === 'STUDENTS') {
         for (let i = 50000; i <= 1000000; i += 50000) {
             let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
             if (i === 100000) opt.selected = true;
@@ -148,9 +155,9 @@ function updateSumOptions() {
 
 // 4. Основная функция расчета
 function runCalculation() {
-    const startVal = el.start().value;
-    const endVal = el.end().value;
-    const dobVal = el.h_dob().value;
+    const startVal = calcEl.start() ? calcEl.start().value : '';
+    const endVal = calcEl.end() ? calcEl.end().value : '';
+    const dobVal = calcEl.h_dob() ? calcEl.h_dob().value : '';
 
     if (!startVal || !endVal) return alert("Укажите даты поездки/страхования");
     
@@ -172,7 +179,7 @@ function runCalculation() {
 
     let premiumNettoSom = 0;
 
-    if (currentTab === 'VZR') {
+    if (currentCalcTab === 'VZR') {
         const territoryVal = document.getElementById('territory').value;
         const programVal = document.getElementById('program').value;
         const activityVal = document.getElementById('activity').value;
@@ -192,9 +199,9 @@ function runCalculation() {
 
         if (match) {
             premiumNettoSom = parseFloat(match.rate) * days * ageCoeff * actCoeff * rate;
-            if(el.resRate) el.resRate.innerText = rate.toFixed(2) + (territoryVal === 'SCHENGEN' ? ' EUR' : ' USD');
+            if(calcEl.resRate) calcEl.resRate.innerText = rate.toFixed(2) + (territoryVal === 'SCHENGEN' ? ' EUR' : ' USD');
         }
-    } else if (currentTab === 'NOMAD') {
+    } else if (currentCalcTab === 'NOMAD') {
         if (age <= 5) ageCoeff = 2.0;
         else if (age <= 13) ageCoeff = 1.8;
 
@@ -206,51 +213,39 @@ function runCalculation() {
         if (match) {
             const percentRate = parseFloat(match.percent_rate);
             premiumNettoSom = (sumVal * percentRate / 100) * ageCoeff;
-            if(el.resRate) el.resRate.innerText = "1.00 (KGS)";
+            if(calcEl.resRate) calcEl.resRate.innerText = "1.00 (KGS)";
         }
-    } else if (currentTab === 'STUDENTS') {
+    } else if (currentCalcTab === 'STUDENTS') {
         const timeType = document.getElementById('time_type').value;
         const isSports = document.getElementById('is_sports_section').checked;
 
-        // Собираем данные в FormData для отправки на бэкенд
         const formData = new FormData();
         formData.append('time_type', timeType);
         formData.append('sum_insured', sumVal);
         formData.append('is_sports_section', isSports ? 'true' : 'false');
         formData.append('start_date', startVal);
         formData.append('end_date', endVal);
-        
-        // Передаем дату рождения в массив birth_dates[]
         formData.append('birth_dates[]', dobVal); 
 
-        // Добавляем CSRF-токен, который Django требует для POST-запросов
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
 
-        fetch('/student/calculate/', {  // Проверь этот URL (урл твоей вьюхи student_calculate)
+        fetch('/student/calculate/', {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
+            headers: { 'X-CSRFToken': csrfToken },
             body: formData
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const fmt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-                
-                // Выводим точные данные, прилетевшие с бэкенда
-                el.resPrice.innerText = parseFloat(data.gross).toLocaleString('ru-RU', fmt);
-                el.resNsp.innerText = parseFloat(data.nsp).toLocaleString('ru-RU', fmt);
-                el.resNetto.innerText = parseFloat(data.netto).toLocaleString('ru-RU', fmt);
-                el.resDays.innerText = data.days_count;
-                el.resAge.innerText = data.student_age + " лет";
-                el.resAgeCoeff.innerText = "1.0"; // Либо выведи коэффициент, если добавишь его в JSON вьюхи
-                el.resProg.innerText = data.program_name + ' ' + sumVal.toLocaleString('ru-RU');
-                if(el.resRate) el.resRate.innerText = "1.00";
-
-                // Записываем полученный program_id в скрытое поле формы, если оно есть
-                const hiddenProgInput = document.getElementById('id_program') || document.querySelector('[name=program]');
-                if (hiddenProgInput) hiddenProgInput.value = data.program_id;
+                calcEl.resPrice.innerText = parseFloat(data.gross).toLocaleString('ru-RU', fmt);
+                calcEl.resNsp.innerText = parseFloat(data.nsp).toLocaleString('ru-RU', fmt);
+                calcEl.resNetto.innerText = parseFloat(data.netto).toLocaleString('ru-RU', fmt);
+                calcEl.resDays.innerText = data.days_count;
+                calcEl.resAge.innerText = data.student_age + " лет";
+                calcEl.resAgeCoeff.innerText = "1.0";
+                calcEl.resProg.innerText = data.program_name + ' ' + sumVal.toLocaleString('ru-RU');
+                if(calcEl.resRate) calcEl.resRate.innerText = "1.00";
             } else {
                 alert(data.error || "Ошибка при расчете тарифа");
             }
@@ -260,22 +255,22 @@ function runCalculation() {
             alert("Ошибка соединения с сервером при расчете");
         });
         
-        return; // Прерываем выполнение стандартного JS-расчета
+        return;
     }
 
     // Отрисовка результатов
     if (premiumNettoSom > 0) {
-        const total = premiumNettoSom * 1.02; // НСП 2%
+        const total = premiumNettoSom * 1.02;
         const nsp = total - premiumNettoSom;
         const fmt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
-        el.resPrice.innerText = total.toLocaleString('ru-RU', fmt);
-        el.resNsp.innerText = nsp.toLocaleString('ru-RU', fmt);
-        el.resNetto.innerText = premiumNettoSom.toLocaleString('ru-RU', fmt);
-        el.resDays.innerText = days;
-        el.resAge.innerText = dobVal ? age + " лет" : "---";
-        el.resAgeCoeff.innerText = ageCoeff.toFixed(1);
-        el.resProg.innerText = (currentTab === 'STUDENTS' ? 'ДЕТИ ' : currentTab + ' ') + sumVal.toLocaleString('ru-RU');
+        if(calcEl.resPrice) calcEl.resPrice.innerText = total.toLocaleString('ru-RU', fmt);
+        if(calcEl.resNsp) calcEl.resNsp.innerText = nsp.toLocaleString('ru-RU', fmt);
+        if(calcEl.resNetto) calcEl.resNetto.innerText = premiumNettoSom.toLocaleString('ru-RU', fmt);
+        if(calcEl.resDays) calcEl.resDays.innerText = days;
+        if(calcEl.resAge) calcEl.resAge.innerText = dobVal ? age + " лет" : "---";
+        if(calcEl.resAgeCoeff) calcEl.resAgeCoeff.innerText = ageCoeff.toFixed(1);
+        if(calcEl.resProg) calcEl.resProg.innerText = (currentCalcTab === 'STUDENTS' ? 'ДЕТИ ' : currentCalcTab + ' ') + sumVal.toLocaleString('ru-RU');
     } else {
         alert("Тариф не найден для выбранных параметров.");
     }
@@ -283,36 +278,72 @@ function runCalculation() {
 
 // 5. Очистка результатов
 function resetOutputs() {
-    el.resPrice.innerText = "0.00";
-    el.resNsp.innerText = "0.00";
-    el.resNetto.innerText = "0.00";
-    el.resDays.innerText = "0";
-    el.resAge.innerText = "---";
-    el.resAgeCoeff.innerText = "1.0";
-    el.resProg.innerText = "---";
-    if(el.resRate) el.resRate.innerText = "0.00";
+    if(calcEl.resPrice) calcEl.resPrice.innerText = "0.00";
+    if(calcEl.resNsp) calcEl.resNsp.innerText = "0.00";
+    if(calcEl.resNetto) calcEl.resNetto.innerText = "0.00";
+    if(calcEl.resDays) calcEl.resDays.innerText = "0";
+    if(calcEl.resAge) calcEl.resAge.innerText = "---";
+    if(calcEl.resAgeCoeff) calcEl.resAgeCoeff.innerText = "1.0";
+    if(calcEl.resProg) calcEl.resProg.innerText = "---";
+    if(calcEl.resRate) calcEl.resRate.innerText = "0.00";
 }
 
 // 6. Слушатели и инициализация
 document.addEventListener('DOMContentLoaded', () => {
-    switchTab('VZR'); 
+    switchCalcTab('VZR'); 
     
-    if(el.calcBtn) el.calcBtn.onclick = runCalculation;
+    if(calcEl.calcBtn) calcEl.calcBtn.onclick = runCalculation;
     
-    if(el.resetBtn) {
-        el.resetBtn.onclick = () => {
-            el.h_dob().value = '';
-            el.start().value = '';
-            el.end().value = '';
-            switchTab(currentTab);
+    if(calcEl.resetBtn) {
+        calcEl.resetBtn.onclick = () => {
+            if(calcEl.h_dob()) calcEl.h_dob().value = '';
+            if(calcEl.start()) calcEl.start().value = '';
+            if(calcEl.end()) calcEl.end().value = '';
+            switchCalcTab(currentCalcTab);
         };
     }
-    
-    const tabVzrBtn = document.getElementById('tab-vzr');
-    const tabNomadBtn = document.getElementById('tab-nomad');
-    const tabKidsBtn = document.getElementById('tab-students');
-    
-    if(tabVzrBtn) tabVzrBtn.onclick = () => switchTab('VZR');
-    if(tabNomadBtn) tabNomadBtn.onclick = () => switchTab('NOMAD');
-    if(tabKidsBtn) tabKidsBtn.onclick = () => switchTab('STUDENTS');
 });
+
+let currentJournalProduct = 'vzr';
+let loadedJournalData = [];
+
+// Функция переключения продукта в журнале
+window.switchProduct = function(product) {
+    currentJournalProduct = product;
+
+    // 1. Подсветка табов
+    const jTabs = {
+        'vzr': document.getElementById('jtab-vzr'),
+        'vt': document.getElementById('jtab-vt'),
+        'student': document.getElementById('jtab-student')
+    };
+
+    const jActiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer";
+    const jInactiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer";
+
+    Object.keys(jTabs).forEach(key => {
+        if (jTabs[key]) jTabs[key].className = (key === product) ? jActiveClass : jInactiveClass;
+    });
+
+    // 2. Запрос за полисами
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    // За текущий месяц
+    const dateFrom = `${year}-${month}-01`;
+    const dateTo = `${year}-${month}-${day}`;
+
+    fetch(`/api/analytics/?product=${product}&date_from=${dateFrom}&date_to=${dateTo}`)
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            loadedJournalData = data.recent_policies || [];
+            renderJournalTable(loadedJournalData);
+        })
+        .catch(err => console.error("Ошибка загрузки журнала:", err));
+};
+
