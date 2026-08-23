@@ -1,0 +1,327 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Доступы агента - {{ agent_profile.agent_code }}</title>
+    <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @page { 
+        size: A4 portrait; 
+        margin: 0; 
+    }
+    
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    body { 
+        background-color: #525659; 
+        margin: 0; 
+        padding: 20px 0; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        font-family: 'Times New Roman', Times, serif;
+    }
+    
+    .page {
+        background: white;
+        width: 210mm;
+        height: 297mm; /* Строго фиксируем высоту листа A4 */
+        padding: 15mm 20mm; /* Уменьшаем отступы, чтобы контент не переполнял листок */
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        color: #000;
+        line-height: 1.35;
+        position: relative;
+        overflow: hidden; /* Обрезаем миллиметровые выходы за границы */
+    }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .page { box-shadow: none; margin: 0; page-break-after: always; }
+            .no-print { display: none !important; }
+        }
+
+        .no-print { 
+            margin-bottom: 20px; 
+            background: #2c3e50; 
+            padding: 10px 30px; 
+            border-radius: 8px; 
+            display: flex; 
+            gap: 15px; 
+        }
+        .no-print button, .no-print a { 
+            padding: 8px 16px; 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .app-header-right {
+            text-align: right;
+            font-size: 12px;
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .credentials-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+
+        .cred-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .cred-row:last-child { border-bottom: none; }
+        .cred-label { color: #64748b; font-weight: 600; font-size: 10pt;}
+        .cred-value { font-weight: bold; color: #0f172a; font-size: 10pt; }
+
+        .guide-section {
+            margin-top: 30px;
+        }
+
+        .guide-title {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 15px;
+            border-left: 4px solid #000000;
+            padding-left: 10px;
+        }
+
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            font-size: 9pt;
+        }
+
+        /* ЧЕРНЫЙ КРУГ С БЕЛОЙ ЦИФРОЙ ДЛЯ ИДЕАЛЬНОЙ Ч/Б ПЕЧАТИ */
+        .step-num {
+            background: #ffffff;
+            color: #000000;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10pt;
+            font-weight: bold;
+            flex-shrink: 0;
+            font-family: sans-serif;
+        }
+
+        .contact-box {
+            margin-top: 40px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- <div class="no-print">
+        <button onclick="window.print()">ПЕЧАТЬ ПАМЯТКИ</button>
+        <button onclick="downloadCredentialsPDF()" style="background:#e67e22;">СОХРАНИТЬ PDF</button>
+        <a href="{% url 'external_agents:register_agent' %}" style="background:#7f8c8d;">К РЕГИСТРАЦИИ</a>
+    </div> -->
+    <div class="no-print">
+        <!-- Кнопка вызывает нашу обновленную функцию вместо прямого window.print() -->
+        <a href="{% url 'external_agents:register_agent' %}" style="background:#7f8c8d;">К РЕГИСТРАЦИИ</a>
+        <button onclick="downloadCredentialsPDF()" style="background:#e67e22;">СОХРАНИТЬ PDF</button>
+        <button onclick="handlePrintAndSave()" style="background:#27ae60;">ПЕЧАТЬ ПАМЯТКИ</button>
+    </div>
+
+    <div class="page" id="activation-card">
+        <div class="app-header-right">
+            Приложение №2<br>
+            к Договору об оказании агентских услуг<br>
+            № __________ от «{{ today|date:"d.m.Y" }}» г.
+        </div>
+        
+        <div class="header">
+            <div>
+                <h4 style="margin: 0; color: #0f172a;">ОАО «Государственная Страховая Организация»</h4>
+                <span style="font-size: 11pt; color: #64748b;">Памятка страхового агента</span>
+            </div>
+        </div>
+
+        <p>Уважаемый(ая) <b>{{ agent_user.get_full_name|default:agent_user.username }}</b>!</p>
+        <p style="font-size: 11pt;">Ваша учетная запись страхового агента успешно создана и активирована в рабочей системе. Ниже приведены Ваши персональные данные для входа в личный кабинет. </p>
+
+        <!-- БЛОК С ДОСТУПАМИ -->
+        <div class="credentials-box">
+            <div class="cred-row">
+                <span class="cred-label">Код агента:</span>
+                <span class="cred-value">{{ agent_profile.agent_code }}</span>
+            </div>
+            <div class="cred-row">
+                <span class="cred-label">Логин (Email):</span>
+                <span class="cred-value">{{ agent_user.email }}</span>
+            </div>
+            <div class="cred-row">
+                <span class="cred-label">Пароль:</span>
+                <span class="cred-value">{{ raw_password }}</span>
+            </div>
+            <div class="cred-row">
+                <span class="cred-label">Ссылка для входа:</span>
+                <span class="cred-value" style="font-size: 10pt; font-family: sans-serif;">http://127.0.0.1:8000/login/</span>
+            </div>
+        </div>
+
+        <!-- МИНИ-ГАЙД ПО РАБОТЕ С СИСТЕМОЙ -->
+        <div class="guide-section">
+            <div class="guide-title">Инструкция пользователя</div>
+            
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-num">1.</div>
+                    <div><b>Авторизация:</b> Перейдите на сайт, введите Ваш Логин (Email) и Пароль.</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">2.</div>
+                    <div><b>В личном кабините Вам доступны следующие страховые продукты для оформления:</b> <br> 
+                        <b>VZR - </b> страхование выезжающих за рубеж;<br>
+                        <b>GSO Nomad - </b> страхование внутреннего и въезжающего туризма; <br>
+                        <b>Дети, студенты - </b> страхование дошкольников, школьников, студентов;</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">3.</div>
+                    <div><b>Быстрый расчет премии:</b> Заполните данные в калькуляторе по запросу Страхователя. Система автоматически рассчитает итоговую страховую премию.</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">4.</div>
+                    <div><b>Оформление полиса:</b> Выберите страховой продукт, заполните данные Страхователя и Застрахованного, cистема автоматически рассчитает итоговую страховую премию и сформирует бланк полиса.</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num">5.</div>
+                    <div>
+                        <b>Пошаговый алгоритм дальнейших действий:</b>
+                        <div style="padding-left: 20px; margin-top: 4px; line-height: 1.5;">
+                            <div><b>Шаг 1:</b> Требуется распечатать черновик полиса для проверки данных Страхователем.</div>
+                            <div><b>Шаг 2:</b> Страхователь проверяет черновик, затем подписывает, бумажный подписанный экземляр остается у Агента.</div>
+                            <div><b>Шаг 3:</b> Оплата Страхователем страховой премии на расчетный счет ОАО «ГСО».</div>
+                            <div><b>Шаг 4:</b> После проведения успешной оплаты агенту необходимо распечатать оригинальный полис, подписать и поставить печать, а Страхователю необходимо расписаться.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- КОНТАКТНЫЙ БЛОК -->
+        <div class="contact-box">
+            <div>
+                <div style="font-weight: bold; color: #1e3a8a;">Техническая поддержка и вопросы:</div>
+                <div style="font-size: 10pt; color: #3b82f6;">Куратор</div>
+            </div>
+            <div style="text-align: right; font-weight: bold; font-size: 13pt; color: #1e3a8a;">
+                +996 (500) 36-55-67
+            </div>
+            
+        </div>
+        <div style="margin-top: 10px; text-align: center; font-size: 9pt; color: #94a3b8;">
+                Храните данные входа в недоступном для третьих лиц месте.
+        </div>
+
+    </div>
+
+    <script>
+        async function handlePrintAndSave() {
+            const element = document.getElementById('activation-card');
+            const agentCode = '{{ agent_profile.agent_code }}';
+            
+            // Настройки для конвертации HTML в PDF через html2pdf
+            const opt = {
+                margin:       0,
+                filename:     'Памятка_' + agentCode + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            try {
+                // 1. Генерируем PDF-файл прямо из страницы в фоновом режиме (Blob)
+                const pdfBlob = await html2pdf().set(opt).from(element).outputPdf('blob');
+
+                // 2. Отправляем этот PDF на сервер в Django
+                let formData = new FormData();
+                formData.append('printed_pdf', pdfBlob, 'Pamyatka_' + agentCode + '.pdf');
+                formData.append('agent_code', agentCode);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                await fetch("{% url 'external_agents:save_printed_memo' %}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('PDF успешно сохранен в БД!');
+            } catch (e) {
+                console.error('Ошибка сохранения PDF при печати:', e);
+            }
+
+            // 3. Сразу же открываем окно печати браузера
+            window.print();
+        }
+
+        function downloadCredentialsPDF() {
+            const element = document.getElementById('activation-card');
+            const fileName = 'Доступы_Агента_{{ agent_profile.agent_code }}.pdf';
+            
+            const opt = {
+                margin:       0,
+                filename:     fileName,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>

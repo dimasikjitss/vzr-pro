@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if edit_user %}Профиль сотрудника: {{ edit_user.get_full_name }}{% else %}Создание сотрудника{% endif %} | GSO Insurance
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 pt-8 pb-16 space-y-8">
+
+    <!-- Верхняя навигация и шапка страницы -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'external_agents:users_list' %}?tab=staff" class="p-3 bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 rounded-2xl transition-all shadow-sm">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">
+                        {% if edit_user %}{{ edit_user.get_full_name|default:edit_user.username }}{% else %}Новый штатный сотрудник{% endif %}
+                    </h1>
+                    {% if edit_user %}
+                        {% if edit_user.is_active %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-200/50">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Активен
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-600 border border-rose-200/50">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> Заблокирован
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
+                    {% if edit_user %}
+                        ID: #{{ edit_user.id }} • Зарегистрирован {{ edit_user.date_joined|date:"d.m.Y H:i" }}
+                    {% else %}
+                        Заполните данные для создания нового аккаунта сотрудника
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if edit_user %}
+        <!-- Кнопки быстрого управления -->
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'external_agents:reset_user_password' edit_user.pk %}" 
+               onclick="return confirm('Сгенерировать новый пароль для сотрудника?')" 
+               class="flex items-center gap-2 text-xs font-black bg-amber-50 text-amber-600 px-5 py-3 rounded-2xl hover:bg-amber-100/80 active:scale-95 transition-all uppercase tracking-wider border border-amber-200/50 shadow-sm">
+                <i data-lucide="key-round" class="w-4 h-4 text-amber-500"></i>
+                <span>Сбросить пароль</span>
+            </a>
+
+            <a href="{% url 'external_agents:toggle_user_active' edit_user.pk %}" 
+               class="flex items-center gap-2 text-xs font-black px-5 py-3 rounded-2xl active:scale-95 transition-all uppercase tracking-wider shadow-sm {% if edit_user.is_active %}bg-rose-50 text-rose-600 hover:bg-rose-100/80 border border-rose-200/50{% else %}bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 border border-emerald-200/50{% endif %}">
+                {% if edit_user.is_active %}
+                    <i data-lucide="user-x" class="w-4 h-4 text-rose-500"></i>
+                    <span>Заблокировать</span>
+                {% else %}
+                    <i data-lucide="user-check" class="w-4 h-4 text-emerald-500"></i>
+                    <span>Разблокировать</span>
+                {% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Основная сетка: Форма + Правая боковая панель -->
+    <form method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {% csrf_token %}
+
+        <!-- ЛЕВАЯ КОЛОНКА: Форма (8 колонок) -->
+        <div class="lg:col-span-8 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
+            
+            <div class="border-b border-slate-100 pb-4 flex items-center gap-2">
+                <i data-lucide="user-cog" class="w-5 h-5 text-blue-600"></i>
+                <h2 class="font-black text-slate-800 tracking-tight text-lg">Учетные и персональные данные</h2>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-600 flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                    <div>{{ form.non_field_errors }}</div>
+                </div>
+            {% endif %}
+
+            <!-- Имя и Фамилия -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Фамилия *</label>
+                    <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required placeholder="Иванов" 
+                           class="w-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                    {% if form.last_name.errors %}
+                        <p class="text-[10px] font-bold text-rose-500 mt-1">{{ form.last_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Имя *</label>
+                    <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required placeholder="Иван" 
+                           class="w-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                    {% if form.first_name.errors %}
+                        <p class="text-[10px] font-bold text-rose-500 mt-1">{{ form.first_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Email (Логин) -->
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Рабочий Email (Логин в системе) *</label>
+                <div class="relative">
+                    <input type="email" name="email" value="{{ form.email.value|default:'' }}" required placeholder="ivanov@gso.kg" 
+                           class="w-full bg-slate-50 border border-slate-200 text-sm font-bold text-slate-700 rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner">
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <i data-lucide="mail" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                {% if form.email.errors %}
+                    <p class="text-[10px] font-bold text-rose-500 mt-1">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Роль и Филиал -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Роль / Права доступа *</label>
+                    <div class="relative">
+                        <select name="role" required class="w-full bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700 rounded-2xl px-4 py-3.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                            <option value="">Выберите роль...</option>
+                            {% for group in form.fields.role.queryset %}
+                                <option value="{{ group.id }}" {% if form.role.value == group.id or form.initial.role.id == group.id %}selected{% endif %}>
+                                    {{ group.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    {% if form.role.errors %}
+                        <p class="text-[10px] font-bold text-rose-500 mt-1">{{ form.role.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Привязка к филиалу</label>
+                    <div class="relative">
+                        <select name="branch" class="w-full bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700 rounded-2xl px-4 py-3.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-inner">
+                            <option value="">— Головной офис —</option>
+                            {% for b in form.fields.branch.queryset %}
+                                <option value="{{ b.id }}" {% if form.branch.value == b.id or form.initial.branch.id == b.id %}selected{% endif %}>
+                                    {{ b.code }} - {{ b.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <i data-lucide="building-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Флаг активности -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/70 flex items-center gap-3">
+                <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}
+                       class="w-5 h-5 text-blue-600 bg-white border-slate-300 rounded-lg focus:ring-blue-500 focus:ring-2 cursor-pointer">
+                <label for="id_is_active" class="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                    Разрешить вход в систему (Аккаунт активен)
+                </label>
+            </div>
+
+            <div class="h-px bg-slate-100 w-full pt-4"></div>
+
+            <!-- Действия формы -->
+            <div class="flex items-center justify-end gap-3">
+                <a href="{% url 'external_agents:users_list' %}?tab=staff" class="text-xs font-black text-slate-500 hover:text-slate-800 px-6 py-3.5 rounded-2xl transition-all uppercase tracking-wider">
+                    Отмена
+                </a>
+                <button type="submit" class="flex items-center gap-2 text-xs font-black bg-blue-600 text-white px-8 py-3.5 rounded-2xl hover:bg-blue-700 active:scale-95 transition-all uppercase tracking-wider shadow-md hover:shadow-blue-200 hover:shadow-lg">
+                    <i data-lucide="save" class="w-4 h-4 text-blue-100"></i>
+                    <span>Сохранить сотрудника</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: Статистика и деятельность (4 колонки) -->
+        <div class="lg:col-span-4 space-y-6">
+
+            <!-- Карточка 1: Всего оформлено -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 border-l-4 border-l-blue-500 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Оформлено полисов</p>
+                    <p class="text-3xl font-black text-slate-900 mt-1 tracking-tight">{{ user_policies_count|default:0 }} шт.</p>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-500 rounded-2xl">
+                    <i data-lucide="files" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Карточка 2: Последние оформленные полисы -->
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-blue-500"></i> Последние полисы
+                </h3>
+
+                {% if recent_policies %}
+                    <div class="divide-y divide-slate-50">
+                        {% for p in recent_policies %}
+                        <div class="py-3 flex items-center justify-between text-xs">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-slate-800 font-mono">{{ p.policy_number }}</span>
+                                <span class="text-[10px] text-slate-400">{{ p.issue_date|date:"d.m.Y" }}</span>
+                            </div>
+                            <span class="font-black text-slate-900">{{ p.total_premium_som|default:0 }} сом</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-xs font-bold text-slate-400 uppercase italic tracking-wider">
+                        Пока нет оформленных полисов
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof lucide !== 'undefined') { 
+            lucide.createIcons(); 
+        }
+    });
+</script>
+{% endblock %}

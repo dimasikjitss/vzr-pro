@@ -116,13 +116,112 @@ def home(request):
     })
 
     """ Оформление ВЗР """
+
+# @login_required
+# def vzr_create(request):
+#     rates = get_nbkr_rates()
+#     try:
+#         user_branch = request.user.profile.branch
+#     except Exception:
+#         return render(request, 'insurance/error.html', {'message': 'Филиал не настроен в профиле.'})
+
+#     if request.method == "POST":
+#         try:
+#             # 1. Определяем, кто страхователь: 'individual' (физ) или 'company' (юр)
+#             holder_kind = request.POST.get('holder_kind', 'individual')
+#             holder_instance = None
+
+#             if holder_kind == 'company':
+#                 # Создаем или находим Юридическое лицо (ищем по ИНН)
+#                 holder_instance = CompanyHolder.objects.create(
+#                     company_name=request.POST.get('company_name', '').strip().upper(),
+#                     inn=request.POST.get('company_inn', '').strip(),
+#                     okpo=request.POST.get('company_okpo', '').strip(),
+#                     legal_address=request.POST.get('company_address', '').strip().upper(),
+#                     signatory_name=request.POST.get('company_signatory', '').strip().upper(),
+#                     phone=request.POST.get('company_phone', '').strip(),
+#                 )
+#             else:
+#                 # По дефолту создаем или находим Физическое лицо (ищем по Паспорту)
+#                 holder_instance = IndividualHolder.objects.create(
+#                     passport=request.POST.get('holder_passport', '').strip().upper(),
+#                     name=request.POST.get('holder_name', '').strip().upper(),
+#                     inn=request.POST.get('holder_inn', '').strip(),
+#                     phone=request.POST.get('holder_phone', '').strip(),
+#                     address=request.POST.get('holder_address', '').strip().upper(),
+#                     relative_contact=request.POST.get('holder_relative', '').strip() or "Не указан",
+#                 )
+
+#             # 2. Создаем полис и передаем туда наш holder_instance
+#             # Наш кастомный метод save() сам заполнит старые текстовые поля (holder_name, holder_phone и т.д.)
+#             policy = InsurancePolicy.objects.create(
+#                 agent=request.user,
+#                 branch=user_branch,
+#                 holder=holder_instance,  # <- Передаем объект напрямую в GenericForeignKey
+#                 date_from=date.fromisoformat(request.POST.get('start_date')),
+#                 date_to=date.fromisoformat(request.POST.get('end_date')),
+#                 territory=request.POST.get('territory'),
+#                 to_country=request.POST.get('to_country', '').strip().upper(),
+#                 program=request.POST.get('program'),
+#                 activity_type=request.POST.get('activity'),
+#                 exchange_rate=Decimal(request.POST.get('exchange_rate', '1.0').replace(',', '.'))
+#             )
+            
+#             # 3. Логика добавления застрахованных (осталась без изменений)
+#             names = request.POST.getlist('insured_name[]')
+#             dobs = request.POST.getlist('insured_dob[]')
+#             passports = request.POST.getlist('insured_passport[]')
+#             sums = request.POST.getlist('insured_sum[]')
+#             premiums = request.POST.getlist('insured_premium[]')
+            
+#             total_cur = Decimal('0.00')
+#             for i in range(len(names)):
+#                 if names[i].strip():
+#                     person = InsuredPerson.objects.create(
+#                         policy=policy,
+#                         full_name=names[i].strip().upper(),
+#                         date_of_birth=date.fromisoformat(dobs[i]),
+#                         passport_number=passports[i].strip().upper(),
+#                         sum_insured_currency=Decimal(sums[i] or 0),
+#                         premium_currency=Decimal(premiums[i] or 0)
+#                     )
+#                     total_cur += person.premium_currency
+            
+#             policy.total_premium_currency = total_cur
+#             policy.total_premium_som = (total_cur * policy.exchange_rate * Decimal(1.02)).quantize(Decimal('0.01'))
+#             policy.save()
+            
+#             return redirect('policy_success', pk=policy.pk)
+#         except Exception as e:
+#             messages.error(request, f"Ошибка сохранения: {e}")
+
+#     return render(request, 'insurance/vzr_create.html', {
+#         'usd_rate': rates['USD'], 'eur_rate': rates['EUR'],
+#         'current_branch_code': user_branch.code if user_branch else '??'
+#     })
+
 @login_required
 def vzr_create(request):
     rates = get_nbkr_rates()
-    try:
+    
+    # -------------------------------------------------------------
+    # УНИВЕРСАЛЬНОЕ ОПРЕДЕЛЕНИЕ ФИЛИАЛА ДЛЯ СОТРУДНИКОВ И АГЕНТОВ
+    # -------------------------------------------------------------
+    user_branch = None
+
+    # 1. Если оформляет ВНЕШНИЙ АГЕНТ (из приложения external_agents)
+    if hasattr(request.user, 'agent_profile'):
+        agent_profile = request.user.agent_profile
+        # Находим филиал в таблице Branch по коду агента (например, AG1)
+        user_branch = Branch.objects.filter(code=agent_profile.agent_code).first()
+
+    # 2. Если оформляет ШТАТНЫЙ СОТРУДНИК ФИЛИАЛА
+    elif hasattr(request.user, 'profile') and request.user.profile.branch:
         user_branch = request.user.profile.branch
-    except Exception:
-        return render(request, 'insurance/error.html', {'message': 'Филиал не настроен в профиле.'})
+
+    # 3. Резервный фолбэк (если филиал не найден/не привязан)
+    if not user_branch:
+        user_branch = Branch.objects.filter(code='00').first() or Branch.objects.first()
 
     if request.method == "POST":
         try:
@@ -131,7 +230,7 @@ def vzr_create(request):
             holder_instance = None
 
             if holder_kind == 'company':
-                # Создаем или находим Юридическое лицо (ищем по ИНН)
+                # Создаем Юридическое лицо
                 holder_instance = CompanyHolder.objects.create(
                     company_name=request.POST.get('company_name', '').strip().upper(),
                     inn=request.POST.get('company_inn', '').strip(),
@@ -141,7 +240,7 @@ def vzr_create(request):
                     phone=request.POST.get('company_phone', '').strip(),
                 )
             else:
-                # По дефолту создаем или находим Физическое лицо (ищем по Паспорту)
+                # Создаем Физическое лицо
                 holder_instance = IndividualHolder.objects.create(
                     passport=request.POST.get('holder_passport', '').strip().upper(),
                     name=request.POST.get('holder_name', '').strip().upper(),
@@ -151,12 +250,11 @@ def vzr_create(request):
                     relative_contact=request.POST.get('holder_relative', '').strip() or "Не указан",
                 )
 
-            # 2. Создаем полис и передаем туда наш holder_instance
-            # Наш кастомный метод save() сам заполнит старые текстовые поля (holder_name, holder_phone и т.д.)
+            # 2. Создаем полис и привязываем агента и его филиал
             policy = InsurancePolicy.objects.create(
                 agent=request.user,
-                branch=user_branch,
-                holder=holder_instance,  # <- Передаем объект напрямую в GenericForeignKey
+                branch=user_branch,  # Автоматически подтягиваем найденный филиал
+                holder=holder_instance,
                 date_from=date.fromisoformat(request.POST.get('start_date')),
                 date_to=date.fromisoformat(request.POST.get('end_date')),
                 territory=request.POST.get('territory'),
@@ -166,7 +264,7 @@ def vzr_create(request):
                 exchange_rate=Decimal(request.POST.get('exchange_rate', '1.0').replace(',', '.'))
             )
             
-            # 3. Логика добавления застрахованных (осталась без изменений)
+            # 3. Добавление застрахованных лиц
             names = request.POST.getlist('insured_name[]')
             dobs = request.POST.getlist('insured_dob[]')
             passports = request.POST.getlist('insured_passport[]')
@@ -195,10 +293,10 @@ def vzr_create(request):
             messages.error(request, f"Ошибка сохранения: {e}")
 
     return render(request, 'insurance/vzr_create.html', {
-        'usd_rate': rates['USD'], 'eur_rate': rates['EUR'],
+        'usd_rate': rates['USD'], 
+        'eur_rate': rates['EUR'],
         'current_branch_code': user_branch.code if user_branch else '??'
     })
-
 
 @login_required
 def policy_preview(request):
@@ -803,13 +901,21 @@ def analytics_api(request):
         d_to = date.today()
         d_from = d_to - timedelta(days=30)
 
-    # Жесткая архитектурная проверка прав
+    # -------------------------------------------------------------
+    # АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ (АДМИН / АГЕНТ / СОТРУДНИК)
+    # -------------------------------------------------------------
     if not request.user.is_superuser:
-        profile = getattr(request.user, 'profile', None)
-        if profile and profile.branch:
-            branch_id = profile.branch.id
+        # 1. Если зашел ВНЕШНИЙ АГЕНТ:
+        if hasattr(request.user, 'agent_profile'):
+            agent_profile = request.user.agent_profile
+            agent_branch = Branch.objects.filter(code=agent_profile.agent_code).first()
+            branch_id = agent_branch.id if agent_branch else -1
+
+        # 2. Если зашел ШТАТНЫЙ СОТРУДНИК:
+        elif hasattr(request.user, 'profile') and request.user.profile.branch:
+            branch_id = request.user.profile.branch.id
         else:
-            return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+            return JsonResponse({'error': 'Доступ запрещен. Не настроен филиал.'}, status=403)
 
     if product_type not in PRODUCT_ANALYTICS_MAP:
         return JsonResponse({'error': 'Неизвестный продукт'}, status=400)
@@ -817,7 +923,7 @@ def analytics_api(request):
     metrics_func = PRODUCT_ANALYTICS_MAP[product_type]
     data = metrics_func(d_from, d_to, branch_id=branch_id)
 
-    # --- ДОБАВЛЯЕМ ВЫГРУЗКУ ЖУРНАЛА СТРОГО ЗА ВЫБРАННЫЙ ПЕРИОД ---
+    # --- ВЫГРУЗКА ЖУРНАЛА СТРОГО ЗА ВЫБРАННЫЙ ПЕРИОД И ФИЛИАЛ ---
     filters = {'issue_date__range': [d_from, d_to]}
     if branch_id and str(branch_id).strip():
         filters['branch_id'] = branch_id
@@ -838,7 +944,7 @@ def analytics_api(request):
                 'limit': limit_val,
                 'spec': p.activity_type,
                 'premium': float(p.total_premium_som),
-                'print_url': f"/insurance/print/{p.pk}/" # Проверь свой урл для печати ВЗР
+                'print_url': f"/insurance/print/{p.pk}/"
             })
             
     elif product_type == 'vt':
@@ -853,7 +959,7 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': "—",
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/nomad/print/{p.pk}/" # Проверь урл для печати Nomad
+                'print_url': f"/nomad/print/{p.pk}/"
             })
             
     elif product_type == 'student':
@@ -869,7 +975,7 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': spec_val,
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/student/print/{p.pk}/" # Проверь урл для печати Детей
+                'print_url': f"/student/print/{p.pk}/"
             })
 
     data['recent_policies'] = policies_list

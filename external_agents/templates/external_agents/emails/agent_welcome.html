@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+</head>
+<body style="font-family: Arial, sans-serif; color: #333;">
+    <h2>Здравствуйте, {{ first_name }} {{ last_name }}!</h2>
+    <p>Вы успешно зарегистрированы в качестве страхового агента.</p>
+    
+    <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Логин:</strong> {{ email }}</p>
+        <p style="margin: 5px 0;"><strong>Пароль:</strong> {{ password }}</p>
+    </div>
+
+    <p>Для входа в личный кабинет перейдите по ссылке:</p>
+    <p><a href="{{ login_url }}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px;">Войти в CRM</a></p>
+
+    <p>Агентский договор прикреплен к этому письму.</p>
+    <br>
+    <p>С уважением,<br>Страховая компания</p>
+</body>
+</html>

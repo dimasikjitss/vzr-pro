@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .custom-input { 
+        width: 100%; 
+        background-color: #f8fafc; 
+        border: 1px solid #e2e8f0; 
+        border-radius: 1.25rem; 
+        padding: 0.75rem 1.25rem; 
+        font-weight: 700; 
+        color: #1e293b; 
+        outline: none; 
+        transition: all 0.2s ease; 
+    }
+    .custom-input:focus { 
+        border-color: #3b82f6; 
+        background-color: white; 
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); 
+    }
+    select.custom-input {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1.25rem center;
+        background-size: 1rem;
+        padding-right: 3rem;
+        appearance: none;
+    }
+    .input-label { 
+        font-size: 10px; 
+        font-weight: 900; 
+        color: #94a3b8; 
+        text-transform: uppercase; 
+        margin-bottom: 0.5rem; 
+        margin-left: 0.4rem; 
+        display: block; 
+        letter-spacing: 0.05em; 
+    }
+</style>
+
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Блок с общими ошибками и сообщениями -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 12px; margin-bottom: 20px; border-radius: 6px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if form.errors %}
+        <div style="padding: 12px; margin-bottom: 20px; border-radius: 6px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+            <b>Пожалуйста, исправьте ошибки в форме:</b>
+            <ul style="margin: 5px 0 0 20px; padding: 0;">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li><b>{{ field|title }}:</b> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <form id="agentRegForm" method="post" action="{% url 'external_agents:register_agent' %}" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {% csrf_token %}
+        <input type="hidden" name="action_type" id="action_type" value="activate">
+
+        <!-- ЛЕВАЯ КОЛОНКА (ОСНОВНАЯ ФОРМА) -->
+        <div class="lg:col-span-8 bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-slate-100 space-y-8">
+
+            <!-- Заголовок -->
+            <div class="flex items-center justify-between pb-6 border-b border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight italic mt-1">Регистрация Страхового Агента</h2>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                    <i data-lucide="user-plus" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Тип агента -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="input-label">Тип агента / Организационная форма</label>
+                    <select name="agent_type" id="agent_type_select" class="custom-input" onchange="toggleAgentFields()">
+                        <option value="IP" selected>ИП (Индивидуальный предприниматель)</option>
+                        <option value="COMPANY">ОсОО / Юридическое лицо</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="input-label">Код агента (Авто)</label>
+                    <input type="text" name="agent_code" value="{{ next_code }}" class="custom-input bg-slate-100 text-slate-600 font-bold" readonly>
+                </div>
+            </div>
+
+            <!-- Данные пользователя -->
+            <div>
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-blue-600"></i> Данные пользователя
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="input-label">Фамилия *</label>
+                        <input type="text" name="last_name" class="custom-input req-field" placeholder="Иванов" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Имя *</label>
+                        <input type="text" name="first_name" class="custom-input req-field" placeholder="Иван" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Отчество (опционально)</label>
+                        <input type="text" name="middle_name" class="custom-input" placeholder="Иванович">
+                    </div>
+                    <div>
+                        <label class="input-label">Email (Логин) *</label>
+                        <input type="email" name="email" class="custom-input req-field" placeholder="agent@example.com" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Телефон *</label>
+                        <input type="text" name="phone" class="custom-input req-field" placeholder="+996 555 123 456" required>
+                    </div>
+                    <div id="company_name_wrapper">
+                        <label class="input-label" id="company_label">Название ИП *</label>
+                        <input type="text" name="company_name" class="custom-input req-field" placeholder="ИП Иванов И.И." required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Документы и реквизиты -->
+            <div>
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Документы и реквизиты
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="input-label">ИНН *</label>
+                        <input type="text" name="inn" class="custom-input req-field" placeholder="14 знаков" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Паспортные данные</label>
+                        <input type="text" name="passport_data" class="custom-input req-field" placeholder="AN 123456" required>
+                    </div>
+                    <div id="okpo_wrapper">
+                        <label class="input-label">ОКПО</label>
+                        <input type="text" name="okpo" class="custom-input" placeholder="Код ОКПО">
+                    </div>
+                    <div id="attorney_wrapper" class="md:col-span-3">
+                        <label class="input-label">Доверенность (опционально)</label>
+                        <input type="text" name="power_of_attorney" class="custom-input" placeholder="№ 12 от 01.01.2026г.">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Банковские реквизиты -->
+            <div>
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i> Банковские реквизиты
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="input-label">Название банка *</label>
+                        <input type="text" name="bank_name" class="custom-input req-field" placeholder="ОАО «Оптима Банк»" required>
+                    </div>
+                    <div>
+                        <label class="input-label">БИК *</label>
+                        <input type="text" name="bik" class="custom-input req-field" placeholder="109001" required>
+                    </div>
+                    <div>
+                        <label class="input-label">Расчетный счет *</label>
+                        <input type="text" name="account_number" class="custom-input req-field" placeholder="1091234567890123" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Комиссии -->
+            <div>
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i data-lucide="percent" class="w-4 h-4 text-blue-600"></i> Индивидуальные комиссии (%)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <label class="input-label text-blue-600">Комиссия ВЗР (%) *</label>
+                        <input type="number" step="1" name="commission_vzr" class="custom-input req-field" value="20.00" required>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/60">
+                        <label class="input-label">Комиссия Nomad (%) *</label>
+                        <input type="number" step="1" name="commission_nomad" class="custom-input req-field" value="15.00" required>
+                    </div>
+                    <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                        <label class="input-label text-emerald-600">Комиссия Student (%) *</label>
+                        <input type="number" step="1" name="commission_student" class="custom-input req-field" value="20.00" required>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА (ДЕЙСТВИЯ & ПЕЧАТЬ) -->
+        <div class="lg:col-span-4 sticky top-6">
+            <div class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-slate-100 space-y-4">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <i data-lucide="file-check" class="w-4 h-4 text-blue-600"></i> Действия с агентом
+                </h3>
+
+                <div id="statusAlert" class="p-4 rounded-2xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    ⚠️ Заполните все обязательные поля для разблокировки печати и активации.
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <button type="button" onclick="submitAction('print_application')" class="action-btn w-full py-3.5 px-4 bg-sky-50 hover:bg-sky-100 text-sky-700 font-black text-xs uppercase tracking-wider rounded-2xl border border-sky-200 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                        <span>Печать Заявления</span>
+                    </button>
+
+                    <button type="button" onclick="submitAction('print_contract')" class="action-btn w-full py-3.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider rounded-2xl border border-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i data-lucide="file-signature" class="w-4 h-4"></i>
+                        <span>Печать Договора</span>
+                    </button>
+
+                    <button type="button" onclick="submitAction('activate')" class="action-btn w-full py-4 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        <span>Активировать рабочий кабинет</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleAgentFields() {
+    const type = document.getElementById('agent_type_select').value;
+    const companyWrapper = document.getElementById('company_name_wrapper');
+    const companyLabel = document.getElementById('company_label');
+    const okpoWrapper = document.getElementById('okpo_wrapper');
+    const attorneyWrapper = document.getElementById('attorney_wrapper');
+
+    if (type === 'COMPANY') {
+        companyWrapper.style.display = 'block';
+        companyLabel.innerText = 'Название ОсОО *';
+        okpoWrapper.style.display = 'block';
+        attorneyWrapper.style.display = 'block';
+    } else { // IP
+        companyWrapper.style.display = 'block';
+        companyLabel.innerText = 'Название ИП *';
+        okpoWrapper.style.display = 'none';
+        attorneyWrapper.style.display = 'none';
+    }
+}
+
+function submitAction(actionType) {
+    const form = document.getElementById('agentRegForm');
+    
+    // Проверяем аргументы 'print_application' и 'print_contract'
+    if (actionType === 'print_application' || actionType === 'application') {
+        form.action = "{% url 'external_agents:application_preview' %}";
+        form.target = '_blank'; // Открываем печать заявления в новой вкладке
+    } else if (actionType === 'print_contract' || actionType === 'contract') {
+        form.action = "{% url 'external_agents:contract_preview' %}";
+        form.target = '_blank'; // Открываем печать договора в новой вкладке
+    } else {
+        form.action = "{% url 'external_agents:register_agent' %}";
+        form.target = '_self';  // Активация выполняется в этой же вкладке
+    }
+    
+    form.submit();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    toggleAgentFields();
+
+    const form = document.getElementById('agentRegForm');
+    const actionBtns = document.querySelectorAll('.action-btn');
+    const statusAlert = document.getElementById('statusAlert');
+
+    function checkFormValidity() {
+        const requiredInputs = form.querySelectorAll('.req-field');
+        let allValid = true;
+
+        requiredInputs.forEach(input => {
+            if (!input.value.trim()) {
+                allValid = false;
+            }
+        });
+
+        if (allValid) {
+            actionBtns.forEach(btn => btn.removeAttribute('disabled'));
+            statusAlert.className = 'p-4 rounded-2xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+            statusAlert.innerHTML = 'Все обязательные поля заполнены. Вы можете распечатать документы или активировать агента.';
+        } else {
+            actionBtns.forEach(btn => btn.setAttribute('disabled', 'disabled'));
+            statusAlert.className = 'p-4 rounded-2xl text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200';
+            statusAlert.innerHTML = 'Заполните все обязательные поля для разблокировки кнопок.';
+        }
+    }
+
+    form.addEventListener('input', checkFormValidity);
+    form.addEventListener('change', checkFormValidity);
+    checkFormValidity();
+});
+</script>
+{% endblock %}

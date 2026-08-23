@@ -5,7 +5,8 @@ from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import NomadPolicy, NomadInsuredPerson, NomadTariff
-
+from django.contrib.auth.decorators import login_required
+from insurance.models import Branch  # 👈 Обязательно импортируем Branch из insurance
 # def nomad_create(request):
 #     # 1. Проверка филиала
 #     try:
@@ -92,14 +93,29 @@ from .models import NomadPolicy, NomadInsuredPerson, NomadTariff
 #         'tariffs_list': list(tariffs_qs),
 #     })
 
+@login_required
 def nomad_create(request):
-    # 1. ПРОВЕРКА ФИЛИАЛА АГЕНТА
-    try:
-        user_branch = request.user.profile.branch
-    except Exception:
-        return render(request, 'insurance/error.html', {'message': 'Филиал не настроен в профиле.'})
+    # -------------------------------------------------------------
+    # 1. УНИВЕРСАЛЬНОЕ ОПРЕДЕЛЕНИЕ ФИЛИАЛА (СОТРУДНИК / АГЕНТ)
+    # -------------------------------------------------------------
+    user_branch = None
 
+    # Вариант А: Если оформляет ВНЕШНИЙ АГЕНТ (из external_agents)
+    if hasattr(request.user, 'agent_profile'):
+        agent_profile = request.user.agent_profile
+        user_branch = Branch.objects.filter(code=agent_profile.agent_code).first()
+
+    # Вариант Б: Если оформляет ШТАТНЫЙ СОТРУДНИК
+    elif hasattr(request.user, 'profile') and request.user.profile.branch:
+        user_branch = request.user.profile.branch
+
+    # Вариант В: Подстраховка (если филиал не привязан)
+    if not user_branch:
+        user_branch = Branch.objects.filter(code='00').first() or Branch.objects.first()
+
+    # -------------------------------------------------------------
     # 2. ОБРАБОТКА И СОХРАНЕНИЕ ФОРМЫ (POST)
+    # -------------------------------------------------------------
     if request.method == "POST":
         try:
             # Парсим даты поездки и считаем дни
@@ -121,12 +137,11 @@ def nomad_create(request):
                 dob_raw = request.POST.get('holder_dob')
                 holder_dob = date.fromisoformat(dob_raw) if dob_raw else None
                 
-                # Чистим текстовые поля от случайных пробелов
+                # Чистим текстовые поля
                 beneficiary_input = request.POST.get('beneficiary', '').strip()
                 relative_input = request.POST.get('holder_relative', '').strip()
 
-                # УМНАЯ ЛОГИКА ГРАЖДАНСТВА:
-                # Смотрим, что пришло из селекта `citizenship_type` и инпута `citizenship_manual`
+                # УМНАЯ ЛОГИКА ГРАЖДАНСТВА
                 citizenship_type = request.POST.get('citizenship_type', 'Кыргызстан').strip()
                 citizenship_manual = request.POST.get('citizenship_manual', '').strip().upper()
 
@@ -138,21 +153,16 @@ def nomad_create(request):
                 # СОЗДАЕМ ПОЛИС NOMAD
                 policy = NomadPolicy.objects.create(
                     agent=request.user,
-                    branch=user_branch,
+                    branch=user_branch,  # 👈 Теперь филиал подтянется автоматически!
                     
-                    # Теперь дата рождения страхователя успешно пишется в базу:
                     holder_birth_date=holder_dob, 
-                    
                     holder_name=request.POST.get('holder_name', '').strip().upper(),
                     holder_inn=request.POST.get('holder_inn', '').strip(),
                     holder_phone=request.POST.get('holder_phone', '').strip(),
                     holder_address=request.POST.get('holder_address', '').strip(),
                     holder_passport=request.POST.get('holder_passport', '').strip().upper(),
                     
-                    # Записываем вычисленное гражданство (Кыргызстан или ручной ввод страны):
                     citizenship=final_citizenship, 
-                    
-                    # Разделяем выгодоприобретателя и телефон родственника:
                     beneficiary=beneficiary_input or "Застрахованный",
                     relative_contact=relative_input,
                     
@@ -205,7 +215,9 @@ def nomad_create(request):
             messages.error(request, f"Ошибка при сохранении: {e}")
             print(f"CRITICAL ERROR: {e}")
 
+    # -------------------------------------------------------------
     # 3. ОТПРАВКА ДАННЫХ НА СТРАНИЦУ (GET)
+    # -------------------------------------------------------------
     tariffs_qs = NomadTariff.objects.filter(program='BRONZE').values('days_min', 'days_max', 'percent_rate')
     
     return render(request, 'nomad_create.html', {

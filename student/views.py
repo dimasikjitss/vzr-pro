@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from datetime import date, datetime
 from decimal import Decimal
 
-from insurance.models import IndividualHolder, CompanyHolder
+from insurance.models import IndividualHolder, CompanyHolder,Branch
 from .models import InsuranceProgram, StudentTariff, StudentDayCoefficient, StudentPolicy, StudentInsuredPerson
 
 
@@ -25,10 +25,23 @@ def _find_program_by_age(age):
 
 @login_required
 def student_create(request):
-    try:
+    # -------------------------------------------------------------
+    # 1. УНИВЕРСАЛЬНОЕ ОПРЕДЕЛЕНИЕ ФИЛИАЛА (СОТРУДНИК / АГЕНТ)
+    # -------------------------------------------------------------
+    user_branch = None
+
+    # Вариант А: Если оформляет ВНЕШНИЙ АГЕНТ (из external_agents)
+    if hasattr(request.user, 'agent_profile'):
+        agent_profile = request.user.agent_profile
+        user_branch = Branch.objects.filter(code=agent_profile.agent_code).first()
+
+    # Вариант Б: Если оформляет ШТАТНЫЙ СОТРУДНИК
+    elif hasattr(request.user, 'profile') and request.user.profile.branch:
         user_branch = request.user.profile.branch
-    except Exception:
-        return render(request, 'insurance/error.html', {'message': 'Филиал не настроен в профиле.'})
+
+    # Вариант В: Резервный фолбэк (если филиал не найден)
+    if not user_branch:
+        user_branch = Branch.objects.filter(code='00').first() or Branch.objects.first()
 
     programs = InsuranceProgram.objects.all()
 
@@ -72,7 +85,7 @@ def student_create(request):
             if not student_dob_raw or not student_name_raw:
                 raise ValueError("Необходимо указать ФИО и дату рождения ребенка.")
 
-            # Вычисляем возраст и АВТОМАТИЧЕСКИ подбираем программу, игнорируя то, что пришло с фронта
+            # Вычисляем возраст и АВТОМАТИЧЕСКИ подбираем программу
             dob_date = date.fromisoformat(student_dob_raw)
             age = _calculate_age(dob_date)
 
@@ -87,7 +100,7 @@ def student_create(request):
             # 3. СОЗДАЕМ ПОЛИС УЧАЩЕГОСЯ
             policy = StudentPolicy.objects.create(
                 agent=request.user,
-                branch=user_branch,
+                branch=user_branch,  # 👈 Автоматически привяжется филиал
                 holder=holder_instance,
                 program=program_obj,
                 time_type=time_type,
@@ -97,7 +110,6 @@ def student_create(request):
             )
 
             # Определяем дефолтное имя родителя/организации для выгодоприобретателя
-            # Избегаем прямой вызов кэш-методов полиса, берем напрямую из созданного holder_instance
             default_beneficiary_name = getattr(holder_instance, 'company_name', None) or getattr(holder_instance, 'name', 'НЕ УКАЗАНО')
 
             # 4. СОХРАНЯЕМ ЗАСТРАХОВАННОГО В БД
