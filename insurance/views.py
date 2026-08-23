@@ -18,6 +18,7 @@ from .models import InsurancePolicy, InsuranceTariff, InsuredPerson, Branch, Ind
 from student.models import StudentPolicy, StudentTariff
 from nomad.models import NomadPolicy
 from .analytics_core import PRODUCT_ANALYTICS_MAP, AnalyticsManager
+from dms_tourist.models import DMSTouristTariff, DMSTouristPolicy
 
 # --- УТИЛИТЫ ---
 
@@ -42,80 +43,75 @@ def get_nbkr_rates():
 
 @login_required
 def home(request):
-    """Это теперь Главная"""
+    """Главная страница с быстрым калькулятором и журналами по 4 продуктам"""
     rates = get_nbkr_rates()
-    # Получаем все тарифы из базы, чтобы JS мог считать на лету
+    
+    # 1. Тарифы всех 4-х продуктов для калькулятора в JS
     tariffs_qs = list(InsuranceTariff.objects.all().values('program', 'territory', 'sum_insured', 'days_min', 'days_max', 'rate'))
     tariffs_json = json.dumps(tariffs_qs, default=str) 
     
     nomad_tariffs = NomadTariff.objects.filter(program='BRONZE').values('days_min', 'days_max', 'percent_rate')
-    
-    # --- ДОБАВЛЯЕМ СТРОКУ ПОЛУЧЕНИЯ ДЕТСКИХ/СТУДЕНЧЕСКИХ ТАРИФОВ ИЗ БАЗЫ ---
-    # Внимание: если модель называется иначе (например, StudentTariff), поменяй имя класса
     student_tariffs = StudentTariff.objects.all().values('time_type', 'is_sports', 'percent_rate')
-    student_tariffs_json = json.dumps(list(student_tariffs), cls=DjangoJSONEncoder)# Списки последних полисов: админ видит вообще последние 5 в системе, обычный агент — только свои
-    if request.user.is_superuser:
-        last_policies = InsurancePolicy.objects.all().order_by('-issue_date','-id')
-        last_policies_nomad = NomadPolicy.objects.all().order_by('-issue_date','-id')
-        last_policies_student = StudentPolicy.objects.all().order_by('-issue_date','-id')
-    else:
-        last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date')
-        last_policies_nomad = NomadPolicy.objects.filter(agent=request.user).order_by('-issue_date')
-        last_policies_student = StudentPolicy.objects.filter(agent=request.user).order_by('-issue_date')
+    
+    # Тарифы ДМС Турист
+    dms_tariffs = DMSTouristTariff.objects.all().values('sum_insured', 'days_min', 'days_max', 'duration_coeff', 'base_daily_rate')
 
-    # Считаем сумму за месяц (не забудь импорт Sum в начале файла)
+    # 2. Списки последних полисов (для суперадмина — все, для агента — свои)
+    if request.user.is_superuser:
+        last_policies = InsurancePolicy.objects.all().order_by('-issue_date', '-id')[:10]
+        last_policies_nomad = NomadPolicy.objects.all().order_by('-issue_date', '-id')[:10]
+        last_policies_student = StudentPolicy.objects.all().order_by('-issue_date', '-id')[:10]
+        last_policies_dms = DMSTouristPolicy.objects.all().order_by('-issue_date', '-id')[:10]
+    else:
+        last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
+        last_policies_nomad = NomadPolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
+        last_policies_student = StudentPolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
+        last_policies_dms = DMSTouristPolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
+
+    # 3. Финансовые сборы за текущий месяц
     start_month = date.today().replace(day=1)
     end_month = date.today()
-    
 
-    # Проверяем роль: если суперюзер/админ, то считаем ВСЁ. Если обычный агент — фильтруем по нему.
     if request.user.is_superuser:
-        vzr_total = InsurancePolicy.objects.filter(
-        issue_date__gte=start_month
-        ).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
-
-        nomad_total = NomadPolicy.objects.filter(
-            issue_date__gte=start_month
-        ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
-
-        student_total = StudentPolicy.objects.filter(
-                issue_date__gte=start_month
-            ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+        vzr_total = InsurancePolicy.objects.filter(issue_date__gte=start_month).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+        nomad_total = NomadPolicy.objects.filter(issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+        student_total = StudentPolicy.objects.filter(issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+        dms_total = DMSTouristPolicy.objects.filter(issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
     else:
-        vzr_total = InsurancePolicy.objects.filter(
-            agent=request.user, 
-            issue_date__gte=start_month
-        ).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+        vzr_total = InsurancePolicy.objects.filter(agent=request.user, issue_date__gte=start_month).aggregate(Sum('total_premium_som'))['total_premium_som__sum'] or 0
+        nomad_total = NomadPolicy.objects.filter(agent=request.user, issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+        student_total = StudentPolicy.objects.filter(agent=request.user, issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+        dms_total = DMSTouristPolicy.objects.filter(agent=request.user, issue_date__gte=start_month).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
 
-        nomad_total = NomadPolicy.objects.filter(
-            agent=request.user, 
-            issue_date__gte=start_month
-        ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
+    monthly_total = vzr_total + nomad_total + student_total + dms_total
 
-        student_total = StudentPolicy.objects.filter(
-                agent=request.user,
-                issue_date__gte=start_month
-            ).aggregate(Sum('total_premium_gross'))['total_premium_gross__sum'] or 0
-
-    monthly_total = student_total + vzr_total + nomad_total
-
-    return render(request, 'insurance/new_home.html', { # Рендерим новый Dashboard
+    return render(request, 'insurance/new_home.html', {
         'usd_rate': rates['USD'], 
         'eur_rate': rates['EUR'],
+        
+        # Журналы
         'last_policies': last_policies,
         'last_policies_nomad': last_policies_nomad,
         'last_policies_student': last_policies_student,
+        'last_policies_dms': last_policies_dms,
+        
+        # Финансы
         'monthly_total': monthly_total,
+        'vzr_total': vzr_total,
+        'nomad_total': nomad_total,
+        'student_total': student_total,
+        'dms_total': dms_total,
+        
+        # Тарифы для JS
         'tariffs_data': tariffs_json,
         'tariffs_nomad_json': json.dumps(list(nomad_tariffs), cls=DjangoJSONEncoder),
-        # --- ПЕРЕДАЕМ ПЕРЕМЕННУЮ В ШАБЛОН ---
-        'tariffs_student_json': student_tariffs_json,
-        # ------------------------------------
+        'tariffs_student_json': json.dumps(list(student_tariffs), cls=DjangoJSONEncoder),
+        'tariffs_dms_json': json.dumps(list(dms_tariffs), cls=DjangoJSONEncoder),
+        
         'start_month': start_month,
         'end_month': end_month,
     })
 
-    """ Оформление ВЗР """
 @login_required
 def vzr_create(request):
     rates = get_nbkr_rates()
@@ -838,7 +834,7 @@ def analytics_api(request):
                 'limit': limit_val,
                 'spec': p.activity_type,
                 'premium': float(p.total_premium_som),
-                'print_url': f"/insurance/print/{p.pk}/" # Проверь свой урл для печати ВЗР
+                'print_url': f"/print/{p.pk}/" # Проверь свой урл для печати ВЗР
             })
             
     elif product_type == 'vt':
@@ -853,7 +849,7 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': "—",
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/nomad/print/{p.pk}/" # Проверь урл для печати Nomad
+                'print_url': f"/print/{p.pk}/" # Проверь урл для печати Nomad
             })
             
     elif product_type == 'student':
@@ -869,7 +865,23 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': spec_val,
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/student/print/{p.pk}/" # Проверь урл для печати Детей
+                'print_url': f"/print/{p.pk}/" # Проверь урл для печати Детей
+            })
+
+    elif product_type == 'dms':
+        policies = DMSTouristPolicy.objects.filter(**filters).select_related('agent').prefetch_related('insured_persons').order_by('-issue_date', '-id')[:50]
+        for p in policies:
+            first_person = p.insured_persons.first()
+            policies_list.append({
+                'date': p.issue_date.strftime('%d.%m.%Y'),
+                'holder_name': p.holder_name,
+                'policy_number': p.policy_number,
+                'details': p.get_purpose_display(),
+                'program': "ДМС Турист",
+                'limit': f"{p.sum_insured} СОМ",
+                'spec': f"{p.days_count} дн.",
+                'premium': float(p.total_premium_gross),
+                'print_url': f"/dms-tourist/print/{p.pk}/"
             })
 
     data['recent_policies'] = policies_list

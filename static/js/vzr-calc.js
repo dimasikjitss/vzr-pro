@@ -1,11 +1,12 @@
 // ==========================================
-// КАЛЬКУЛЯТОР СТРАХОВАНИЯ (ИЗОЛИРОВАННЫЙ)
+// КАЛЬКУЛЯТОР СТРАХОВАНИЯ (ВЗР, NOMAD, ДЕТИ, ДМС)
 // ==========================================
 
 // 1. Инициализация глобальных данных
 let vzrTariffs = window.tariffsData || [];
 let nomadTariffs = window.nomadTariffsData || []; 
 let kidsTariffs = window.kidsTariffsData || []; 
+let dmsTariffs = window.dmsTariffsData || []; 
 const usdRate = window.usdRate || 0;
 const eurRate = window.eurRate || 0;
 let currentCalcTab = 'VZR'; // Локальное состояние для калькулятора
@@ -33,17 +34,19 @@ function switchCalcTab(type) {
     const dynamicBox = document.getElementById('dynamic-fields');
     if (!dynamicBox) return;
 
-    // Уникальные ID кнопок калькулятора
+    // Кнопки табов калькулятора
     const vBtn = document.getElementById('calc-tab-vzr');
     const nBtn = document.getElementById('calc-tab-nomad');
     const kBtn = document.getElementById('calc-tab-students');
+    const dBtn = document.getElementById('calc-tab-dms');
 
-    const activeClass = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600 font-bold cursor-pointer transition-all";
-    const inactiveClass = "flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 hover:text-slate-600 font-medium cursor-pointer transition-all";
+    const activeClass = "tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-blue-600 font-bold cursor-pointer transition-all";
+    const inactiveClass = "tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400 hover:text-slate-600 font-medium cursor-pointer transition-all";
 
     if (vBtn) vBtn.className = (type === 'VZR') ? activeClass : inactiveClass;
     if (nBtn) nBtn.className = (type === 'NOMAD') ? activeClass : inactiveClass;
     if (kBtn) kBtn.className = (type === 'STUDENTS') ? activeClass : inactiveClass;
+    if (dBtn) dBtn.className = (type === 'DMS') ? activeClass : inactiveClass;
 
     if (type === 'VZR') {
         dynamicBox.innerHTML = `
@@ -106,9 +109,28 @@ function switchCalcTab(type) {
                     <label for="is_sports_section" class="ml-2 text-sm text-slate-600 font-medium select-none cursor-pointer">Включая тренировки и соревнования</label>
                 </div>
             </div>
-            <div class="col-span-4">
+            <div class="col-span-2">
                 <label class="input-label font-black text-teal-600">Сумма покрытия (СОМ)</label>
                 <select id="sum_insured" class="custom-input border-teal-100 bg-teal-50/30 font-black text-teal-700"></select>
+            </div>
+        `;
+    } else if (type === 'DMS') {
+        dynamicBox.innerHTML = `
+            <div class="col-span-2">
+                <label class="input-label font-black text-blue-600">Страховая сумма покрытия (СОМ)</label>
+                <select id="sum_insured" class="custom-input font-black text-blue-700">
+                    <option value="100000" selected>100 000 СОМ (Базовый тариф)</option>
+                    <option value="500000">500 000 СОМ (Базовый тариф)</option>
+                    <option value="1000000">1 000 000 СОМ (Базовый тариф)</option>
+                </select>
+            </div>
+            <div class="col-span-2">
+                <label class="input-label">Цель поездки / Риск активности</label>
+                <select id="dms_purpose" class="custom-input">
+                    <option value="BUSINESS" selected>Туризм / Гостевая / Деловая (Коэфф. 1.0)</option>
+                    <option value="TREKKING">Хайкинг, Горный трекинг 1800-3500м (Коэфф. 1.5)</option>
+                    <option value="SPORT">Спорт, сборы, соревнования (Коэфф. 2.0)</option>
+                </select>
             </div>
         `;
     }
@@ -122,9 +144,9 @@ function switchCalcTab(type) {
 function updateSumOptions() {
     const sumEl = document.getElementById('sum_insured');
     if (!sumEl) return;
-    sumEl.innerHTML = '';
 
     if (currentCalcTab === 'VZR') {
+        sumEl.innerHTML = '';
         const territory = document.getElementById('territory').value;
         const program = document.getElementById('program').value;
         const currency = (territory === 'SCHENGEN') ? 'EUR' : 'USD';
@@ -139,12 +161,14 @@ function updateSumOptions() {
             sumEl.add(opt);
         });
     } else if (currentCalcTab === 'NOMAD') {
+        sumEl.innerHTML = '';
         for (let i = 50000; i <= 2000000; i += 50000) {
             let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
             if (i === 100000) opt.selected = true;
             sumEl.add(opt);
         }
     } else if (currentCalcTab === 'STUDENTS') {
+        sumEl.innerHTML = '';
         for (let i = 50000; i <= 1000000; i += 50000) {
             let opt = new Option(i.toLocaleString('ru-RU') + ' СОМ', i);
             if (i === 100000) opt.selected = true;
@@ -166,7 +190,7 @@ function runCalculation() {
     if (endDate < startDate) return alert("Дата окончания не может быть раньше начала");
 
     const days = Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-    const sumVal = parseInt(document.getElementById('sum_insured').value);
+    const sumVal = parseInt(document.getElementById('sum_insured').value) || 100000;
 
     let age = 0, ageCoeff = 1.0;
     if (dobVal) {
@@ -215,6 +239,38 @@ function runCalculation() {
             premiumNettoSom = (sumVal * percentRate / 100) * ageCoeff;
             if(calcEl.resRate) calcEl.resRate.innerText = "1.00 (KGS)";
         }
+    } else if (currentCalcTab === 'DMS') {
+        // Расчет ДМС Турист
+        ageCoeff = (age >= 61) ? 1.5 : 1.0;
+        
+        const purposeVal = document.getElementById('dms_purpose')?.value || 'BUSINESS';
+        let kPur = 1.0;
+        if (purposeVal === 'TREKKING') kPur = 1.5;
+        if (purposeVal === 'SPORT') kPur = 2.0;
+
+        let baseRate = 100.0;
+        let kDur = 1.0;
+
+        const match = dmsTariffs.find(t => 
+            parseInt(t.sum_insured) === sumVal && 
+            days >= parseInt(t.days_min) && 
+            days <= parseInt(t.days_max)
+        );
+
+        if (match) {
+            baseRate = parseFloat(match.base_daily_rate);
+            kDur = parseFloat(match.duration_coeff);
+        } else {
+            if (days >= 11 && days <= 20) kDur = 0.9;
+            else if (days >= 21 && days <= 30) kDur = 0.8;
+            else if (days >= 31 && days <= 60) kDur = 0.7;
+            else if (days >= 61) kDur = 0.6;
+            if (sumVal === 500000) baseRate = 140.0;
+            if (sumVal === 1000000) baseRate = 200.0;
+        }
+
+        premiumNettoSom = days * baseRate * kDur * ageCoeff * kPur;
+        if (calcEl.resRate) calcEl.resRate.innerText = "1.00 (KGS)";
     } else if (currentCalcTab === 'STUDENTS') {
         const timeType = document.getElementById('time_type').value;
         const isSports = document.getElementById('is_sports_section').checked;
@@ -270,7 +326,7 @@ function runCalculation() {
         if(calcEl.resDays) calcEl.resDays.innerText = days;
         if(calcEl.resAge) calcEl.resAge.innerText = dobVal ? age + " лет" : "---";
         if(calcEl.resAgeCoeff) calcEl.resAgeCoeff.innerText = ageCoeff.toFixed(1);
-        if(calcEl.resProg) calcEl.resProg.innerText = (currentCalcTab === 'STUDENTS' ? 'ДЕТИ ' : currentCalcTab + ' ') + sumVal.toLocaleString('ru-RU');
+        if(calcEl.resProg) calcEl.resProg.innerText = (currentCalcTab === 'STUDENTS' ? 'ДЕТИ ' : currentCalcTab === 'DMS' ? 'ДМС ТУРИСТ ' : currentCalcTab + ' ') + sumVal.toLocaleString('ru-RU');
     } else {
         alert("Тариф не найден для выбранных параметров.");
     }
@@ -303,47 +359,3 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 });
-
-let currentJournalProduct = 'vzr';
-let loadedJournalData = [];
-
-// Функция переключения продукта в журнале
-window.switchProduct = function(product) {
-    currentJournalProduct = product;
-
-    // 1. Подсветка табов
-    const jTabs = {
-        'vzr': document.getElementById('jtab-vzr'),
-        'vt': document.getElementById('jtab-vt'),
-        'student': document.getElementById('jtab-student')
-    };
-
-    const jActiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer";
-    const jInactiveClass = "journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer";
-
-    Object.keys(jTabs).forEach(key => {
-        if (jTabs[key]) jTabs[key].className = (key === product) ? jActiveClass : jInactiveClass;
-    });
-
-    // 2. Запрос за полисами
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    
-    // За текущий месяц
-    const dateFrom = `${year}-${month}-01`;
-    const dateTo = `${year}-${month}-${day}`;
-
-    fetch(`/api/analytics/?product=${product}&date_from=${dateFrom}&date_to=${dateTo}`)
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            loadedJournalData = data.recent_policies || [];
-            renderJournalTable(loadedJournalData);
-        })
-        .catch(err => console.error("Ошибка загрузки журнала:", err));
-};
-

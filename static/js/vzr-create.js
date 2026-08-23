@@ -136,7 +136,8 @@ function calculate() {
     const phonesValid = document.getElementById('phone-input').value.length === 13 && 
                          document.getElementById('h_relative').value.length === 13;
     const passValid = document.getElementById('h_passport').value.length === 9;
-    const innValid = document.getElementById('h_inn').value.length === 14;
+    const innVal = document.getElementById('h_inn')?.value.trim() || '';
+    const innValid = innVal.length === 0 || innVal.length === 14;
 
     el.submitBtn.disabled = !(datesValid && cards.length > 0 && sumLimit && phonesValid && passValid && innValid);
     

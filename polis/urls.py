@@ -24,4 +24,5 @@ urlpatterns = [
     path('', include('insurance.urls')),     
     path('nomad/', include('nomad.urls')),
     path('student/', include('student.urls')),
+    path('dms-tourist/', include('dms_tourist.urls', namespace='dms_tourist')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

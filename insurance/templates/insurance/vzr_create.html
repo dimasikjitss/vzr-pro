@@ -118,7 +118,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">ИНН (14 цифр)</label>
-                                    <input type="text" name="holder_inn" id="h_inn" required 
+                                    <input type="text" name="holder_inn" id="h_inn" 
                                            maxlength="14" placeholder="20101199012345"
                                            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500">
                                 </div>
@@ -502,7 +502,7 @@
                 holderFieldsValid = (phoneVal.length === 13) && 
                                      (relativeVal.length === 13) && 
                                      (passportVal.length === 9) && 
-                                     (innVal.length === 14) &&
+                                    //  (innVal.length === 14) &&
                                      (nameVal.trim().length > 0) &&
                                      (addressVal.trim().length > 0);
             } else {

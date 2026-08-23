@@ -31,6 +31,10 @@
                     <i data-lucide="book-open" class="w-4 h-4"></i>
                     <span>Дети</span>
                 </button>
+                <button onclick="switchProduct('dms')" id="tab-dms" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800">
+                    <i data-lucide="shield" class="w-4 h-4"></i>
+                    <span>Дети</span>
+                </button>
             </div>
 
             <div class="lg:col-span-3 relative w-full">
@@ -165,6 +169,11 @@
                 <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
                 <span class="text-[9px] font-black uppercase tracking-widest">Дети</span>
             </button>
+
+            <button type="button" id="jtab-dms" onclick="switchProduct('dms')" class="journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+                <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                <span class="text-[9px] font-black uppercase tracking-widest">ДМС</span>
+            </button>
         </div>
         
         <div class="relative w-full md:w-80">
@@ -232,14 +241,15 @@ function switchProduct(product) {
     const tabs = {
         'vzr': document.getElementById('tab-vzr'),
         'vt': document.getElementById('tab-vt'),
-        'student': document.getElementById('tab-student')
+        'student': document.getElementById('tab-student'),
+        'dms': document.getElementById('tab-dms')
     };
     
     // Элементы табов журнала
     const jTabs = {
         'vzr': document.getElementById('jtab-vzr'),
         'vt': document.getElementById('jtab-vt'),
-        'student': document.getElementById('jtab-student')
+        'dms': document.getElementById('jtab-dms')
     };
     
     const activeClass = "flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider bg-white text-blue-600 shadow-sm border border-slate-200/50";

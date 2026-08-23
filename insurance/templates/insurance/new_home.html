@@ -62,20 +62,21 @@
                         <p class="text-[10px] text-slate-400 mt-2 opacity-80">По всему Кыргызстану</p>
                     </a>
 
-                    <a href="{% url 'student_create' %}" class="card-grad relative group overflow-hidden  p-6 rounded-[2rem] text-white" style='background-color:#0bb7a2'>
-                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
-                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">UCH</span>
-                        <h3 class="text-lg font-black mt-2 leading-none">Дети / Студенты</h3>
-                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Страхование учащихся</p>
+                    <a href="{% url 'dms_tourist:create_policy' %}" class="card-grad relative group overflow-hidden p-6 rounded-[2rem] text-white shadow-lg shadow-blue-100 transition-transform active:scale-95" style="background-color: #2563eb;">
+                        <i data-lucide="shield-plus" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12 group-hover:scale-110 transition-transform"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">DMS</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">ДМС Турист</h3>
+                        <p class="text-[10px] text-blue-100 mt-2 opacity-80">Иностранные граждане в КР</p>
                     </a>
                 
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm">
-                        <i data-lucide="map-pin" class="absolute -right-2 -top-2 w-20 h-20 text-blue-500/5 rotate-12"></i>
-                        <h3 class="text-lg font-black mt-4 leading-none text-slate-800">GSO Work</h3>
-                        <p class="text-[10px] text-slate-400 mt-2">Оформление полисов для работников за рубежом</p>
+                    <a href="{% url 'student_create' %}" class="card-grad relative group overflow-hidden  p-6 rounded-[2rem] text-white" style='background-color:#0bb7a2'>
+                        <i data-lucide="baby" class="absolute -right-2 -top-2 w-20 h-20 text-white/10 rotate-12"></i>
+                        <span class="px-2 py-0.5 bg-white/20 rounded-full text-[8px] font-bold uppercase tracking-widest">UCH</span>
+                        <h3 class="text-lg font-black mt-2 leading-none">Дети / Студенты</h3>
+                        <p class="text-[10px] text-emerald-100 mt-2 opacity-80">Страхование учащихся</p>
                     </a>
 
                     <a href="#" class="card-grad relative group overflow-hidden bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm text-orange-600">
@@ -127,6 +128,11 @@
             <i data-lucide="book-open" class="w-4 h-4"></i>
             <span class="text-[10px] font-black uppercase tracking-widest">Дети</span>
             <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Скоро</span>
+        </button>
+
+        <button type="button" id="calc-tab-dms" onclick="switchCalcTab('DMS')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+            <i data-lucide="shield" class="w-4 h-4"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest">ДМС</span>
         </button>
     </div>
 
@@ -228,6 +234,10 @@
                         <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
                         <span class="text-[9px] font-black uppercase tracking-widest">Дети</span>
                     </button>
+                    <button type="button" id="hjtab-dms" onclick="switchHomeJournal('dms')" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-400">
+                        <i data-lucide="shield" class="w-4 h-4"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest">ДМС</span>
+                    </button>
                 </div>
                 
                 <div class="relative w-full md:w-80">
@@ -268,6 +278,7 @@
     window.tariffsData = JSON.parse('{{ tariffs_data|escapejs }}');
     window.nomadTariffsData = JSON.parse('{{ tariffs_nomad_json|escapejs }}');
     window.kidsTariffsData = JSON.parse('{{ tariffs_student_json|safe }}');
+    window.dmsTariffsData = JSON.parse('{{ tariffs_dms_json|safe }}'); // <-- ДОБАВИЛИ ТАРИФЫ ДМС
     window.usdRate = parseFloat("{{ usd_rate }}".replace(',', '.'));
     window.eurRate = parseFloat("{{ eur_rate }}".replace(',', '.'));
 </script>
@@ -283,7 +294,8 @@ function switchHomeJournal(product) {
     const tabs = {
         'vzr': document.getElementById('hjtab-vzr'),
         'vt': document.getElementById('hjtab-vt'),
-        'student': document.getElementById('hjtab-student')
+        'student': document.getElementById('hjtab-student'),
+        'dms': document.getElementById('hjtab-dms') // <-- Добавили таб журнала
     };
 
     const activeClass = "home-journal-btn flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white rounded-lg shadow-sm border border-slate-200/60 text-blue-600 font-bold cursor-pointer";
@@ -331,6 +343,7 @@ function renderHomeJournalTable(policies) {
     let badgeClass = "bg-blue-50 text-blue-600";
     if (currentHomeProduct === 'vt') badgeClass = "bg-indigo-50 text-indigo-600";
     if (currentHomeProduct === 'student') badgeClass = "bg-teal-50 text-teal-600";
+    if (currentHomeProduct === 'dms') badgeClass = "bg-emerald-50 text-emerald-600"; // <-- Бейдж для ДМС
 
     policies.forEach(p => {
         const specStyle = (p.spec === 'NONE' || p.spec === 'Без спорта' || !p.spec || p.spec === '—') 
