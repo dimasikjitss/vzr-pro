@@ -58,10 +58,10 @@ def home(request):
 
     # 2. Списки последних полисов (для суперадмина — все, для агента — свои)
     if request.user.is_superuser:
-        last_policies = InsurancePolicy.objects.all().order_by('-issue_date', '-id')[:10]
-        last_policies_nomad = NomadPolicy.objects.all().order_by('-issue_date', '-id')[:10]
-        last_policies_student = StudentPolicy.objects.all().order_by('-issue_date', '-id')[:10]
-        last_policies_dms = DMSTouristPolicy.objects.all().order_by('-issue_date', '-id')[:10]
+        last_policies = InsurancePolicy.objects.all().order_by('-id')[:10]
+        last_policies_nomad = NomadPolicy.objects.all().order_by('-id')[:10]
+        last_policies_student = StudentPolicy.objects.all().order_by('-id')[:10]
+        last_policies_dms = DMSTouristPolicy.objects.all().order_by('-id')[:10]
     else:
         last_policies = InsurancePolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
         last_policies_nomad = NomadPolicy.objects.filter(agent=request.user).order_by('-issue_date', '-id')[:10]
@@ -849,7 +849,7 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': "—",
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/print/{p.pk}/" # Проверь урл для печати Nomad
+                'print_url': f"/nomad/print/{p.pk}/" # Проверь урл для печати Nomad
             })
             
     elif product_type == 'student':
@@ -865,7 +865,7 @@ def analytics_api(request):
                 'limit': f"{int(p.total_sum_insured)} СОМ",
                 'spec': spec_val,
                 'premium': float(p.total_premium_gross),
-                'print_url': f"/print/{p.pk}/" # Проверь урл для печати Детей
+                'print_url': f"/student/print/{p.pk}/" # Проверь урл для печати Детей
             })
 
     elif product_type == 'dms':

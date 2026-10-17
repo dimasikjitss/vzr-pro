@@ -26,7 +26,6 @@
             overflow: hidden;
         }
         .page-blank {
-            /* Добавляем отступ 33мм сверху, 12мм по бокам и снизу */
             padding: 24mm 12mm 8mm 12mm !important; 
         }
 
@@ -37,15 +36,8 @@
         }
 
         /* Кнопки управления */
-        .no-print { margin-bottom: 20px; background: #2c3e50; padding: 10px 30px; border-radius: 8px; display: flex; gap: 15px; }
+        .no-print { margin-bottom: 20px; background: #2c3e50; padding: 10px 30px; border-radius: 8px; display: flex; gap: 15px; align-items: center; }
         .no-print button { padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
-        /* Шапка */
-        .header-main { display: flex; justify-content: space-between; align-items: center; }
-        .org-name { width: 40%; font-weight: bold; font-size: 9pt; color: #1a4a7c; text-transform: uppercase; }
-        .logo-box { width: 20%; text-align: center; }
-        .logo-box img { width: 60px; }
-        .divider { width: 100%; height: 2px; background: #1a4a7c; margin: 3px 0; }
 
         /* Таблицы */
         table { width: 100%; border-collapse: collapse; margin-bottom: -1px; }
@@ -59,11 +51,12 @@
         .bold { font-weight: bold; }
         .center { text-align: center; }
         .small-text { font-size: 6.8pt; line-height: 1; }
+        .uppercase { text-transform: uppercase; }
 
         /* Вторая страница (Правила) */
         .rules-wrapper { 
             font-family: 'Calibri', sans-serif; 
-            transform: scale(0.65); /* Сжимаем до 5px на печати */
+            transform: scale(0.65);
             transform-origin: top left; 
             width: 153%; 
             text-align: justify;
@@ -74,89 +67,126 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="{% static 'js/nomad-pdf.js' %}"></script>
-
 </head>
 <body>
 
     <div class="no-print">
+        <!-- {% if is_draft %}
+            <span style="background: #e74c3c; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold;">ПРОЕКТ / ЧЕРНОВИК</span>
+        {% endif %} -->
         <button onclick="window.print()">ПЕЧАТЬ (2 ЛИСТА)</button>
         <button onclick="window.history.back()" style="background:#7f8c8d;">НАЗАД</button>
-        <button onclick="downloadPDF('{{ policy.policy_number|escapejs }}', '{{ policy.holder_name|escapejs }}')" 
-                    style="background:#e67e22;">
-                СОХРАНИТЬ PDF
+        {% if not is_draft %}
+        <button onclick="downloadPDF('{{ policy.policy_number|escapejs }}', '{{ policy.holder_name|escapejs }}')" style="background:#e67e22;">
+            СОХРАНИТЬ PDF
         </button>
+        {% endif %}
     </div>
 
+    <!-- 1-Й ЛИСТ: БЛАНК ПОЛИСА -->
     <div class="page">
+        {% if is_draft %}
+        <!-- <div style="position: absolute; top: 380px; left: 120px; font-size: 60pt; color: rgba(220, 38, 38, 0.12); font-weight: 900; transform: rotate(-35deg); pointer-events: none; z-index: 999; text-transform: uppercase; letter-spacing: 0.1em;">
+            ПРОЕКТ / DRAFTwedwedwe
+        </div> -->
+        {% endif %}
+
         <div class="page-blank">
             <div class="center" style="font-size: 6.5pt; font-style: italic; margin-top: 10px;">
                 <b>STATE INSURANCE ORGANIZATION</b><br>
                 <b>Государственная лицензия Серия С №0041 от 26.01.2017 г. / State license Series C No. 0041 dated January 26, 2017</b>
             </div>
         </div>
-        
 
         <table>
             <tr>
                 <th class="bold">Policy issue date / Дата оформления полиса</th>
-                <td class="bold">{{ policy.issue_date|date:"d.m.Y" }}</td>
+                <td class="bold">{{ policy.issue_date|date:"d.m.Y"|default:policy.issue_date }}</td>
             </tr>
             <tr>
                 <th class="bold">POLICY № / ПОЛИС №</th>
-                <td class="bold">{{ policy.policy_number }}</td>
+                <td class="bold">{% if is_draft %}<span>ПРОЕКТ / DRAFT</span>{% else %}{{ policy.policy_number }}{% endif %}</td>
             </tr>
             <tr>
                 <th class="bold">Agent's full name, company / ФИО, компания агента</th>
-                <td class="bold">{{ policy.agent.get_full_name|upper }}</td> 
+                <td class="bold">{{ policy.agent.get_full_name|upper|default:policy.agent.username|upper }}</td> 
             </tr>
         </table>
 
-        <div class="section-title">СТРАХОВОЙ ПОЛИС ОТ НЕСЧАСТНОГО СЛУЧАЯ ТУРИСТОВ, ВЪЕЗЖАЮЩИХ НА ТЕРРИТОРИЮ КЫРГЫЗСКОЙ РЕСПУБЛИКИ / INBOUND TOURIST PERSONAL ACCIDENT INSURANCE POLICY </div>
+        <div class="section-title">СТРАХОВОЙ ПОЛИС ОТ НЕСЧАСТНОГО СЛУЧАЯ ТУРИСТОВ, ВЪЕЗЖАЮЩИХ НА ТЕРРИТОРИЮ КЫРГЫЗСКОЙ РЕСПУБЛИКИ / INBOUND TOURIST PERSONAL ACCIDENT INSURANCE POLICY</div>
 
+        <!-- БЛОК СТРАХОВАТЕЛЯ (ДИНАМИЧЕСКИЙ: ЮРЛИЦО ИЛИ ФИЗЛИЦО) -->
         <table>
-            <tr>
-                <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
-                <td class="bold">{{ policy.holder_name|upper }}</td>
-            </tr>
-            <tr>
-                <th class="bold">Phone number, address / Номер телефона, адрес</th>
-                <td class="bold">{{ policy.holder_phone}} / {{policy.holder_address}}</td>
-            </tr>
-            <tr>
-                <th class="bold">Citizenship / Гражданство</th>
-                <td class="bold">{{ policy.citizenship}}</td>
-            </tr>
-            <tr>
-                <th class="bold">Passport number, PIN / Номер паспорта, ИНН</th>
-                <td class="bold">{{ policy.holder_passport }} / {{ policy.holder_inn }}</td>
-            </tr>
-            <tr>
-                <th class="bold">Relative's contact / Контакт родственника</th>
-                <td class="bold">{{ policy.relative_contact }}</td>
-            </tr>
+            {% if is_company or policy.is_company or policy.holder_kind == 'company' or policy.holder_passport == 'ЮР. ЛИЦО' %}
+                <!-- ШАПКА ДЛЯ ЮРИДИЧЕСКОГО ЛИЦА -->
+                <tr>
+                    <th class="bold">INSUREE, COMPANY / Наименование организации</th>
+                    <td class="bold uppercase">{{ policy.holder_name|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">TIN, SOSC / ИНН, ОКПО</th>
+                    <td class="bold uppercase">{{ policy.holder_inn|default:"—" }}{% if okpo or policy.okpo %} / {{ okpo|default:policy.okpo }}{% endif %}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Company phone number, address / Номер телефона, адрес организации</th>
+                    <td class="bold">{{ policy.holder_phone|default:"—" }} / {{ policy.holder_address|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Corporate representative / Представитель компании в лице</th>
+                    <td class="bold uppercase">{{ policy.relative_contact|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Beneficiary / Выгодоприобретатель</th>
+                    <td class="bold uppercase">{{ policy.beneficiary|default:"ЗАСТРАХОВАННЫЙ" }}</td>
+                </tr>
+            {% else %}
+                <!-- ШАПКА ДЛЯ ФИЗИЧЕСКОГО ЛИЦА -->
+                <tr>
+                    <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
+                    <td class="bold uppercase">{{ policy.holder_name|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Phone number, address / Номер телефона, адрес</th>
+                    <td class="bold">{{ policy.holder_phone|default:"—" }} / {{ policy.holder_address|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Citizenship / Гражданство</th>
+                    <td class="bold uppercase">{{ policy.citizenship|default:"КЫРГЫЗСТАН" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Passport number, PIN / Номер паспорта, ИНН</th>
+                    <td class="bold uppercase">{{ policy.holder_passport|default:"—" }} / {{ policy.holder_inn|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Relative's contact / Контакт родственника</th>
+                    <td class="bold">{{ policy.relative_contact|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Beneficiary / Выгодоприобретатель</th>
+                    <td class="bold uppercase">{{ policy.beneficiary|default:"ЗАСТРАХОВАННЫЙ" }}</td>
+                </tr>
+            {% endif %}
         </table>
 
         <div class="section-title">INSURANCE PACKAGE / СТРАХОВОЙ ПАКЕТ</div>
         <table>
             <tr>
-                <th class="bold" style="width: 48% ;">Insurance period / Период страхования</th> 
-                <td class="bold" width="10%">from / с</td>
-                <td class="center"><span class="bold" style="font-size: 11pt;">{{ policy.date_from|date:"d.m.Y" }}</span></td>
-                <td class="bold" width="10%">to /по</td>
-                <td class="center"><span class="bold" style="font-size: 11pt;">{{ policy.date_to|date:"d.m.Y" }}</span></td>
+                <th class="bold" style="width: 48%;">Insurance period / Период страхования</th> 
+                <td class="bold" style="width: 8%;">from / с</td>
+                <td class="center"><span class="bold" style="font-size: 10pt;">{{ policy.date_from|date:"d.m.Y"|default:policy.date_from }}</span></td>
+                <td class="bold" style="width: 8%;">to / по</td>
+                <td class="center"><span class="bold" style="font-size: 10pt;">{{ policy.date_to|date:"d.m.Y"|default:policy.date_to }}</span></td>
             </tr>
             <tr>
                 <th class="bold">Number of insured days / Количество застрахованных дней</th>
-                <td colspan="4" class="left bold" style="font-size: 11pt;">{{ policy.days_count }}</td>
+                <td colspan="4" class="bold" style="font-size: 10pt;">{{ policy.days_count }}</td>
             </tr>
         </table>
 
         <table>
             <tr>
-                <th class="bold" rowspan="3">Insurance territory / Территория страховой защиты</th>
-            </tr>
-            <tr>
-                <td class="center"><span class="marked">X</span></td>
+                <th class="bold" rowspan="2">Insurance territory / Территория страховой защиты</th>
+                <td class="center" style="width: 25px;"><span class="marked">X</span></td>
                 <td class="small-text"><b>KYRGYZ REPUBLIC / КЫРГЫЗСКАЯ РЕСПУБЛИКА</b></td>
             </tr>
         </table>
@@ -164,88 +194,86 @@
         <table>
             <tr>
                 <th class="bold" rowspan="3">The Program / Программа</th>
-                <td class="center" style="width: 25px;">{% if policy.program == 'GSO NOMAD BRONZE' %}<span class="marked">X</span>{% endif %}</td>
+                <td class="center" style="width: 25px;">{% if policy.program == 'GSO NOMAD BRONZE' or policy.program == 'BRONZE' %}<span class="marked">X</span>{% endif %}</td>
                 <td class="small-text"><b>VT BRONZE</b></td>
             </tr>
             <tr>
-                <td class="center">{% if policy.program == 'SILVER' %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>VT SILVER</b> </td>
+                <td class="center" style="width: 25px;">{% if policy.program == 'SILVER' %}<span class="marked">X</span>{% endif %}</td>
+                <td class="small-text"><b>VT SILVER</b></td>
             </tr>
             <tr>
-                <td class="center">{% if policy.program == 'GOLD' %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>VT GOLD</b> </td>
+                <td class="center" style="width: 25px;">{% if policy.program == 'GOLD' %}<span class="marked">X</span>{% endif %}</td>
+                <td class="small-text"><b>VT GOLD</b></td>
             </tr>
         </table>
 
-       <table>
-    <tr>
-        <th style="width: 48%;">Age increasing ratio / Повышающий коэффициент согласно возрасту</th>
-        
-        <td class="center" style="width: 25px;">
-            {% if age_ratio == "2.0" %}<span class="marked">X</span>{% endif %}
-        </td>
-        <td class="small-text">С рождения до 5 лет</td>
-
-        <td class="center">
-            {% if age_ratio == "1.8" %}<span class="marked">X</span>{% endif %}
-        </td>
-        <td class="small-text">С 6 лет до 13 лет</td>
-
-        <td class="center">
-            {% if age_ratio == "1.0" %}<span class="marked">X</span>{% endif %}
-        </td>
-        <td class="small-text">С 14 лет до 79 лет</td> 
-    </tr>
-</table>
-
+        <table>
+            <tr>
+                <th style="width: 48%;">Age increasing ratio / Повышающий коэффициент согласно возрасту</th>
+                <td class="center" style="width: 25px;">
+                    {% if age_ratio == "2.0" or has_infant %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text">С рождения до 5 лет</td>
+                <td class="center" style="width: 25px;">
+                    {% if age_ratio == "1.8" or has_child %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text">С 6 лет до 13 лет</td>
+                <td class="center" style="width: 25px;">
+                    {% if age_ratio == "1.0" or has_adult or not has_infant and not has_child %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text">С 14 лет до 79 лет</td> 
+            </tr>
+        </table>
 
         <table style="text-align: center; font-size: 6.5pt; margin-top: 5px;">
             <tr style="background: #f2f2f2; font-weight: bold;">
-                <th style="width: 25%; font-size: 9.5pt;" class="center bold">INSURED <br> Застрахованный</th>
+                <th style="width: 25%; font-size: 8pt;" class="center bold">INSURED <br> Застрахованный</th>
                 <td>Date of birth / Дата рождения</td>
                 <td>Passport number / Номер паспорта</td>
                 <td>Sum insured som / Страховая сумма сом</td>
-                <td>Insurance premium som not including sales tax / Страховая премия в сомах без учета НСП</td>
+                <td>Insurance premium not including sales tax / Страховая премия в сомах без учета НСП</td>
                 <td>Sales tax 2% / НСП 2%</td>
-                <td>Insurance premium som including 2% sales tax / Страховая премия сом с учетом 2% НСП</td>
+                <td>Insurance premium including 2% sales tax / Страховая премия сом с учетом 2% НСП</td>
             </tr>
+
             {% if is_draft %}
                 {% for person in insured_persons_preview %}
                     <tr>
-                        <td class="bold uppercase">{{ policy.full_name }}</td>
-                        <td class="bold">{{ policy.date_of_birth }}</td>
-                        <td class="bold">{{ policy.passport_number }}</td>
-                        <td class="bold">{{ policy.total_sum_insured|floatformat:0 }}</td>
-                        <td class="bold center">{{ policy.total_premium_netto|floatformat:2 }}</td>
-                        <td class="bold center">{{ policy.total_nsp_amount|floatformat:2 }}</td>
-                        <td class="bold center">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
+                        <td class="bold uppercase" style="text-align: left;">{{ person.full_name }}</td>
+                        <td class="bold">{{ person.date_of_birth|date:"d.m.Y"|default:person.date_of_birth }}</td>
+                        <td class="bold uppercase">{{ person.passport_number }}</td>
+                        <td class="bold">{{ person.sum_insured|floatformat:0 }}</td>
+                        <td class="bold center">{{ person.premium_netto|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.nsp_amount|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.premium_gross|floatformat:2 }} сом</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 10px; color: #999;">Данные о застрахованных отсутствуют</td>
                     </tr>
                 {% endfor %}
             {% else %}    
                 {% for person in policy.insured_persons.all %}
-                <tr>
-                    <td class="bold uppercase">{{ policy.holder_name }}</td>
-                        <td class="bold">{{ person.date_of_birth|date:"d.m.Y"}}</td>
-                        <td class="bold">{{ policy.holder_passport }}</td>
-                        <td class="bold">{{ policy.total_sum_insured|floatformat:0 }}</td>
-                        <td class="bold center">{{ policy.total_premium_netto|floatformat:2 }}</td>
-                        <td class="bold center">{{ policy.total_nsp_amount|floatformat:2 }}</td>
-                        <td class="bold center">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
-
-                </tr>
+                    <tr>
+                        <td class="bold uppercase" style="text-align: left;">{{ person.full_name }}</td>
+                        <td class="bold">{{ person.date_of_birth|date:"d.m.Y"|default:person.date_of_birth }}</td>
+                        <td class="bold uppercase">{{ person.passport_number }}</td>
+                        <td class="bold">{{ person.sum_insured|floatformat:0 }}</td>
+                        <td class="bold center">{{ person.premium_netto|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.nsp_amount|floatformat:2 }}</td>
+                        <td class="bold center">{{ person.premium_gross|floatformat:2 }} сом</td>
+                    </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 20px; color: #999;">Данные о застрахованных отсутствуют</td>
-                </tr>
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 10px; color: #999;">Данные о застрахованных отсутствуют</td>
+                    </tr>
                 {% endfor %}
             {% endif %}
             
             <tr style="border-top: 2px solid #000;">
-                <td colspan="6" style="text-align: right; font-weight: bold;">ИТОГО К ОПЛАТЕ:</td>
-                <!-- <td class="bold center" style="background: #eee;">{{ policy.total_premium_currency|floatformat:2 }}</td> -->
-                <td class="bold center" style="background: #eee;">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
+                <td colspan="6" style="text-align: right; font-weight: bold; font-size: 7.5pt;">ИТОГО К ОПЛАТЕ:</td>
+                <td class="bold center" style="background: #eee; font-size: 7.5pt;">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
             </tr>
-            
         </table>
 
         <div style="font-size: 6.5pt; text-align: justify; margin: 6px 0;">
@@ -253,19 +281,21 @@
                 This policy confirms the conclusion of an insurance contract between the Policyholder and the Insurer subject to the “Rules of Voluntary Accident and Health Insurance”, approved by the Board Resolution of OJSC “State Insurance Organization” №22 dated June 24, 2022. I have read and agree to comply with the insurance rules.
             </b>
         </div>
+
         <table>
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"><br><br><br></th>
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"></th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt; height: 28px;"></th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt; height: 28px;"></th>
             </tr>
             <tr style="background-color: #f2f2f2;">
                 <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insuree, Insured / Подпись Страхователя, Застрахованного</th>
                 <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insurer / Подпись Страховщика</th>
             </tr>  
         </table>
+
         <table style="margin-top: 5px;">
             <tr>
-                <td style="width: 50%; font-size: 6.8pt; padding: 5px; vertical-align: top;">
+                <td style="width: 50%; font-size: 6.5pt; padding: 4px; vertical-align: top;">
                     Внимание! Данный страховой полис покрывает несчастный случай,
                     произошедший исключительно на территории Кыргызской Республики в период
                     действия договора страхования (страхового полиса).<br>
@@ -276,7 +306,7 @@
                     г) инвалидность 1, 2, 3 группы, наступившая у Застрахованного в результате несчастного случая на территории Кыргызской Республики в период действия договора страхования; <br>
                     д) смерть Застрахованного.
                 </td>
-                <td style="width: 50%; font-size: 6.8pt; padding: 5px; vertical-align: top;">
+                <td style="width: 50%; font-size: 6.5pt; padding: 4px; vertical-align: top;">
                     Attention! This insurance policy provides coverage for accidents occurring exclusively
                     within the territory of the Kyrgyz Republic during the term of the insurance contract
                     (insurance policy).<br>
@@ -296,70 +326,49 @@
                 <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">EMERGENCY PROCEDURES / CONTACTS</th>
             </tr>
             <tr>
-                <td style="font-size: 6pt; padding: 5px; vertical-align: top;">
+                <td style="font-size: 5.8pt; padding: 4px; vertical-align: top;">
                     1. ПОЛУЧИТЕ МЕДИЦИНСКУЮ ПОМОЩЬ.<br>
-                    Самостоятельно обратитесь в ближайшее медицинское учреждение за помощью.
-                    Обязательно сохраните ОРИГИНАЛЫ справок и истории болезни с печатью
-                    врача и клиники, рентген и/или МРТ с описанием травмы, а также все чеки
-                    ККМ.
-                    Важно! У клиники должна быть лицензия Минздрава КР.
-                    В справке должна быть письменная фиксация врача о том, что произошел
-                    несчастный случай, а также о том, что у пострадавшего нет алкогольного или
-                    наркотического опьянения.<br>
-                    2. СООБЩИТЕ О ПРОИСШЕСТВИИ В “КЫРГЫЗГОССТРАХ” ПО НОМЕРУ:
-                    +996 553 545400 или по почте VZR@GSO.KG В ТЕЧЕНИЕ 5 ДНЕЙ С МОМЕНТА
-                    ПРОИСШЕСТВИЯ.<br>
-                    3. ПОДАЙТЕ ДОКУМЕНТЫ НА ВЫПЛАТУ В ЛЮБОМ ОФИСЕ ОАО “ГСО”
-                    (заявление о выплате, страховой полис, копию паспорта с отметкой пограничной
-                    службы о въезде, оригиналы документов с медицинского учреждения, реквизиты
-                    расчетного счета).<br>
+                    Самостоятельно обратитесь в ближайшее медицинское учреждение за помощью. Обязательно сохраните ОРИГИНАЛЫ справок и истории болезни с печатью врача и клиники, рентген и/или МРТ с описанием травмы, а также все чеки ККМ. Важно! У клиники должна быть лицензия Минздрава КР. В справке должна быть письменная фиксация врача о том, что произошел несчастный случай, а также о том, что у пострадавшего нет алкогольного или наркотического опьянения.<br>
+                    2. СООБЩИТЕ О ПРОИСШЕСТВИИ В “КЫРГЫЗГОССТРАХ” ПО НОМЕРУ: +996 553 545400 или по почте VZR@GSO.KG В ТЕЧЕНИЕ 5 ДНЕЙ С МОМЕНТА ПРОИСШЕСТВИЯ.<br>
+                    3. ПОДАЙТЕ ДОКУМЕНТЫ НА ВЫПЛАТУ В ЛЮБОМ ОФИСЕ ОАО “ГСО” (заявление о выплате, страховой полис, копию паспорта с отметкой пограничной службы о въезде, оригиналы документов с медицинского учреждения, реквизиты расчетного счета).<br>
                     4. После проверки страхового случая, с вами свяжутся сотрудники ОАО “ГСО”.
                 </td>
-                <td style="font-size: 6pt; padding: 1px; vertical-align: top;">
-                    1.SEEK MEDICAL ASSISTANCE.<br>
-                    Please contact the nearest medical facility for help independently. It is mandatory to keep
-                    the original medical certificates and the medical history (case history) bearing the official
-                    stamps of the physician and the clinic, x-ray and/or MRI with injury description.
-                    Important! The clinic must have a license from the Ministry of Health of the Kyrgyz
-                    Republic. There must be a written statement from the doctor confirming that an accident
-                    has occurred not under the influence of alcohol or drugs.<br>
-                    2. REPORT THE ACCIDENT TO THE “STATE INSURANCE ORGANIZATION” VIA
-                    PHONE +996 553 545400 OR E-MAIL VZR@GSO.KG WITHIN 5 DAYS OF THE
-                    OCCURRENCE.<br>
-                    3. SUBMIT YOUR CLAIM DOCUMENTS AT ANY OJSC “SIO” BRANCH OFFICE
-                    (completed claim form; original insurance policy; passport copy; original medical
-                    documentation from the healthcare provider; bank account details).<br>
+                <td style="font-size: 5.8pt; padding: 4px; vertical-align: top;">
+                    1. SEEK MEDICAL ASSISTANCE.<br>
+                    Please contact the nearest medical facility for help independently. It is mandatory to keep the original medical certificates and the medical history (case history) bearing the official stamps of the physician and the clinic, x-ray and/or MRI with injury description. Important! The clinic must have a license from the Ministry of Health of the Kyrgyz Republic. There must be a written statement from the doctor confirming that an accident has occurred not under the influence of alcohol or drugs.<br>
+                    2. REPORT THE ACCIDENT TO THE “STATE INSURANCE ORGANIZATION” VIA PHONE +996 553 545400 OR E-MAIL VZR@GSO.KG WITHIN 5 DAYS OF THE OCCURRENCE.<br>
+                    3. SUBMIT YOUR CLAIM DOCUMENTS AT ANY OJSC “SIO” BRANCH OFFICE (completed claim form; original insurance policy; passport copy; original medical documentation from the healthcare provider; bank account details).<br>
                     4. Upon verification of the insured event, representatives of OJSC “GSO” will contact you.
                 </td>
             </tr>
-            
         </table>
-        <table style="margin-top: 5px; ">
-            <tr>
-                <td style="font-size: 6.8pt; padding: 5px; vertical-align: top; width: 50%;">
-                    Страхователь / Застрахованный имеет право обратиться по всем вопросам в Государственную службу регулирования и надзора за финансовым рынком при Министерстве экономики и коммерции Кыргызской Республики (г. Бишкек, пр. Чуй 114, тел.:+996 312 62 44 60/70) <br>      
-                </td>
-                <td style="font-size: 6.8pt; padding: 5px; vertical-align: top; width: 50%;">
-                    Insuree/Insured has the right to contact the State service for regulation and supervision of the financial market under the Ministry of the economy and commerce of the Kyrgyz Republic on all issues (114, ave., Chui, Bishkek city, tel:+996 312 62 44 60/70)
-                </td>
-            </tr>
-        </table>
-        <table style="margin-top: 5px; ">
-            <tr>
-                <td style="font-size: 6.8pt; padding: 5px; vertical-align: top; width: 50%;">
-                    Страховая компания ОАО «Государственная Страховая Организация». Юридический адрес:
-                    Кыргызская Республика, г.Бишкек, пр. Ч. Айтматова, 1 , тел.: +996 553 545400, эл.почта: vzr@gso.kg,
-                    ИНН 01101201610062
-                </td>
-                <td style="font-size: 6.8pt; padding: 5px; vertical-align: top; width: 50%;">
-                    Insurance company &quot;State Insurance Organization&quot; OJSC. Registered address: 1, ave. Ch.Aitmatov, Bishkek city,
-                    Kyrgyz Republic, tel.: +996 553 545400, email:vzr@gso.kg, TIN 01101201610062
-                </td>
-            </tr>
-        </table>
-        
 
+        <table style="margin-top: 4px;">
+            <tr>
+                <td style="font-size: 6.5pt; padding: 3px; vertical-align: top; width: 50%;">
+                    Страхователь / Застрахованный имеет право обратиться по всем вопросам в Государственную службу регулирования и надзора за финансовым рынком при Министерстве экономики и коммерции Кыргызской Республики (г. Бишкек, пр. Чуй 114, тел.:+996 312 62 44 60/70)
+                </td>
+                <td style="font-size: 6.5pt; padding: 3px; vertical-align: top; width: 50%;">
+                    Insuree/Insured has the right to contact the State service for regulation and supervision of the financial market under the Ministry of the economy and commerce of the Kyrgyz Republic (114, ave., Chui, Bishkek city, tel:+996 312 62 44 60/70)
+                </td>
+            </tr>
+        </table>
+
+        <table style="margin-top: 4px;">
+            <tr>
+                <td style="font-size: 6.5pt; padding: 3px; vertical-align: top; width: 50%;">
+                    Страховая компания ОАО «Государственная Страховая Организация». Юридический адрес:
+                    Кыргызская Республика, г.Бишкек, пр. Ч. Айтматова, 1 , тел.: +996 553 545400, эл.почта: vzr@gso.kg, ИНН 01101201610062
+                </td>
+                <td style="font-size: 6.5pt; padding: 3px; vertical-align: top; width: 50%;">
+                    Insurance company "State Insurance Organization" OJSC. Registered address: 1, ave. Ch.Aitmatov, Bishkek city, Kyrgyz Republic, tel.: +996 553 545400, email: vzr@gso.kg, TIN 01101201610062
+                </td>
+            </tr>
+        </table>
     </div>
+
+    <!-- 2-Й ЛИСТ: ПРАВИЛА СТРАХОВАНИЯ -->
+
 
     <div class="page">
         <div class="rules-wrapper">

@@ -15,7 +15,7 @@
 <body class="bg-slate-50 min-h-screen p-4 md:p-8">
 
     <div class="max-w-4xl mx-auto">
-        <a href="{% url 'home' %}" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition-colors font-semibold text-sm">
+        <a href="{% url 'nomad:create_policy_nomad' %}" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition-colors font-semibold text-sm">
             <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
             Вернуться к оформлению
         </a>
@@ -46,12 +46,12 @@
                             <i data-lucide="user" class="w-3 h-3"></i> Страхователь
                         </h3>
                         <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">ФИО полностью</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">ФИО / Наименование</p>
                             <p class="font-bold text-slate-800 text-lg leading-tight uppercase">{{ policy.holder_name }}</p>
                             <div class="grid grid-cols-2 gap-4 mt-4">
                                 <div>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Паспорт</p>
-                                    <p class="font-semibold text-slate-700">{{ policy.holder_passport }}</p>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Паспорт / ИНН</p>
+                                    <p class="font-semibold text-slate-700 uppercase">{{ policy.holder_passport|default:policy.holder_inn }}</p>
                                 </div>
                                 <div>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase">Телефон</p>
@@ -67,16 +67,16 @@
                         </h3>
                         <div class="space-y-3">
                             <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                                <span class="text-slate-400 text-xs font-bold uppercase">Направление</span>
-                                <span class="font-bold text-slate-700" style="font-size: 10pt;">{{ policy.get_territory_display }}</span>
+                                <span class="text-slate-400 text-xs font-bold uppercase">Территория</span>
+                                <span class="font-bold text-slate-700">{{ policy.territory }}</span>
                             </div>
                             <div class="flex justify-between items-center py-2 border-b border-slate-50">
                                 <span class="text-slate-400 text-xs font-bold uppercase">Программа</span>
                                 <span class="font-bold text-blue-600">{{ policy.program }}</span>
                             </div>
                             <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                                <span class="text-slate-400 text-xs font-bold uppercase">Количество дней</span>
-                                <span class="font-bold text-slate-700 italic">{{ policy.days_count }} </span>
+                                <span class="text-slate-400 text-xs font-bold uppercase">Период (дней)</span>
+                                <span class="font-bold text-slate-700">{{ policy.date_from|date:"d.m.Y" }} – {{ policy.date_to|date:"d.m.Y" }} ({{ policy.days_count }} дн.)</span>
                             </div>
                         </div>
                     </div>
@@ -91,32 +91,38 @@
                             <thead class="bg-slate-50 text-slate-400 font-bold uppercase tracking-tighter">
                                 <tr>
                                     <th class="px-4 py-3 border-r border-slate-100">Застрахованный</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Гражданство</th>
                                     <th class="px-3 py-3 border-r border-slate-100 text-center">Дата рождения</th>
                                     <th class="px-3 py-3 border-r border-slate-100">Паспорт</th>
-                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая сумма в сомах</th>
-                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Страховая премия без НСП (сом)</th>
-                                    <th class="px-3 py-3 border-r border-slate-100 text-center">НСП 2%</th>
-                                    <th class="px-4 py-3 border-r border-slate-100">Страховая премия сом с НСП</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Сумма покрытия</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">Премия без НСП</th>
+                                    <th class="px-3 py-3 border-r border-slate-100 text-center">НСП (2%)</th>
+                                    <th class="px-4 py-3">Итого с НСП</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 {% for person in policy.insured_persons.all %}
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-4 py-4 font-bold text-slate-800 uppercase border-r border-slate-50">{{ person.full_name }}</td>
+                                    <td class="px-3 py-4 text-slate-600 text-center uppercase border-r border-slate-50">{{ person.citizenship|default:"—" }}</td>
                                     <td class="px-3 py-4 text-slate-600 text-center border-r border-slate-50">{{ person.date_of_birth|date:"d.m.Y" }}</td>
-                                    <td class="px-3 py-4 text-slate-600 font-mono border-r border-slate-50">{{ person.passport_number }}</td>
-                                    <td class="px-3 py-4 text-center text-slate-500 border-r border-slate-50">
-                                        {{ policy.total_sum_insured|floatformat:0 }}
+                                    <td class="px-3 py-4 text-slate-600 font-mono border-r border-slate-50 uppercase">{{ person.passport_number }}</td>
+                                    <td class="px-3 py-4 text-center text-slate-700 font-bold border-r border-slate-50">
+                                        {{ person.sum_insured|floatformat:0 }} сом
                                     </td>
                                     <td class="px-3 py-4 text-center text-slate-500 border-r border-slate-50">
-                                        {{ policy.total_premium_netto|floatformat:2 }}
+                                        {{ person.premium_netto|floatformat:2 }} сом
                                     </td>
                                     <td class="px-3 py-4 text-center text-slate-400 border-r border-slate-50">
-                                        {{ policy.total_nsp_amount|floatformat:2 }}
+                                        {{ person.nsp_amount|floatformat:2 }} сом
                                     </td>
-                                    <td class="px-4 py-4 font-bold text-slate-800 uppercase border-r border-slate-50">
-                                        {{ policy.total_premium_gross|floatformat:2 }}
+                                    <td class="px-4 py-4 font-bold text-slate-800">
+                                        {{ person.premium_gross|floatformat:2 }} сом
                                     </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-6 text-slate-400">Нет данных о застрахованных</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -132,19 +138,19 @@
                             <div>
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Итого к оплате</p>
                                 <h2 class="text-5xl font-black tracking-tighter">
-                                    {{ policy.total_premium_gross|floatformat:2 }} <span class="text-xl font-bold text-slate-400">KGS</span>
+                                    {{ policy.total_premium_gross|floatformat:2 }} <span class="text-xl font-bold text-slate-400">СОМ</span>
                                 </h2>
                             </div>
                             <div class="text-right">
-                                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Курс валюты</p>
-                                <p class="text-xl font-bold italic">{{ policy.exchange_rate }}</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Застрахованных</p>
+                                <p class="text-xl font-bold italic">{{ policy.insured_persons.count }} чел.</p>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-4 py-4 px-6 bg-white/5 rounded-2xl border border-white/10 relative z-10">
                             <i data-lucide="shield-check" class="text-blue-400 w-5 h-5"></i>
                             <div>
-                                <p class="text-[10px] font-bold text-slate-400 uppercase">Лимит покрытия (на чел.)</p>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Общая сумма покрытия по полису</p>
                                 <p class="font-bold text-blue-400">
                                     {{ policy.total_sum_insured|floatformat:0 }} СОМ
                                 </p>
@@ -165,7 +171,6 @@
                             <span class="text-blue-600">{{ policy.branch.name }}</span>
                         </p>
                     </div>
-                    
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-4 pt-4">
@@ -173,18 +178,17 @@
                         <i data-lucide="printer" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
                         Распечатать полис
                     </a>
-                    <a href="{% url 'home' %}" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
+                    <a href="{% url 'nomad:create_policy_nomad' %}" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-5 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-widest">
                         <i data-lucide="plus" class="w-5 h-5"></i>
-                        Новый
+                        Новый полис
                     </a>
                 </div>
             </div>
         </div>
         
-        <p class="text-center text-slate-400 text-[10px] mt-8 uppercase tracking-[0.3em] font-bold">Система контроля страховой документации v2.1 • GSO Digital</p>
+        <p class="text-center text-slate-400 text-[10px] mt-8 uppercase tracking-[0.3em] font-bold">Система контроля страховой документации • Nomad GSO</p>
     </div>
 
     <script>lucide.createIcons();</script>
 </body>
 </html>
-

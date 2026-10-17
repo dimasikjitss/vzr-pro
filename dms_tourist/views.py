@@ -23,6 +23,7 @@ def is_superadmin(user):
 
 from django.db import transaction
 
+@login_required
 def create_policy(request):
     """Оформление и сохранение полиса ДМС Турист (индивидуальный или групповой)"""
     if request.method == "POST":
@@ -55,37 +56,55 @@ def create_policy(request):
                 # Определение данных страхователя
                 if holder_kind == 'company':
                     h_name = request.POST.get('company_name', '').strip().upper()
-                    h_pass = request.POST.get('company_inn', '').strip()
+                    h_pass = (request.POST.get('company_inn', '') or request.POST.get('company_passport', '')).strip()
+                    h_inn = request.POST.get('company_inn', '').strip()
                     h_phone = request.POST.get('company_phone', '').strip()
                     h_addr = request.POST.get('company_address', '').strip().upper()
+                    c_okpo = request.POST.get('company_okpo', '').strip()
+                    c_sign = request.POST.get('company_signatory', '').strip().upper()
                 else:
                     h_name = request.POST.get('holder_name', '').strip().upper()
                     h_pass = request.POST.get('holder_passport', '').strip().upper()
+                    h_inn = (request.POST.get('holder_inn', '') or request.POST.get('holder_pin', '')).strip()
                     h_phone = request.POST.get('holder_phone', '').strip()
                     h_addr = request.POST.get('holder_address', '').strip().upper()
+                    c_okpo = ''
+                    c_sign = ''
 
                 h_relative = request.POST.get('holder_relative', '').strip() or '—'
 
-                # Создаем полис только с теми полями, которые есть в модели
-                policy = DMSTouristPolicy.objects.create(
-                    agent=request.user,
-                    branch=getattr(getattr(request.user, 'profile', None), 'branch', None),
-                    holder_name=h_name,
-                    holder_passport=h_pass,
-                    holder_phone=h_phone,
-                    holder_address=h_addr,
-                    relative_contact=h_relative,
-                    date_from=d_from,
-                    date_to=d_to,
-                    days_count=days_count,
-                    sum_insured=sum_insured,
-                    purpose=purpose,
-                )
+                # Сбор параметров для создания объекта
+                policy_kwargs = {
+                    'agent': request.user,
+                    'branch': getattr(getattr(request.user, 'profile', None), 'branch', None),
+                    'holder_name': h_name,
+                    'holder_passport': h_pass,
+                    'holder_phone': h_phone,
+                    'holder_address': h_addr,
+                    'relative_contact': h_relative,
+                    'date_from': d_from,
+                    'date_to': d_to,
+                    'days_count': days_count,
+                    'sum_insured': sum_insured,
+                    'purpose': purpose,
+                }
 
-                # Обработка списка застрахованных туристов
-                names = request.POST.getlist('insured_name[]')
-                dobs = request.POST.getlist('insured_dob[]')
-                passports = request.POST.getlist('insured_passport[]')
+                # Добавляем опциональные поля модели, если они есть
+                if hasattr(DMSTouristPolicy, 'holder_inn'):
+                    policy_kwargs['holder_inn'] = h_inn
+                if hasattr(DMSTouristPolicy, 'holder_kind'):
+                    policy_kwargs['holder_kind'] = holder_kind
+                if hasattr(DMSTouristPolicy, 'company_okpo'):
+                    policy_kwargs['company_okpo'] = c_okpo
+                if hasattr(DMSTouristPolicy, 'company_signatory'):
+                    policy_kwargs['company_signatory'] = c_sign
+
+                policy = DMSTouristPolicy.objects.create(**policy_kwargs)
+
+                # Универсальное извлечение списка застрахованных (с [] и без)
+                names = request.POST.getlist('insured_name[]') or request.POST.getlist('insured_name')
+                dobs = request.POST.getlist('insured_dob[]') or request.POST.getlist('insured_dob')
+                passports = request.POST.getlist('insured_passport[]') or request.POST.getlist('insured_passport')
 
                 total_netto = Decimal('0.00')
                 persons_to_create = []
@@ -145,7 +164,8 @@ def create_policy(request):
                 policy.total_premium_gross = total_gross
                 policy.save(update_fields=['total_premium_netto', 'total_nsp', 'total_premium_gross'])
 
-                return redirect('dms_tourist:print_policy', pk=policy.pk)
+                # Редирект на экран успеха
+                return redirect('dms_tourist:policy_success', pk=policy.pk)
 
         except Exception as e:
             return HttpResponse(f"Ошибка сохранения полиса: {str(e)}", status=400)
@@ -283,8 +303,17 @@ def policy_success(request, pk):
 
 @login_required
 def print_policy(request, pk):
-    return render(request, 'dms_tourist/print_policy.html', {'policy': get_object_or_404(DMSTouristPolicy, pk=pk)})
+    """Печать чистовика полиса ДМС Турист (1-й лист, 2-й лист правила, 3-й лист Приложение №1 при группе)"""
+    policy = get_object_or_404(DMSTouristPolicy, pk=pk)
+    persons = list(policy.insured_persons.all().order_by('id'))
+    has_elderly = any(p.age >= 61 for p in persons)
 
+    return render(request, 'dms_tourist/print_policy.html', {
+        'policy': policy,
+        'persons': persons,
+        'has_elderly': has_elderly,
+        'is_draft': False
+    })
 
 # --- 1. ЭКСПОРТ В БУХГАЛТЕРИЮ ---
 @login_required

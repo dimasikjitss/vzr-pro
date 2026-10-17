@@ -9,7 +9,6 @@
     .custom-input { width: 100%; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1.25rem; padding: 1.1rem 1.5rem; font-weight: 700; color: #1e293b; outline: none; transition: all 0.2s ease; appearance: none; }
     .custom-input:focus { border-color: #6366f1; background-color: white; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05); }
     
-    /* Исправленный стиль стрелочки */
     select.custom-input {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
@@ -17,25 +16,61 @@
         background-size: 1.2rem;
         padding-right: 3.5rem;
     }
+
+    .tourist-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .tourist-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+    }
 </style>
 
 <main class="max-w-7xl mx-auto py-8">
     <form method="post" id="nomad-form" class="space-y-10">
         {% csrf_token %}
+        <input type="hidden" name="holder_kind" id="holder_kind" value="individual">
+
         <div class="grid grid-cols-12 gap-8">
             
             <div class="col-span-12 lg:col-span-8 space-y-8">
                 
+                <!-- БЛОК СТРАХОВАТЕЛЯ -->
                 <div class="glass-card">
-                    <div class="flex items-center gap-5 mb-10">
-                        <div class="w-14 h-14 bg-indigo-50 rounded-[1.2rem] flex items-center justify-center text-indigo-600"><i data-lucide="user" class="w-7 h-7"></i></div>
-                        <h2 class="section-title">Страхователь</h2>
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-indigo-50 rounded-[1.2rem] flex items-center justify-center text-indigo-600">
+                                <i data-lucide="user-check" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <h2 class="section-title">Страхователь</h2>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Кто оплачивает и заключает договор</p>
+                            </div>
+                        </div>
+
+                        <!-- ПЕРЕКЛЮЧАТЕЛЬ ФИЗЛИЦО / ЮРЛИЦО -->
+                        <div class="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                            <button type="button" id="tab-individual" onclick="switchHolderKind('individual')" 
+                                    class="px-5 py-2.5 text-xs font-black rounded-xl bg-white text-slate-900 shadow-sm transition-all uppercase tracking-wider">
+                                Физ. лицо
+                            </button>
+                            <button type="button" id="tab-company" onclick="switchHolderKind('company')" 
+                                    class="px-5 py-2.5 text-xs font-black rounded-xl text-slate-400 hover:text-slate-900 transition-all uppercase tracking-wider">
+                                Юр. лицо
+                            </button>
+                        </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ПОЛЯ ДЛЯ ФИЗИЧЕСКОГО ЛИЦА -->
+                    <div id="fields-individual" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
-                            <label class="input-label">ФИО страхователя (кириллица)</label>
-                            <input type="text" name="holder_name" required class="custom-input uppercase" placeholder="ИВАНОВ ИВАН ИВАНОВИЧ">
+                            <label class="input-label">ФИО страхователя (кириллица / латиница) *</label>
+                            <input type="text" name="holder_name" id="holder_name" required class="custom-input uppercase" placeholder="ИВАНОВ ИВАН ИВАНОВИЧ">
                         </div>
 
                         <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6" id="citizenship-row">
@@ -59,80 +94,198 @@
 
                         <div>
                             <label class="input-label">Дата рождения</label>
-                            <input type="date" name="holder_dob" id="holder_dob" required class="custom-input">
+                            <input type="date" name="holder_dob" id="holder_dob" class="custom-input">
                         </div>
 
                         <div>
-                            <label class="input-label">Паспорт (ID / Загран / Свид-во)</label>
-                            <input type="text" name="holder_passport" required class="custom-input uppercase" placeholder="ID1234567">
+                            <label class="input-label">Паспорт (ID / Загран / Свид-во) *</label>
+                            <input type="text" name="holder_passport" id="holder_passport" required class="custom-input uppercase" placeholder="ID1234567">
                         </div>
 
                         <div>
-                            <label class="input-label">Номер телефона</label>
-                            <input type="text" name="holder_phone" required placeholder="+996" class="custom-input phone-field">
+                            <label class="input-label">Номер телефона *</label>
+                            <input type="text" name="holder_phone" id="holder_phone" required placeholder="+996" class="custom-input phone-field">
                         </div>
 
                         <div>
-                            <label class="input-label">Контакт родственника</label>
-                            <input type="text" name="holder_relative" required placeholder="+996" class="custom-input phone-field">
+                            <label class="input-label">Контакт родственника / Сопровождающего *</label>
+                            <input type="text" name="holder_relative" id="holder_relative" required placeholder="+996" class="custom-input phone-field">
+                        </div>
+
+                        <div>
+                            <label class="input-label">Выгодоприобретатель</label>
+                            <input type="text" name="beneficiary" id="beneficiary_ind" placeholder="ЗАСТРАХОВАННЫЙ" class="custom-input uppercase">
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="input-label">Адрес проживания (в КР)</label>
-                            <input type="text" name="holder_address" required class="custom-input" placeholder="г. Бишкек, ул. Киевская 10">
+                            <label class="input-label">Адрес проживания (в КР / Отель) *</label>
+                            <input type="text" name="holder_address" id="holder_address" required class="custom-input uppercase" placeholder="Г. БИШКЕК, УЛ. КИЕВСКАЯ 10">
+                        </div>
+                    </div>
+
+                    <!-- ПОЛЯ ДЛЯ ЮРИДИЧЕСКОГО ЛИЦА -->
+                    <div id="fields-company" class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display: none;">
+                        <div class="md:col-span-2">
+                            <label class="input-label">Наименование компании (ОсОО / ЗАО / Туроператор) *</label>
+                            <input type="text" name="company_name" id="company_name" class="custom-input uppercase" placeholder="ОСОО КЫРГЫЗ ТРЕВЕЛ ЭКСПЕДИШН">
+                        </div>
+
+                        <div>
+                            <label class="input-label">ИНН компании (14 цифр) *</label>
+                            <input type="text" name="company_inn" id="company_inn" maxlength="14" class="custom-input" placeholder="01234567890123">
+                        </div>
+
+                        <div>
+                            <label class="input-label">ОКПО компании *</label>
+                            <input type="text" name="company_okpo" id="company_okpo" maxlength="20" class="custom-input" placeholder="12345678">
+                        </div>
+
+                        <div>
+                            <label class="input-label">ФИО подписанта / руководителя *</label>
+                            <input type="text" name="company_signatory" id="company_signatory" class="custom-input uppercase" placeholder="АСАНОВ А.А.">
+                        </div>
+
+                        <div>
+                            <label class="input-label">Выгодоприобретатель</label>
+                            <input type="text" name="beneficiary_company" id="beneficiary_comp" placeholder="ЗАСТРАХОВАННЫЙ" class="custom-input uppercase">
+                        </div>
+
+                        <div>
+                            <label class="input-label">Контактный телефон компании *</label>
+                            <input type="text" name="company_phone" id="company_phone" placeholder="+996" class="custom-input phone-field">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="input-label">Юридический адрес *</label>
+                            <input type="text" name="company_address" id="company_address" class="custom-input uppercase" placeholder="Г. БИШКЕК, ПР. ЧУЙ 120">
                         </div>
                     </div>
                 </div>
 
+                <!-- БЛОК ПРОГРАММЫ И СРОКОВ -->
                 <div class="glass-card">
-                    <div class="flex items-center gap-5 mb-10">
-                        <div class="w-14 h-14 bg-emerald-50 rounded-[1.2rem] flex items-center justify-center text-emerald-600"><i data-lucide="calendar" class="w-7 h-7"></i></div>
-                        <h2 class="section-title">Программа и Сумма</h2>
+                    <div class="flex items-center gap-5 mb-8">
+                        <div class="w-14 h-14 bg-emerald-50 rounded-[1.2rem] flex items-center justify-center text-emerald-600">
+                            <i data-lucide="calendar" class="w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <h2 class="section-title">Программа и Сумма</h2>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Даты действия и страховая сумма</p>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
                             <label class="input-label">Программа страхования</label>
                             <select name="program_select" class="custom-input">
-                                <option value="BRONZE">GSO NOMAD BRONZE</option>
+                                <option value="BRONZE">GSO NOMAD BRONZE (Въездной туризм КР)</option>
                             </select>
                         </div>
                         <div>
-                            <label class="input-label italic">Дата начала</label>
+                            <label class="input-label italic">Дата начала действия *</label>
                             <input type="date" name="start_date" id="start_date" required class="custom-input">
                         </div>
                         <div>
-                            <label class="input-label italic">Дата окончания</label>
+                            <label class="input-label italic">Дата окончания действия *</label>
                             <input type="date" name="end_date" id="end_date" required class="custom-input">
                         </div>
                         
                         <div class="md:col-span-2">
-                            <label class="input-label italic font-black">Сумма покрытия (сом)</label>
+                            <label class="input-label italic font-black">Страховая сумма на каждого туриста (сом) *</label>
                             <select name="sum_insured" id="sum_insured" class="custom-input text-emerald-600 text-xl font-black">
-                                </select>
+                            </select>
                         </div>
                     </div>
                 </div>
+
+                <!-- БЛОК ГРУППЫ ТУРИСТОВ (ЗАСТРАХОВАННЫЕ ЛИЦА) -->
+                <div class="glass-card">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-blue-50 rounded-[1.2rem] flex items-center justify-center text-blue-600">
+                                <i data-lucide="users" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3">
+                                    <h2 class="section-title">Туристы</h2>
+                                </div>
+                                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Список застрахованных</p>
+                            </div>
+                        </div>
+
+                        <!-- КНОПКИ ДЕЙСТВИЙ СО СПИСКОМ -->
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="btn-self" onclick="fillSelf()" 
+                                    class="px-4 py-2.5 text-xs font-bold rounded-xl border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-all uppercase tracking-wider flex items-center gap-2">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                                <span>Для себя</span>
+                            </button>
+                            <button type="button" onclick="addTouristCard()" 
+                                    class="px-5 py-2.5 text-xs font-black rounded-xl text-white shadow-md hover:opacity-90 transition-all uppercase tracking-wider flex items-center gap-2" style="background-color: #0bb7a2;">
+                                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                <span>+ Добавить туриста</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- СПИСОК КАРТОЧЕК ТУРИСТОВ -->
+                    <div id="tourists-container" class="space-y-4">
+                    </div>
+                </div>
+
             </div>
 
+            <!-- ПРАВАЯ СТОРОНА: СВОДКА И ОПЛАТА -->
             <div class="col-span-12 lg:col-span-4">
-                <div class="sticky top-28 bg-white rounded-[3rem] p-10 text-slate-900 shadow-xl border border-slate-100 relative overflow-hidden">
-                    <div class="relative z-10 mb-10">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Итого к оплате (NOMAD)</p>
+                <div class="sticky top-24 bg-white rounded-[3rem] p-8 md:p-10 text-slate-900 shadow-xl border border-slate-100 relative overflow-hidden">
+                    <div class="relative z-10 mb-8">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Итого к оплате (NOMAD / VT)</p>
                         <div class="flex items-baseline gap-2">
-                            <span id="calc-total" class="text-6xl font-black tracking-tighter text-slate-900">0.00</span>
+                            <span id="calc-total" class="text-5xl md:text-6xl font-black tracking-tighter text-slate-900">0.00</span>
                             <span class="text-xl font-bold" style="color: #0bb7a2;">сом</span>
                         </div>
                     </div>
-                    <div class="relative z-10 space-y-5 border-t border-white/10 pt-8 mb-10 text-[10px] font-bold uppercase tracking-widest">
-                        <div class="flex justify-between items-center"><span class="text-slate-500 italic">Программа:</span><span class="bg-white/5 px-3 py-1 rounded-lg">VT BRONZE</span></div>
-                        <div class="flex justify-between items-center"><span class="text-slate-500 italic">Дней поездки:</span><span id="calc-days" class="text-slate-500 text-sm">0</span></div>
-                        <div class="flex justify-between items-center"><span class="text-slate-500 italic">Сумма без НСП:</span><span id="res-netto" class="text-slate-500 text-sm">0.00</span></div>
-                        <div class="flex justify-between items-center text-indigo-400"><span class="italic">НСП (2%):</span><span id="res-nsp" class="text-sm" >0.00</span></div>
+
+                    <div class="relative z-10 space-y-4 border-t border-slate-100 pt-6 mb-8 text-[11px] font-bold uppercase tracking-wider">
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Программа:</span>
+                            <span class="text-slate-800 font-extrabold bg-slate-100 px-3 py-1 rounded-lg">VT BRONZE</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Кол-во туристов:</span>
+                            <span id="calc-tourists" class="text-slate-800 font-extrabold">1 чел.</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Дней страхования:</span>
+                            <span id="calc-days" class="text-slate-800 font-extrabold">0 дн.</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Общее покрытие:</span>
+                            <span id="calc-sum-total" class="text-emerald-600 font-extrabold">0 сом</span>
+                        </div>
+                        <div class="flex justify-between items-center text-slate-500">
+                            <span>Премия без НСП:</span>
+                            <span id="res-netto" class="text-slate-800 font-extrabold">0.00 сом</span>
+                        </div>
+                        <div class="flex justify-between items-center text-indigo-500">
+                            <span>НСП (2%):</span>
+                            <span id="res-nsp" class="font-extrabold">0.00 сом</span>
+                        </div>
                     </div>
-                    <button type="submit" id="submit-btn" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group disabled:opacity-30" style='background-color:#0bb7a2'>
-                        <i data-lucide="check-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
-                        Оформить полис
-                    </button>
+
+                    <!-- КНОПКИ ДЕЙСТВИЙ: ПЕЧАТЬ ЧЕРНОВИКА И ОФОРМЛЕНИЕ -->
+                    <div class="space-y-3">
+                        <button type="button" id="preview-btn" 
+                                class="w-full text-white font-bold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 group hover:opacity-90" style="background-color: #34b5e2;">
+                            <i data-lucide="printer" class="w-5 h-5"></i>
+                            Печать черновика (DRAFT)
+                        </button>
+
+                        <button type="submit" id="submit-btn" 
+                                class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 group disabled:opacity-30" style="background-color: #0bb7a2;">
+                            <i data-lucide="check-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                            Оформить полис
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,21 +295,80 @@
 {{ tariffs_list|json_script:"tariffs-data" }}
 
 <script>
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    const tariffsData = JSON.parse(document.getElementById('tariffs-data')?.textContent || '[]');
 
-    const tariffsData = JSON.parse(document.getElementById('tariffs-data').textContent);
-
-    // 1. Наполнение селекта суммы
+    // 1. Наполнение селекта суммы покрытия (от 50 000 до 2 000 000 сом)
     const sumSelect = document.getElementById('sum_insured');
-    for (let i = 50000; i <= 2000000; i += 50000) {
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = i.toLocaleString('ru-RU'); 
-        if (i === 100000) option.selected = true;
-        sumSelect.appendChild(option);
+    if (sumSelect) {
+        for (let i = 50000; i <= 2000000; i += 50000) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i.toLocaleString('ru-RU') + ' СОМ'; 
+            if (i === 100000) option.selected = true;
+            sumSelect.appendChild(option);
+        }
     }
 
-    // 2. Логика переключения гражданства
+    // 2. Переключение типа страхователя (Физлицо / Юрлицо)
+    let currentHolderKind = 'individual';
+
+    function switchHolderKind(kind) {
+        currentHolderKind = kind;
+        document.getElementById('holder_kind').value = kind;
+
+        const tabInd = document.getElementById('tab-individual');
+        const tabComp = document.getElementById('tab-company');
+        const boxInd = document.getElementById('fields-individual');
+        const boxComp = document.getElementById('fields-company');
+        const btnSelf = document.getElementById('btn-self');
+
+        if (kind === 'company') {
+            tabComp.className = "px-5 py-2.5 text-xs font-black rounded-xl bg-white text-slate-900 shadow-sm transition-all uppercase tracking-wider";
+            tabInd.className = "px-5 py-2.5 text-xs font-black rounded-xl text-slate-400 hover:text-slate-900 transition-all uppercase tracking-wider";
+            boxInd.style.display = 'none';
+            boxComp.style.display = 'grid';
+            if (btnSelf) btnSelf.style.display = 'none';
+
+            // Требуемые поля компании
+            document.getElementById('company_name').required = true;
+            document.getElementById('company_inn').required = true;
+            document.getElementById('company_okpo').required = true;
+            document.getElementById('company_signatory').required = true;
+            document.getElementById('company_phone').required = true;
+            document.getElementById('company_address').required = true;
+
+            // Снимаем required с физлица
+            document.getElementById('holder_name').required = false;
+            document.getElementById('holder_passport').required = false;
+            document.getElementById('holder_phone').required = false;
+            document.getElementById('holder_relative').required = false;
+            document.getElementById('holder_address').required = false;
+        } else {
+            tabInd.className = "px-5 py-2.5 text-xs font-black rounded-xl bg-white text-slate-900 shadow-sm transition-all uppercase tracking-wider";
+            tabComp.className = "px-5 py-2.5 text-xs font-black rounded-xl text-slate-400 hover:text-slate-900 transition-all uppercase tracking-wider";
+            boxInd.style.display = 'grid';
+            boxComp.style.display = 'none';
+            if (btnSelf) btnSelf.style.display = 'flex';
+
+            // Возвращаем required на физлицо
+            document.getElementById('holder_name').required = true;
+            document.getElementById('holder_passport').required = true;
+            document.getElementById('holder_phone').required = true;
+            document.getElementById('holder_relative').required = true;
+            document.getElementById('holder_address').required = true;
+
+            // Снимаем required с компании
+            document.getElementById('company_name').required = false;
+            document.getElementById('company_inn').required = false;
+            document.getElementById('company_okpo').required = false;
+            document.getElementById('company_signatory').required = false;
+            document.getElementById('company_phone').required = false;
+            document.getElementById('company_address').required = false;
+        }
+        calculate();
+    }
+
+    // 3. Переключение гражданства физлица
     function toggleCitizenship() {
         const type = document.getElementById('citizenship_type').value;
         const selectWrapper = document.getElementById('citizenship-select-wrapper');
@@ -178,23 +390,145 @@
             manualInput.required = false;
             manualInput.value = '';
             innBlock.style.display = 'block';
-            innInput.required = true;
+            innInput.required = false;
         }
+    }
+
+    // 4. Управление карточками туристов
+    function addTouristCard(name = '', passport = '', dob = '', citizenship = '') {
+        const container = document.getElementById('tourists-container');
+        const cardId = `tourist-card-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        const card = document.createElement('div');
+        card.className = 'tourist-card';
+        card.id = cardId;
+        card.innerHTML = `
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="tourist-num-badge w-7 h-7 bg-slate-100 text-slate-700 font-black rounded-lg flex items-center justify-center text-xs">#</span>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Застрахованный турист</span>
+                </div>
+                <button type="button" onclick="removeTouristCard('${cardId}')" 
+                        class="btn-remove-tourist text-slate-300 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50" title="Удалить">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="input-label">ФИО туриста *</label>
+                    <input type="text" name="insured_name[]" value="${name}" required 
+                           class="custom-input uppercase tourist-name text-sm py-2.5 px-4" placeholder="IVANOV IVAN">
+                </div>
+                <div>
+                    <label class="input-label">Гражданство *</label>
+                    <input type="text" name="insured_citizenship[]" value="${citizenship}" required 
+                           class="custom-input uppercase tourist-cit text-sm py-2.5 px-4" placeholder="РОССИЯ / КНР">
+                </div>
+                <div>
+                    <label class="input-label">Дата рождения *</label>
+                    <input type="date" name="insured_dob[]" value="${dob}" required 
+                           class="custom-input tourist-dob text-sm py-2.5 px-4" onchange="calculate()">
+                </div>
+                <div>
+                    <label class="input-label">Паспорт (ID / Загран) *</label>
+                    <input type="text" name="insured_passport[]" value="${passport}" required 
+                           class="custom-input uppercase tourist-pass text-sm py-2.5 px-4" placeholder="ID1234567">
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-slate-500">
+                <div class="flex items-center gap-2">
+                    <span class="tourist-age-info text-slate-400 font-bold">Возраст: —</span>
+                    <span class="tourist-coeff-badge bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black">1.0</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-slate-400 uppercase mr-1">Премия:</span>
+                    <span class="tourist-premium-info font-black text-slate-800 text-sm">0.00 сом</span>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+        if (window.lucide) lucide.createIcons({ root: card });
+
+        updateTouristNumbers();
         calculate();
     }
 
-    // 3. Расчет
+    // 5. Кнопка "Для себя"
+    function fillSelf() {
+        const hName = document.getElementById('holder_name')?.value || '';
+        const hPass = document.getElementById('holder_passport')?.value || '';
+        const hDob = document.getElementById('holder_dob')?.value || '';
+        
+        const cType = document.getElementById('citizenship_type')?.value || 'Кыргызстан';
+        const cManual = document.getElementById('citizenship_manual')?.value || '';
+        const hCit = (cType === 'Другое' && cManual) ? cManual : 'КЫРГЫЗСТАН';
+
+        if (!hName && !hPass) {
+            alert('Сначала заполните данные страхователя (ФИО, паспорт, дату рождения)!');
+            return;
+        }
+
+        const cards = document.querySelectorAll('.tourist-card');
+        if (cards.length === 0) {
+            addTouristCard(hName, hPass, hDob, hCit);
+        } else {
+            const firstCard = cards[0];
+            const nameInp = firstCard.querySelector('.tourist-name');
+            const passInp = firstCard.querySelector('.tourist-pass');
+            const dobInp = firstCard.querySelector('.tourist-dob');
+            const citInp = firstCard.querySelector('.tourist-cit');
+
+            if (nameInp) nameInp.value = hName;
+            if (passInp) passInp.value = hPass;
+            if (dobInp) dobInp.value = hDob;
+            if (citInp) citInp.value = hCit;
+            calculate();
+        }
+    }
+
+    function removeTouristCard(cardId) {
+        const cards = document.querySelectorAll('.tourist-card');
+        if (cards.length <= 1) {
+            alert('В полисе должен быть хотя бы один застрахованный турист!');
+            return;
+        }
+        const card = document.getElementById(cardId);
+        if (card) {
+            card.remove();
+            updateTouristNumbers();
+            calculate();
+        }
+    }
+
+    function updateTouristNumbers() {
+        const cards = document.querySelectorAll('.tourist-card');
+        cards.forEach((card, idx) => {
+            const badge = card.querySelector('.tourist-num-badge');
+            if (badge) badge.innerText = `#${idx + 1}`;
+        });
+        const sidebarTourists = document.getElementById('calc-tourists');
+        if (sidebarTourists) sidebarTourists.innerText = `${cards.length} чел.`;
+    }
+
+    // 6. Основная функция расчета
     function calculate() {
         const sInp = document.getElementById('start_date');
         const eInp = document.getElementById('end_date');
-        const sumVal = parseFloat(sumSelect.value);
-        const dobInp = document.getElementById('holder_dob');
+        const sumVal = parseFloat(document.getElementById('sum_insured')?.value || 100000);
 
         const resTotal = document.getElementById('calc-total');
         const resNetto = document.getElementById('res-netto');
         const resDays = document.getElementById('calc-days');
         const resNsp = document.getElementById('res-nsp');
-        const btn = document.getElementById('submit-btn');
+        const resSumTotal = document.getElementById('calc-sum-total');
+        const submitBtn = document.getElementById('submit-btn');
+        const previewBtn = document.getElementById('preview-btn');
+
+        const cards = document.querySelectorAll('.tourist-card');
+        const touristsCount = cards.length;
 
         if (sInp.value && eInp.value) {
             const start = new Date(sInp.value);
@@ -202,52 +536,95 @@
 
             if (end >= start) {
                 const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-                resDays.innerText = days;
+                resDays.innerText = `${days} дн.`;
 
                 const tariff = tariffsData.find(t => days >= parseInt(t.days_min) && days <= parseInt(t.days_max));
 
                 if (tariff) {
-                    let ageCoeff = 1.0;
-                    if (dobInp.value) {
-                        const birthDate = new Date(dobInp.value);
-                        const today = new Date();
-                        let age = today.getFullYear() - birthDate.getFullYear();
-                        if (today < new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())) age--;
-
-                        if (age >= 0 && age <= 5) ageCoeff = 2.0;
-                        else if (age >= 6 && age <= 13) ageCoeff = 1.8;
-                    }
-
                     const rate = parseFloat(tariff.percent_rate);
-                    const netto = (sumVal * rate / 100) * ageCoeff;
-                    const nsp = netto * 0.02;
-                    const total = netto + nsp;
+                    let grandNetto = 0;
+
+                    cards.forEach(card => {
+                        const dobInp = card.querySelector('.tourist-dob');
+                        let age = 30;
+                        let ageCoeff = 1.0;
+
+                        if (dobInp && dobInp.value) {
+                            const birthDate = new Date(dobInp.value);
+                            age = start.getFullYear() - birthDate.getFullYear();
+                            if (start < new Date(start.getFullYear(), birthDate.getMonth(), birthDate.getDate())) age--;
+
+                            if (age >= 0 && age <= 5) ageCoeff = 2.0;
+                            else if (age >= 6 && age <= 13) ageCoeff = 1.8;
+                            else ageCoeff = 1.0;
+                        }
+
+                        const pNetto = (sumVal * rate / 100) * ageCoeff;
+                        const pNsp = pNetto * 0.02;
+                        const pGross = pNetto + pNsp;
+                        grandNetto += pNetto;
+
+                        const ageInfo = card.querySelector('.tourist-age-info');
+                        const coeffBadge = card.querySelector('.tourist-coeff-badge');
+                        const premInfo = card.querySelector('.tourist-premium-info');
+
+                        if (ageInfo) ageInfo.innerText = `Возраст: ${dobInp && dobInp.value ? age + ' лет' : '—'}`;
+                        if (coeffBadge) coeffBadge.innerText = `K=${ageCoeff.toFixed(1)}`;
+                        if (premInfo) premInfo.innerText = pGross.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' сом';
+                    });
+
+                    const grandNsp = grandNetto * 0.02;
+                    const grandTotal = grandNetto + grandNsp;
+                    const totalSumInsured = sumVal * touristsCount;
 
                     const fmt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
-                    resNetto.innerText = netto.toLocaleString('ru-RU', fmt);
-                    resNsp.innerText = nsp.toLocaleString('ru-RU', fmt);
-                    resTotal.innerText = total.toLocaleString('ru-RU', fmt);
-                    
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
+                    resNetto.innerText = grandNetto.toLocaleString('ru-RU', fmt) + ' сом';
+                    resNsp.innerText = grandNsp.toLocaleString('ru-RU', fmt) + ' сом';
+                    resTotal.innerText = grandTotal.toLocaleString('ru-RU', fmt);
+                    resSumTotal.innerText = totalSumInsured.toLocaleString('ru-RU') + ' сом';
+
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = "1";
+                    previewBtn.disabled = false;
+                    previewBtn.style.opacity = "1";
                     return;
                 }
             }
         }
+
         resTotal.innerText = "0.00";
-        resNetto.innerText = "0.00";
-        resNsp.innerText = "0.00";
-        btn.disabled = true;
-        btn.style.opacity = "0.3";
+        resNetto.innerText = "0.00 сом";
+        resNsp.innerText = "0.00 сом";
+        resDays.innerText = "0 дн.";
+        resSumTotal.innerText = "0 сом";
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = "0.3";
+        previewBtn.disabled = true;
+        previewBtn.style.opacity = "0.3";
     }
 
-    // Привязка событий
-    ['start_date', 'end_date', 'holder_dob', 'sum_insured'].forEach(id => {
-        const el = document.getElementById(id);
-        el.addEventListener('change', calculate);
-        el.addEventListener('input', calculate);
+    // 7. Обработчик предпросмотра
+    document.getElementById('preview-btn')?.addEventListener('click', function() {
+        const form = document.getElementById('nomad-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const originalAction = form.action;
+        const originalTarget = form.target;
+
+        form.action = "{% url 'nomad:nomad_preview' %}";
+        form.target = "_blank";
+        form.submit();
+
+        setTimeout(() => {
+            form.action = originalAction;
+            form.target = originalTarget;
+        }, 100);
     });
 
+    // 8. Маска телефона
     function initPhoneMask(selector) {
         document.querySelectorAll(selector).forEach(input => {
             input.addEventListener('focus', function() { if (!this.value) this.value = '+996'; });
@@ -258,9 +635,21 @@
             });
         });
     }
-    
-    initPhoneMask('.phone-field');
-    toggleCitizenship();
-</script>
 
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        initPhoneMask('.phone-field');
+        toggleCitizenship();
+
+        ['start_date', 'end_date', 'sum_insured'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', calculate);
+                el.addEventListener('input', calculate);
+            }
+        });
+
+        addTouristCard();
+    });
+</script>
 {% endblock %}
