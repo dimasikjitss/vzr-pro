@@ -88,27 +88,31 @@
 
         <table>
             <tr>
-                <th class="bold">Policy issue date / Дата оформления полиса</th>
+                <th class="bold">Дата оформления полиса</th>
                 <td class="bold">{{ policy.issue_date|date:"d.m.Y" }}</td>
             </tr>
             <tr>
-                <th class="bold">POLICY № / ПОЛИС №</th>
+                <th class="bold">ПОЛИС №</th>
                 <td class="bold">{{ policy.policy_number }}</td>
             </tr>
             <tr>
-                <th class="bold">Policy Issuer / Специалист по страхованию</th>
+                <th class="bold">Специалист по страхованию</th>
                 <td class="bold">{{ policy.agent.get_full_name|default:policy.agent.username }}</td> 
             </tr>
         </table>
 
-        <div class="section-title">VOLUNTARY HEALTH INSURANCE POLICY FOR TOURIST / <br> 
-            СТРАХОВОЙ ПОЛИС ДОБРОВОЛЬНОГО МЕДИЦИНСКОГО СТРАХОВАНИЯ ДЛЯ ТУРИСТА
+        <div class="section-title">
+            ДОГОВОР ДОБРОВОЛЬНОГО МЕДИЦИНСКОГО СТРАХОВАНИЯ <br> ДЛЯ ИНОСТРАННОГО ГРАЖДАНИНА / ЛИЦА БЕЗ ГРАЖДАНСТВА
         </div>
         
         {% if policy.holder_kind == 'company' %}
             <table>
                 <tr>
-                    <th class="bold">INSUREE, COMPANY / СТРАХОВАТЕЛЬ, наименование организации</th>
+                    <th class="bold">СТРАХОВЩИК</th>
+                    <td class="bold">ОАО «ГОСУДАРСТВЕННАЯ СТРАХОВАЯ ОРГАНИЗАЦИЯ»</td>
+                </tr>
+                <tr>
+                    <th class="bold">СТРАХОВАТЕЛЬ, наименование организации</th>
                     <td class="bold">{{ policy.holder_name|upper }}</td>
                 </tr>
                 <tr>
@@ -127,80 +131,112 @@
         {% else %}
             <table>
                 <tr>
-                    <th class="bold">INSUREE. Full name / СТРАХОВАТЕЛЬ. ФИО</th>
+                    <th class="bold">СТРАХОВЩИК</th>
+                    <td class="bold">ОАО «ГОСУДАРСТВЕННАЯ СТРАХОВАЯ ОРГАНИЗАЦИЯ»</td>
+                </tr>
+                <tr>
+                    <th class="bold">СТРАХОВАТЕЛЬ. Ф.И.О.</th>
                     <td class="bold">{{ policy.holder_name|upper }}</td>
                 </tr>
                 <tr>
-                    <th class="bold">Phone number, address in KR / Номер телефона, адрес в КР</th>
-                    <td class="bold">{{ policy.holder_phone }} / {{ policy.holder_address|default:"—" }}</td>
+                    <th class="bold">Гражданство</th>
+                    <td class="bold">{{ policy.holder_citizenship|upper }}</td>
                 </tr>
                 <tr>
-                    <th class="bold">Passport number, PIN / Номер паспорта, ИНН (ПИН)</th>
+                    <th class="bold">Номер паспорта</th>
                     <td class="bold">{{ policy.holder_passport|default:"—" }} / {{ policy.holder_inn|default:"—" }}</td>
                 </tr>
                 <tr>
+                    <th class="bold">Адрес</th>
+                    <td class="bold">{{ policy.holder_address|default:"—" }}</td>
+                </tr>
+                <tr>
+                    <th class="bold">Контактный номер</th>
+                    <td class="bold">{{ policy.holder_phone }}</td>
+                </tr>
+                <!-- <tr>
                     <th class="bold">Insured's relative contact / Контакт родственника (сопровождающего)</th>
                     <td class="bold">{{ policy.relative_contact|default:"—" }}</td>
-                </tr>
+                </tr> -->
             </table>
         {% endif %}
 
-        <div class="section-title">VHI TOURIST INSURANCE PLAN / ПРОГРАММА СТРАХОВАНИЯ «ДМС ТУРИСТ»</div>
+        <div class="section-title">ПРОГРАММА СТРАХОВАНИЯ</div>
         <table>
             <tr>
-                <th class="bold" style="width: 48%;">Insurance period / Период страхования</th>
-                <td class="bold" width="10%">from / с</td>
+                <th class="bold" style="width: 48%;">Период страхования</th>
+                <td class="bold" width="5%">с</td>
                 <td class="center"><span class="bold">{{ policy.date_from|date:"d.m.Y" }}</span></td>
-                <td class="bold" width="10%">to / по</td>
+                <td class="bold" width="5%">по</td>
                 <td class="center"><span class="bold">{{ policy.date_to|date:"d.m.Y" }}</span></td>
             </tr>
             <tr>
-                <th class="bold">Number of insured days / Количество застрахованных дней</th>
+                <th class="bold">Количество застрахованных дней</th>
                 <td colspan="4" class="left bold" style="font-size: 8pt;">{{ policy.days_count }}</td>
             </tr>
             <tr>
-                <th class="bold">Insurance territory / Территория страховой защиты</th>
-                <td colspan="4" class="bold">KYRGYZ REPUBLIC / КЫРГЫЗСКАЯ РЕСПУБЛИКА</td>
+                <th class="bold">Территория страховой защиты</th>
+                <td colspan="4" class="bold">КЫРГЫЗСКАЯ РЕСПУБЛИКА</td>
             </tr>
         </table>
 
         <table>
             <tr>
-                <th class="bold" rowspan="3">Sum Insured / Страховая сумма</th>
+                <th class="bold" rowspan="3">Страховая сумма</th>
                 <td class="center" style="width: 25px;">{% if policy.sum_insured == 100000 %}<span class="marked">X</span>{% endif %}</td>
-                <td class="small-text"><b>100 000 KGS / СОМ</b></td>
+                <td class="small-text"><b>100 000 KGS </b></td>
             </tr>
-            <tr>
+            <!-- <tr>
                 <td class="center">{% if policy.sum_insured == 500000 %}<span class="marked">X</span>{% endif %}</td>
                 <td class="small-text"><b>500 000 KGS / СОМ</b></td>
             </tr>
             <tr>
                 <td class="center">{% if policy.sum_insured == 1000000 %}<span class="marked">X</span>{% endif %}</td>
                 <td class="small-text"><b>1 000 000 KGS / СОМ</b></td>
-            </tr>
+            </tr> -->
         </table>
 
-        <table>
-            <tr class="header-row">
-                <th class="bold" style="width: 48%; text-align: left; padding-left: 5px; background-color: #f1f5f9;">
-                    Purpose of visit to Kyrgyz Republic / Цель поездки
-                </th>
-                <td class="label-cell" style="width: 7%; font-weight: bold; text-align: center;">
+        <table style="width: 100%; border-collapse: collapse;">
+    <!-- Первый ряд -->
+            <tr>
+                <td class="bold" rowspan="2" style="width: 50%; text-align: left; padding-left: 5px; background-color: #f1f5f9; border: 1px solid #000;">
+                    Цель поездки в Кыргызскую Республику
+                </td>
+                <td class="label-cell" style="width: 4%; font-weight: bold; text-align: center; border: 1px solid #000;">
                     {% if policy.purpose == 'BUSINESS' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>Business / Деловая</b></td>
-                <td class="label-cell" style="width: 7%; font-weight: bold; text-align: center;">
+                <td class="small-text" style="width: 13%; border: 1px solid #000;"><b>Гостевая/Деловая</b></td>
+                
+                <td class="label-cell" style="width: 5%; font-weight: bold; text-align: center; border: 1px solid #000;">
                     {% if policy.purpose == 'TREKKING' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>Trekking, Hiking/ Треккинг </b></td>
-                <td class="label-cell" style="width: 7%; font-weight: bold; text-align: center;">
+                <td class="small-text" style="width: 17%; border: 1px solid #000;"><b>Trekking, Hiking/Трекинг</b></td>
+                
+                <td class="label-cell" style="width: 5%; font-weight: bold; text-align: center; border: 1px solid #000;">
                     {% if policy.purpose == 'SPORT' %}<span class="marked">X</span>{% endif %}
                 </td>
-                <td class="small-text"><b>Sport / Спорт</b></td>
+                <td class="small-text" style="width: 13%; border: 1px solid #000;"><b>Sport/Спорт</b></td>
+            </tr>
+            <!-- Второй ряд -->
+            <tr>
+                <td class="label-cell" style="font-weight: bold; text-align: center; border: 1px solid #000;">
+                    {% if policy.purpose == 'STUDENT' %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text" style="border: 1px solid #000;"><b>Студент</b></td>
+                
+                <td class="label-cell" style="font-weight: bold; text-align: center; border: 1px solid #000;">
+                    {% if policy.purpose == 'RESIDENCE' %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text" style="border: 1px solid #000;"><b>ВНЖ</b></td>
+                
+                <td class="label-cell" style="font-weight: bold; text-align: center; border: 1px solid #000;">
+                    {% if policy.purpose == 'REGISTRATION' %}<span class="marked">X</span>{% endif %}
+                </td>
+                <td class="small-text" style="border: 1px solid #000;"><b>Регистрация</b></td>
             </tr>
         </table>
 
-        <table>
+        <!-- <table>
             <tr>
                 <th class="bold" style="width: 48%; text-align: left; padding-left: 5px; background-color: #f1f5f9;">
                     Age increasing ratio / Повышающий коэффициент согласно возрасту
@@ -214,24 +250,25 @@
                 </td>
                 <td class="small-text"><b>От 61 до 70 лет</b></td>
             </tr>
-        </table>
+        </table> -->
 
         <table>
             <tr>
-                <th class="bold" style="width: 100%;">ZERO / NO DEDUCTIBLE / БЕЗ ФРАНШИЗЫ</th>
+                <th class="bold" style="width: 100%; text-align: center;">БЕЗ ФРАНШИЗЫ</th>
             </tr>
         </table>
 
         <!-- ТАБЛИЦА ЗАСТРАХОВАННЫХ НА ЛИСТЕ 1 -->
         <table style="text-align: center; font-size: 6.5pt; margin-top: 5px;">
             <tr style="background: #f2f2f2; font-weight: bold;">
-                <th style="width: 25%; font-size: 8.5pt;" class="center bold">INSURED <br> Застрахованный</th>
-                <td>Date of birth / Дата рождения</td>
-                <td>Passport number / Номер паспорта</td>
-                <td>Sum insured / Страховая сумма (сом)</td>
-                <td>Insurance premium / Премия без НСП (сом)</td>
-                <td>Sales tax 2% / НСП 2% (сом)</td>
-                <td>Insurance premium including 2% sales tax / Премия с НСП (сом)</td>
+                <th style="width: 25%; font-size: 8.5pt;" class="center bold">Застрахованный<br> Выгодоприобретатель</th>
+                <td>Дата рождения</td>
+                <td>Гражданствоnew</td>
+                <td>Номер паспорта</td>
+                <td>Страховая сумма KGS</td>
+                <td>Страховая премия без НСП KGS</td>
+                <td>НСП 2% KGS</td>
+                <td>Страховая премия сом с учетом 2% НСП </td>
             </tr>
 
             {% if persons|length > 5 %}
@@ -241,6 +278,7 @@
                         Согласно Приложению №1 <br>
                         <span style="font-size: 6pt; font-weight: normal;">(Список группы застрахованных лиц — {{ persons|length }} чел.)</span>
                     </td>
+                    <td class="bold center">—</td>
                     <td class="bold center">—</td>
                     <td class="bold center">—</td>
                     <td class="bold center">
@@ -256,6 +294,7 @@
                 <tr>
                     <td class="bold uppercase" style="text-align: left; padding-left: 4px;">{{ forloop.counter }}. {{ person.full_name }}</td>
                     <td class="bold">{{ person.birth_date|date:"d.m.Y" }}</td>
+                    <td class="bold">{{ person.citizenship|default:"—"|upper }}</td>
                     <td class="bold font-mono">{{ person.passport_number }}</td>
                     <td class="bold">{{ policy.sum_insured|intcomma }} сом</td>
                     <td class="bold center">{{ person.premium_netto|floatformat:2 }}</td>
@@ -270,63 +309,51 @@
             {% endif %}
             
             <tr style="border-top: 2px solid #000;">
-                <td colspan="6" style="text-align: right; font-weight: bold;">ИТОГО К ОПЛАТЕ:</td>
+                <td colspan="7" style="text-align: right; font-weight: bold;">ИТОГО К ОПЛАТЕ:</td>
                 <td class="bold center" style="background: #eee; font-size: 8pt;">{{ policy.total_premium_gross|floatformat:2 }} сом</td>
             </tr>
         </table>
 
         <div style="font-size: 6.5pt; text-align: justify; margin: 4px 0;">
             <b>
-                This policy confirms the execution of an insurance between the Policyholder and the Insurer under the terms and conditions of the “Rules for Voluntary health and personal accident insurance for inbound tourists to the Kyrgyz Republic”, approved by the Board Resolution of OJSC “State Insurance Organization” dated February 19, 2024. I have read and agree to comply with these rules. / <br>
-                Настоящий полис подтверждает заключение договора страхования между Страхователем и Страховщиком на условиях «Правил добровольного страхования туристов (медицинского страхования и от несчастных случаев), въезжающих на территорию Кыргызской Республики», утверждённых Протоколом Правления ОАО «Государственная страховая организация» №11 от 19.02.2024г. С указанными правилами страхования ознакомлен(а) и согласен(а) их соблюдать.
+                Настоящий полис подтверждает заключение договора страхования между Страхователем и Страховщиком на условиях Программы добровольного страхования туристов «ДМС Турист», утверждённых Протоколом Правления ОАО «ГСО» №174 от 15 октября 2026 г, а также на условиях «Правил добровольного страхования туристов (медицинского страхования и от несчастных случаев), въезжающих на территорию Кыргызской Республики», утверждённых Протоколом Правления ОАО «Государственная страховая организация» №11 от 19.02.2024 г.
+                <br>С указанной Программой страхования и Правилами страхования ознакомлен(а) и согласен(а) их соблюдать.
             </b>
         </div>
         
         <table>
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"><br><br></th>
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"><br><br></th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"><br><br><br><br></th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;"><br><br><br><br></th>
             </tr>
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insuree, Insured / Подпись Страхователя, Застрахованного</th>
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Signature of Insurer / Подпись Страховщика</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Подпись Страхователя</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">Подпись Страховщика</th>
             </tr>  
         </table>
 
         <table style="margin-top: 2px;">
             <tr>
                 <td style="font-size: 6.5pt; text-align: justify; padding: 3px;">
-                    Страхователь / Застрахованный имеет право обратиться по всем вопросам в Государственную службу регулирования и надзора за финансовым рынком при Министерстве экономики и коммерции Кыргызской Республики (г. Бишкек, пр. Чуй 114, тел.:+996 312 62 44 60/70) / Insuree/Insured has the right to contact the State service for regulation and supervision of the financial market under the Ministry of the economy and commerce of the Kyrgyz Republic on all issues (114, ave., Chui, Bishkek city, tel:+996 312 62 44 60/70)
+                    Застрахованный имеет право обратиться по всем вопросам в Государственную службу регулирования и надзора за финансовым рынком при Министерстве экономики и коммерции Кыргызской Республики (г. Бишкек, пр. Чуй 114, тел.:+996 312 62 44 60/70)
                 </td>
             </tr>
         </table>
 
         <table style="margin-top: -1px;">
             <tr>
-                <td style="font-size: 6.5pt; text-align: justify; padding: 3px;">
-                    <b>COVERAGE AND BENEFITS. INCLUDING: 1. EMERGENCY MEDICAL EXPENSES 2. EMERGENCY MEDICAL TRANSPORTATION </b>
+                <td style="font-size: 6.5pt; text-align:center; padding: 3px;">
+                    <b>СТРАХОВОЙ ПОЛИС ДЛЯ ЭКСТРЕННОГО ОБРАЩЕНИЯ </b>
                 </td>
             </tr>
         </table>
 
         <table style="margin-top: 3px;">
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">EMERGENCY PROCEDURES / CONTACTS</th>
                 <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">ПОРЯДОК ДЕЙСТВИЙ / КОНТАКТЫ</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">УСЛОВИЯ ПРИЗНАНИЯ СОБЫТИЯ СТРАХОВЫМ</th>
             </tr>
             <tr>
-                <td style="font-size: 6.8pt; padding: 4px; vertical-align: top;">
-                        If you need to receive the services provided by this Insurance Policy, before taking any actions, please call the 24-hour medical coordinator, who will assist you.<br>
-                        <b>IF YOU HAVE A LIFE – THREATENING EMERGENCY, PLEASE CALL THE AMBULANCE SERVICE FIRST, AND THEN CONTACT THE MEDICAL COORDINATOR.</b><br>
-                        <b>The following information is required:</b><br>
-                        1.  Full name of Insured<br>
-                        2.  Number and period of your Insurance Policy<br>
-                        3.  Your location<br>
-                        4.  Your active phone number<br>
-                        5.  Description of your case and what kind of help is needed.<br>
-                        <b>YOU MUST NOTIFY THE INSURER ABOUT THE INCIDENT WITHIN 10 DAYS:<br>
-                        +996 553 545400</b>
-                </td>
                 <td style="font-size: 6.8pt; padding: 4px; vertical-align: top;">
                     В случае необходимости получения услуг, предусмотренных настоящим Страховым Полисом, прежде чем предпринимать какие-либо действия, позвоните круглосуточно медицинскому координатору, который Вас проконсультирует.
                     <b>ЕСЛИ У ВАС ЭКСТРЕННЫЙ СЛУЧАЙ, УГРОЖАЮЩИЙ ВАШЕЙ ЖИЗНИ, ЗВОНИТЕ ВНАЧАЛЕ В СКОРУЮ ПОМОЩЬ, ПОСЛЕ ЭТОГО ПОЗВОНИТЕ МЕДИЦИНСКОМУ КООРДИНАТОРУ.</b><br>
@@ -336,22 +363,27 @@
                         3.  Место, где Вы находитесь<br>
                         4.  Номер телефона для связи<br>
                         5.  Описание страхового случая и требуемая помощь.<br>
-                        <b>ВЫ ДОЛЖНЫ СООБЩИТЬ СТРАХОВЩИКУ В ТЕЧЕНИЕ 10 ДНЕЙ О ПРОИСШЕСТВИИ:<br>
-                        +996 553 545400</b>    
+                        <b>ВАМ НЕОБХОДИМО СООБЩИТЬ СТРАХОВЩИКУ В ТЕЧЕНИЕ 10 ДНЕЙ О ПРОИСШЕСТВИИ:<br>
+                        +996 503 60 16 70 +996 553 54 54 00</b>    
+                </td>
+                <td style="font-size: 6.8pt; padding: 4px; vertical-align: top;">
+                    1.  Событие требует экстренного и неотложного медицинского вмешательства;<br>
+                    2.  Событие произошло в период действия страхового полиса и на территории страхования.<br>
+                    3.  В событии отсутствуют исключения из страхового покрытия.<br>
                 </td>
             </tr>
         </table>
         <table style="margin-top: -1px;">
             <tr>
                 <td colspan="2" style="text-align: center; font-size: 7.5pt; font-weight: bold; padding: 3px;">
-                    EMERGENCY MEDICAL COORDINATOR: +996 555 883 558; +996 770 993 888; +996 221 888 123; +996 558 982 888
+                    В ЭКСТРЕННОМ СЛУЧАЕ ЗВОНИТЬ ПО НОМЕРАМ:  +996 555 883 558; +996 770 993 888; +996 221 888 123; +996 558 982 888
                 </td>
             </tr>
         </table>
         <table style="margin-top: -1px;">
             <tr>
                 <td colspan="2" style="text-align: center; font-size: 7.5pt; font-weight: bold; padding: 3px; background-color: #fafafa;">
-                    EMERGENCY AMBULANCE SERVICE: 8088; +996 998 100 103
+                    ЭКСТРЕННАЯ СКОРАЯ ПОМОЩЬ: 8088; +996 998 100 103
                 </td>
             </tr>
         </table>
@@ -359,24 +391,17 @@
         <table style="margin-top: 3px;">
             <tr>
                 <td style="font-size: 6.5pt; padding: 3px; text-align: center;">
-                    <b>Insurance company:</b> "State Insurance Organization" OJSC, Legal address: 1, ave. Ch.Aitmatov, Bishkek city, Kyrgyz Republic, tel.: +996 553 545400, email: vzr@gso.kg, TIN 01101201610062 /<br> <b>Страховая компания:</b> ОАО «Государственная Страховая Организация», Кыргызская Республика, г. Бишкек, пр. Ч. Айтматова, 1, тел.: +996 553 545400, ИНН 01101201610062
+                    <b>Страховая компания:</b> ОАО «Государственная cтраховая организация»; юридический адрес: Кыргызская Республика, г.Бишкек, пр. Ч. Айтматова, 1, тел.: +996 553 545400, <br>эл.почта: vzr@gso.kg, ИНН 01101201610062
                 </td>
             </tr>
         </table>
 
         <table style="margin-top: -1px;">
             <tr style="background-color: #f2f2f2;">
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">INFORMATION ON REQUIRED DOCUMENTS:</th>
-                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">ИНФОРМАЦИЯ О ТРЕБУЕМЫХ ДОКУМЕНТАХ:</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">ТРЕБУЕМЫЕ ДОКУМЕНТЫ ДЛЯ ПОЛУЧЕНИЯ СТРАХОВОГО ВОЗМЕЩЕНИЯ:</th>
+                <th style="width: 50%; text-align: center; font-weight: bold; font-size: 7pt;">ОСОБЫЕ ОТМЕТКИ:</th>
             </tr>
             <tr>
-                <td style="font-size: 6.2pt; padding: 3px 5px; vertical-align: top; line-height: 1.15;">
-                    <b>1.</b> Insured Person’s passport;<br>
-                    <b>2.</b> Attending physician’s report specifying the diagnosis, prescribed treatment, and procedures performed. The report must explicitly state the absence of alcohol intoxication;<br>
-                    <b>3.</b> Sales receipt / Invoice, cash receipt (indicating the amount, currency, and date of payment);<br>
-                    <b>4.</b> Insured Person`s bank details;<br>
-                    <b>5.</b> Claim Application for Insurance indemnity.
-                </td>
                 <td style="font-size: 6.2pt; padding: 3px 5px; vertical-align: top; line-height: 1.15;">
                     <b>1.</b> Паспорт Застрахованного лица;<br>
                     <b>2.</b> Заключение лечащего врача с информацией о диагнозе, назначениях, проделанных манипуляциях.<br>
@@ -385,155 +410,292 @@
                     <b>4.</b> Банковские реквизиты Застрахованного лица;<br>
                     <b>5.</b> Заявление о страховом возмещении.
                 </td>
+                <td style="font-size: 6.2pt; padding: 3px 5px; vertical-align: top; line-height: 1.15;">
+                    
+                </td>
             </tr>
         </table>
     </div>
 
     <!-- ================= СТРАНИЦА 2: ДВУЯЗЫЧНЫЕ ПРАВИЛА ================= -->
     <div class="page" style="height: 297mm; overflow: hidden; padding: 10mm 12mm 6mm 12mm;">
-        <table style="width: 100%; border-collapse: collapse; border: 1.5pt solid black; font-family: 'Arial', sans-serif; font-size: 4.9pt; line-height: 1.08; text-align: justify;">
+        <table style="width: 100%; border-collapse: collapse; border: 1pt solid black; font-family: 'Arial', sans-serif; font-size: 4.7pt; line-height: 1.08; text-align: justify;">
             <tr style="background-color: #f2f2f2; font-weight: bold; text-align: center; font-size: 6.8pt;">
                 <td style="width: 50%; border: 1pt solid black; padding: 4px; vertical-align: middle;">
-                    ИЗВЛЕЧЕНИЕ ИЗ ПРАВИЛ ДОБРОВОЛЬНОГО СТРАХОВАНИЯ ТУРИСТОВ (МЕДИЦИНСКОГО СТРАХОВАНИЯ И ОТ НЕСЧАСТНЫХ СЛУЧАЕВ), ВЪЕЗЖАЮЩИХ НА ТЕРРИТОРИЮ КЫРГЫЗСКОЙ РЕСПУБЛИКИ.
+                    ИЗВЛЕЧЕНИЕ ИЗ ПРОГРАММЫ ДОБРОВОЛЬНОГО  МЕДИЦИНСКОГО СТРАХОВАНИЯ ДЛЯ ИНОСТРАННЫХ ГРАЖДАН И ЛИЦ БЕЗ ГРАЖДАНСТВА «ДМС ТУРИСТ»
                 </td>
                 <td style="width: 50%; border: 1pt solid black; padding: 4px; vertical-align: middle;">
-                    EXCERPT FROM THE RULES FOR VOLUNTARY HEALTH AND PERSONAL ACCIDENT INSURANCE FOR INBOUND TOURISTS TO THE KYRGYZ REPUBLIC.
+                    СТРАХОВЫЕ ЛИМИТЫ ПО ПРОГРАММЕ
                 </td>
             </tr>
             
             <tr>
                 <td style="width: 50%; border: 1pt solid black; padding: 4px 6px; vertical-align: top;">
                     <p style="margin: 0 0 3px 0;"><b>1. ОБЩИЕ ПОЛОЖЕНИЯ</b><br>
-                    <b>1.1.</b> Настоящие Правила добровольного страхования туристов (медицинского страхования и от несчастных случаев), въезжающих на территорию Кыргызской Республики (далее – Правила) разработаны в соответствии с действующим законодательством Кыргызской Республики и содержат условия, на которых открытое акционерное общество «Государственная Страховая Организация» (далее — Страховщик) заключает с юридическими лицами, дееспособными физическими лицами, индивидуальными предпринимателями (далее — Страхователи) договоры добровольного страхования туристов (медицинского и несчастных случаев), въезжающих на территорию Кыргызской Республики (далее — договор страхования).<br>
-                    <b>1.2.</b> На основании настоящих Правил Страховщик обязуется выплатить Застрахованному лицу (его законному представителю/выгодоприобретателю) страховое возмещение (возместить расходы) в случае его заболевания или несчастного случая, имевшего место во время пребывания Застрахованного лица на территории Кыргызской Республики, но не более чем размер страховой суммы, указанный в данном полисе.<br>
-                    <b>1.3.</b> На основании настоящих Правил Страховщик гарантирует страховую защиту только на территории Кыргызской Республики.</p>
+                    Настоящая программа добровольного медицинского страхования лиц, въезжающих на территорию Кыргызской Республики (далее - Программа) разработана в соответствии с «Правилами добровольного страхования туристов (медицинского страхования и от несчастных случаев), въезжающих на территорию Кыргызской Республики», утверждённых Протоколом Правления ОАО «Государственная страховая организация» №11 от 19.02.2024г., а также в соответствии с «Правилами добровольного медицинского страхования», утверждённых Протоколом Правления ОАО «Государственная страховая организация» №20 от 4.05.2017г. Разработка и внедрение настоящей Программы обусловлены необходимостью обеспечения условий страховой защиты иностранных граждан и лиц без гражданства, въезжающих на территорию Кыргызской Республики.</p>
 
-                    <p style="margin: 0 0 3px 0;"><b>2. ОБЪЕКТ СТРАХОВАНИЯ</b><br>
-                    <b>2.1.</b> Объектом добровольного страхования туристов (медицинского и от несчастных случаев), въезжающих на территорию Кыргызской Республики является имущественный интерес застрахованного, жизни, здоровью которого причинен вред в результате наступления страховых случаев, указанных в настоящих Правилах.</p>
+                    <p style="margin: 0 0 3px 0;"><b>2. ЦЕЛЬ ПРОГРАММЫ СТРАХОВАНИЯ</b><br>
+                        Предоставление услуги добровольного медицинского страхования иностранным гражданам и лицам без гражданства, временно пребывающим на территорию Кыргызской Республики с туристическими, гостевыми, деловыми или спортивными целями, в также с целью обучения. Данный вид страхования также подойдёт для оформления регистрации и ВНЖ.
+                    </p>
 
-                    <p style="margin: 0 0 3px 0;"><b>3. СТРАХОВОЙ СЛУЧАЙ</b><br>
-                    <b>3.1.</b> Страховым случаем, согласно Правилам, признаются следующие события, наступившие после вступления договора страхования в силу:<br>
-                    <b>1)</b> несчастный случай, произошедший на территории страхования, приведший к смерти Застрахованного либо причинению вреда его здоровью.<br>
-                    <b>2)</b> внезапное острое заболевание, резкое ухудшение состояния здоровья и (или) обострение хронического заболевания, требующие оказания Застрахованному экстренной и неотложной медицинской помощи для предотвращения существенного вреда здоровью или устранения угрозы жизни.<br>
-                    <b>3.2.</b> Размер страховой выплаты определяется Страховщиком исходя из суммы фактических расходов Застрахованного (Выгодоприобретателя) на основании документов, подтверждающих эти расходы, представленных Застрахованным (Выгодоприобретателем) либо Ассистанс компанией.<br>
-                    <b>3.3.</b> Событие, рассматриваемое в качестве страхового случая, должно обладать признаками вероятности и случайности его наступления.<br>
-                    <b>3.4.</b> Доказательство факта наступления страхового случая, а также причиненных им убытков лежит на Застрахованном (Выгодоприобретателе).</p>
+                    <p style="margin: 0 0 3px 0;"><b>3. ОБЪЕКТ СТРАХОВАНИЯ</b><br>
+                        Имущественные интересы Застрахованного лица, связанные с расходами на оказание медицинской помощи и иных услуг при наступлении страхового случая.
+                    </p>
+                    <p style="margin: 0 0 3px 0;"><b>4. ОСОБЕННОСТИ ПРОДУКТА</b><br>
+                        Программа обеспечивает организацию и финансовое покрытие непредвиденных расходов на медицинскую и медико - транспортную помощь при внезапных острых заболеваниях или несчастных случаях, произошедших на территории Кыргызской Республики.
+                    </p>
+                    <p style="margin: 0 0 3px 0;"><b>5. ТЕРРИТОРИЯ СТРАХОВАНИЯ</b><br>
+                        Территория, на которой осуществляется данный вид страхования: территория Кыргызской Республики
+                    </p>
+                    <p style="margin: 0 0 3px 0;"><b>6. ВОЗРАСТ ЗАСТРАХОВАННОГО ЛИЦА</b><br>
+                        Возраст Застрахованного лица по данному страховому продукту составляет от 1 до 75 лет
+                    </p>
 
-                    <p style="margin: 0 0 3px 0;"><b>4. ИСКЛЮЧЕНИЯ ИЗ СТРАХОВЫХ СЛУЧАЕВ</b><br>
-                    <b>4.1.</b> Помимо общих оснований освобождения Страховщика от осуществления страховой выплаты, указанных в Гражданском кодексе Кыргызской Республики, Страховщик не несет ответственность и вправе полностью или частично отказать Застрахованному в страховой выплате, если страховой случай произошел вследствие:<br>
-                    1) войны; вторжения; враждебных действий иностранного государства; военных или подобных им операций (независимо от того объявлена война или нет) или гражданской войны;<br>
-                    2) мятежа; забастовки; локаутов; гражданских беспорядков, приобретающих размеры или разрастающихся до народного восстания; бунта; гражданских волнений; военного мятежа; революции; военного захвата или узурпации власти; конфискации; реквизиции или национализации имущества; актов терроризма;<br>
-                    3) радиоактивного излучения или загрязнения радиоактивным топливом или радиоактивными отходами от сжигания атомного топлива;<br>
-                    4) умышленных действий Страхователя или Застрахованного (Выгодоприобретателя);<br>
-                    5) действий Страхователя/Застрахованного, направленных на возникновение страхового случая либо способствующих его наступлению (за исключением действий, совершенных в состоянии необходимой обороны или крайней необходимости);<br>
-                    6) действий Страхователя/Застрахованного, признанных в установленном законодательными актами порядке умышленными преступлениями или административными правонарушениями, находящимися в причинной связи со страховым случаем.<br>
-                    <b>4.2. Страховая выплата не производится:</b><br>
-                    1) в случае неисполнения либо ненадлежащего исполнения Страхователем и(или) Застрахованным условий договора страхования (страхового полиса);<br>
-                    2) медицинские расходы, не связанные с неотложной помощью, которая необходима для лечения внезапного заболевания или ликвидации последствий травм, представляющих угрозу для жизни Застрахованного лица;<br>
-                    3) расходы на курортное или санаторное лечение;<br>
-                    4) расходы на медицинские услуги, полученные в период времени, когда состояние здоровья Застрахованного лица улучшилось настолько, что Застрахованное лицо само или в сопровождении другого лица может вернуться в страну постоянного проживания;<br>
-                    5) расходы и убытки, связанные с неработоспособностью, невозможностью участвовать в путешествии, туров, экскурсии, провести отпуск в Кыргызской Республике, за резервацию билетов и гостиниц, понесенный моральный ущерб и т.п.;<br>
-                    6) расходы на диагностику беременности, расходы, связанные с преждевременными родами (спонтанный аборт), родами и их осложнениями;<br>
-                    7) расходы на лечение сексуально-трансмиссивных заболеваний, в т.ч. СПИДа, а также на лечение всех связанных с вирусом ВИЧ болезней;<br>
-                    8) расходы на медицинские услуги, необходимость в которых была вызвана употреблением алкоголя, наркотических или токсических веществ или последствиями такого употребления, а также употреблением медикаментов без назначения врача;<br>
-                    9) расходы, связанные с хроническим заболеванием или диагностикой и лечением заболеваний, возникших до того, как вступил в силу договор страхования (страховой полис), независимо от стадии заболевания. В таких случаях оплачиваются только расходы на первую неотложную врачебную помощь, которая необходима для спасения жизни Застрахованного лица, один раз в течение срока действия полиса;<br>
-                    10) расходы на лечение и протезирование зубов;<br>
-                    11) расходы на пластические и косметические операции, покупку и ремонт вспомогательных средств (очков, слуховых аппаратов, протезов и др. средств);<br>
-                    12) расходы на лечение или расходы, связанные c гибелью Застрахованного лица в автокатастрофе, если автомобилем управляло само Застрахованное лицо, не имея водительских прав или находясь под воздействием алкоголя, наркотических или токсических веществ, а также, если Застрахованное лицо, будучи об этом проинформированным, ехало в автомобиле, которым управляло лицо, не имеющее водительских прав или находящееся под воздействием алкоголя, наркотических или токсических веществ;<br>
-                    13) расходы на лечение травм, полученных в случае, когда Застрахованное лицо лично или в качестве сообщника пыталось совершить или совершило какое-либо преступление или административное правонарушение;<br>
-                    14) расходы на лечение или расходы, связанные со смертью Застрахованного лица, если Застрахованное лицо совершило или пыталось совершить самоубийство, сознательно себя травмировало или просило сделать это другое лицо с целью получения страховки;<br>
-                    15) расходы на психотерапевтическое и психиатрическое лечение;<br>
-                    16) расходы на лечение, если несчастный случай или заболевание было вызвано воздействием радиоактивных, ядовитых, взрывчатых и других опасных веществ, негативным влиянием ядерной установки или ее компонентов;<br>
-                    17) если Застрахованному лицу полагается компенсация медицинских расходов в соответствии с каким-либо другим видом обязательного или добровольного страхования.<br>
-                    <b>4.3.</b> Договором страхования может быть предусмотрен иной перечень исключений из страхования и иные ограничения страхования и исключения из страховых случаев.</p>
+                    <p style="margin: 0 0 3px 0;"><b>7. СТРАХОВАТЕЛЬ</b><br>
+                        Юридическое или физическое лицо, заключившее договор страхования со Страховщиком.
+                    </p>
 
-                    <p style="margin: 0 0 3px 0;"><b>9. ДЕЙСТВИЯ СТОРОН ПРИ НАСТУПЛЕНИИ СТРАХОВОГО СЛУЧАЯ</b><br>
-                    <b>9.1.</b> Требование о страховой выплате к Страховщику предъявляется в письменной форме Застрахованным либо Ассистанс компанией с приложением документов, необходимых для осуществления страховой выплаты.<br>
-                    <b>9.2.</b> По желанию заявителя требование о страховой выплате может быть направлено в электронной форме с приложением документов, необходимых для осуществления страховой выплаты, в виде электронных копий или электронных документов. При этом требование о страховой выплате в электронной форме не освобождает заявителя от представления страховщику оригиналов документов по месту нахождения страховщика.</p>
+                    <p style="margin: 0 0 3px 0;"><b>8. ЗАСТРАХОВАННЫЙ</b><br>
+                        Лицо, которое застраховано страховой компанией от убытка. В случае если договор страхования (страховой полис) заключён Страхователем в свою пользу, на него распространяются права и обязанности Застрахованного.
+                    </p>
 
-                    <p style="margin: 0 0 3px 0;"><b>10. ПОРЯДОК И УСЛОВИЯ ОСУЩЕСТВЛЕНИЯ СТРАХОВЫХ ВЫПЛАТ</b><br>
-                    <b>10.1.</b> Страховая выплата осуществляется в следующем порядке:<br>
-                    1) Ассистансу, указанному в договоре страхования, на основании договора о сотрудничестве, заключенного между Страховщиком и Ассистанс компанией (Ассистансом);<br>
-                    2) Застрахованному/Выгодоприобретателю если он самостоятельно произвел оплату услуг, предусмотренных условиями настоящего договора страхования.<br>
-                    <b>10.8.</b> Страховая выплата производится страховщиком путем:<br>
-                    1) возмещения расходов застрахованного вследствие наступления страхового случая и получения застрахованным медицинской помощи в экстренном случае без уведомления об этом Ассистанс компании по уважительным причинам не позднее 30 (тридцати) дней со дня получения им документов, предусмотренных настоящим разделом Правил;<br>
-                    2) оплаты стоимости оказанных медицинским и иным учреждением услуг застрахованному по согласованию с Ассистанс компанией в порядке, установленном нормативно правовыми актами Кыргызской Республики.<br>
-                    <b>10.9.</b> Расходы, понесенные застрахованным в целях предотвращения или уменьшения убытков, подлежат возмещению Страховщиком, если такие расходы были необходимы или были произведены для выполнения указаний страховщика, даже если соответствующие меры оказались безуспешными.<br>
-                    <b>10.10.</b> Такие расходы возмещаются в фактических размерах, при этом общая сумма страховой выплаты и компенсации расходов не должна превышать страховую сумму, установленную договором страхования.<br>
-                    <b>10.11.</b> Указанные расходы возмещаются Страховщиком непосредственно лицу, понесшему их.<br>
-                    <b>10.12.</b> В случаях, когда размер страховой выплаты оспаривается сторонами договора страхования или выгодоприобретателем, Страховщик обязан осуществить страховую выплату в той ее части, которая не оспаривается ни одним из указанных лиц, в течение срока, установленного подпунктом 1) пункта 10.8. настоящих Правил.<br>
-                    <b>10.13.</b> Оспариваемая часть страховой выплаты должна быть выплачена страховщиком в течение 3 (трех) рабочих дней со дня вступления в законную силу определения суда о мировом соглашении или решения суда по данному спору, если судом решение не обращено к немедленному исполнению.</p><br><br>
+                    <p style="margin: 0 0 3px 0;"><b>9. СТРАХОВАЯ СУММА</b><br>
+                        Максимальная страховая сумма по данному страховому продукту составляет 100 000 сом.
+                    </p>
 
+                    <p style="margin: 0 0 3px 0;"><b>10. ТАРИФ СТРАХОВАНИЯ (без НсП)</b><br>
+                        Тариф страхования без НсП составляет 80 сомов в сутки.
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>11. ПОНИЖАЮЩИЙ КОЭФФИЦИЕНТ СОГЛАСНО ДЛИТЕЛЬНОСТИ ПОЕЗДКИ</b><br>
+                        Применяется понижающий коэффициент для поездок выше 5 дней:<br>
+                            От 6 до 10 дней коэффициент составляет 0,9 <br>
+                            От 11 до 20 дней коэффициент составляет 0,8 <br>
+                            От 21 до 30 дней коэффициент составляет 0,7<br>
+                            От 31 до 60 дней коэффициент составляет 0,6<br>
+                            От 61 и более дней коэффициент составляет 0,5<br>
+                            От 180 и более дней коэффициент составляет 0,4<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>12. СТОИМОСТЬ СТРАХОВАНИЯ</b><br>
+                        за 6 месяцев составляет 5760 + НсП 2% = 5875,2 сома<br>
+                        за 12 месяцев 11680 + НсП 2% = 11913,6 сома<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>13. СТРАХОВОЙ СЛУЧАЙ</b><br>
+                        Внезапное острое заболевание, резкое ухудшение состояния здоровья и/или обострение хронического заболевания, требующие оказания Застрахованному экстренной и неотложной медицинской помощи для предотвращения существенного вреда здоровью или устранения угрозы жизни.
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>14. ИСКЛЮЧЕНИЯ ИЗ СТРАХОВЫХ СЛУЧАЕВ / ИЗ СТРАХОВОГО ПОКРЫТИЯ</b><br>
+                        14.1. Нахождение в состоянии алкогольного, наркотического, токсического опьянения Застрахованным лицом, включая употребление любых видов курительных смесей, употребления медикаментов с целью опьянения;<br>
+                        14.2. умышленное причинение Застрахованным себе телесных повреждений любой тяжести;<br>
+                        14.3. самоубийство Застрахованного лица или покушение на самоубийство;<br>
+                        14.4. действия Застрахованного лица, направленные на возникновение страхового случая;<br>
+                        14.5. действия Застрахованного / Страхователя, признанных в установленном законодательством порядке умышленными преступлениями или административными правонарушениями, находящимися в причинно - следственной связи со страховым случаем;<br>
+                        14.6. если страховой случай произошёл вследствие войны, мятежа, гражданских беспорядков, вторжения, забастовки, народного восстания, военного захвата власти, конфискации, национализации имущества, актов терроризма, чрезвычайных и особых положений, объявленных органами государственной власти в установленном законом режиме;<br>
+                        14.7. если страховой случай произошёл вследствие радиоактивного излучения, загрязнения топливом, загрязнения радиоактивными отходами от сжигания атомного топлива.<br>
+                        14.8. если страховой случай произошел выше 3000 метров над уровнем моря. Для таких случаев есть отдельные программы страхования;<br>
+                        14.9. услуги гемодиализа;<br>
+                        14.10. специализированная онкологическая помощь.<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>15. СТРАХОВОЕ ВОЗМЕЩЕНИЕ НЕ ПРОИЗВОДИТСЯ В СЛЕДУЮЩИХ СЛУЧАЯХ:</b><br>
+                        15.1. в случае ненадлежащего исполнения или неисполнения Страхователем и/или Застрахованным условий договора страхования (страхового полиса).<br>
+                        15.2. медицинские расходы, не связанные с неотложной помощью;<br>
+                        15.3. расходы на курортное и санаторное лечение;<br>
+                        15.4. расходы на медицинские услуги, полученные в период времени, когда состояние здоровья Застрахованного лица улучшилось настолько, что Застрахованное лицо само либо в сопровождении другого лица может вернуться в страну постоянного проживания;<br>
+                        15.5. расходы и убытки, связанные с неработоспособностью на территории Кыргызской Республики, связанные с невозможностью выезжать в туры, путешествие, рабочие и деловые поездки по стране, провести отпуск;<br>
+                        15.6. расходы на диагностику беременности;<br>
+                        15.7. расходы на лечение СПИДа, ВИЧ болезней, любых венерических заболеваний;<br>
+                        15.8. расходы на медицинские услуги, необходимость в которых была вызвана употреблением алкоголя, наркотических или токсических веществ или последствий такого употребления;<br>
+                        15.9. расходы на медицинские услуги, связанные с употреблением медикаментов без назначения врача;<br>
+                        15.10. расходы, связанные с лечением хронических заболеваний, возникших до того, как вступил в силу договор страхования (страховой полис), независимо от стадии заболевания. В таких случаях оплачиваются только расходы на первую неотложную врачебную помощь, которая необходима для спасения жизни Застрахованного лица, один раз в течение срока действия полиса;<br>
+                        15.11. расходы на лечение зубов и протезирование, кроме расходов на экстренную стоматологию и снятие зубной боли;<br>
+                        15.12. расходы на пластические и косметические операции;<br>
+                        15.13. расходы покупку и ремонт вспомогательных средств (очки, протезы, слуховые аппараты и прочие);<br>
+                        15.14. расходы на лечение или расходы, связанные с гибелью Застрахованного лица в автокатастрофе, если автомобилем управляло само Застрахованное лицо, не имея водительских прав или находясь под воздействием алкоголя, наркотических или токсических веществ, а также если автомобилем управляло лицо, находящееся под воздействием алкогольного опьянения;<br>
+                        15.15. расходы на психотерапевтическое и психиатрическое лечение.<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>16. ПОРЯДОК ОБРАЩЕНИЯ ПРИ СТРАХОВОМ СЛУЧАЕ</b><br>
+                        16.1. Застрахованное лицо (представитель Застрахованного лица) связывается с координатором Ассистанс службы Страховщика, рассказывает причину обращения, далее следует указаниям координатора Ассистанс службы.<br>
+                        16.2. Координатор Ассистанс службы даёт консультацию обратившемуся и даёт указания, которые следует соблюдать. Также координатор сориентирует по вызову скорой помощи.<br>
+                        16.3. В случае, если случай экстренный, и счёт идёт на минуты, то Застрахованное лицо (представитель Застрахованного лица) самостоятельно вызывает скорую помощь, затем уведомляет координатора Ассистанс службы.<br>
+                        16.4. Застрахованное лицо (представитель Застрахованного лица) обязан уведомить Страховщика о наступлении события, имеющего признаки страхового случая, в срок не позднее 10 (десяти) дней с момента, когда ему стало известно о таком событии, любым доступным способом. В экстренном случае обращение в Ассистанс-службу осуществляется по возможности незамедлительно. <br>
+                        16.5. В случае обращения в медицинское учреждение из списка указанных партнерских медицинских учреждений, Застрахованное лицо получает медицинскую помощь без оплаты в пределах страховых подлимитов ответственности Страховщика.<br>
+                        16.6. В случае оплаты Застрахованным лицом медицинских расходов самостоятельно, то Застрахованное лицо подаёт документу Страховщику на страховое возмещение.<br>
+                        16.7. При обращении в медицинское учреждение необходимо предоставить страховой полис и паспорт Застрахованного лица.<br>
+                        16.8. После посещения медицинского учреждения требуется поставить подпись в направлении/заказ - наряде в графе «Подпись клиента».<br>
+                        16.9. Важно уточнить страховые лимиты на экстренную стоматологию, медикаменты, лабораторно - инструментарные исследования у координаторов Ассистанс службы, а также изучить программу на обратной стороне страхового полиса.<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>17. ТРЕБУЕМЫЕ ДОКУМЕНТЫ ДЛЯ ПОЛУЧЕНИЯ СТРАХОВОГО ВОЗМЕЩЕНИЯ:</b><br>
+                        17.1. Оригинал паспорта Застрахованного лица;<br>
+                        17.2. Заключение лечащего врача с информацией о диагнозе, назначениях, проделанных манипуляциях;<br>
+                        17.3. История болезни / выписной эпикриз;<br>
+                        17.4. Товарный чек / счет фактура (сумма, валюта, дата оплаты);<br>
+                        17.5. Кассовый чек с QR кодом оригинал;<br>
+                        17.6. Банковские реквизиты Застрахованного лица;<br>
+                        17.7. Контактный номер;<br>
+                        17.8. При несчастном случае: медицинские документы по установлению факта употребления вещества и состояния опьянения;<br>
+                        17.9. При несчастном случае: документы правоохранительных органов, подтверждающие факт несчастного случая, обстоятельства его происшествия.<br>
+
+                    </p>
+
+                    <p style="margin: 0 0 3px 0;"><b>18. ВАЖНАЯ ИНФОРМАЦИЯ</b><br>
+                        Для получения страхового возмещения требуется признание случая страховым от Страховщика. Страховщик признает случай страховым, если он подходит под описанные критерии, имеется наличие всех документов.
+                        ПРИ НЕ ПРИЗНАНИИ СЛУЧАЯ СТРАХОВЫМ СТРАХОВЩИК ОАО «ГОСУДАРСТВЕННАЯ СТРАХОВАЯ ОРГАНИЗАЦИЯ»  ОСТАВЛЯЕТ ЗА СОБОЙ ПРАВО ОТКАЗАТЬ В ВЫПЛАТЕ СТРАХОВОГО ВОЗМЕЩЕНИЯ.
+
+                    </p>
+                    
                     <div style="margin-top: 5px; font-weight: bold; padding-top: 2px;">
                         ОЗНАКОМЛЕН(НА) И СОГЛАСЕН(НА) ______________________________________________подпись
                     </div>
                 </td>
 
                 <td style="width: 50%; border: 1pt solid black; padding: 4px 6px; vertical-align: top;">
-                    <p style="margin: 0 0 3px 0;"><b>1. GENERAL CONDITIONS</b><br>
-                    <b>1.1.</b> These Rules for Voluntary Medical and Personal Accident Insurance for Tourists Entering the Kyrgyz Republic are developed in accordance with the current legislation of the Kyrgyz Republic and set forth the terms and conditions under which the Open Joint-Stock Company "State Insurance Organization" enters into voluntary medical and personal accident insurance contracts for tourists entering the Kyrgyz Republic with legal entities, individuals with full legal capacity, and individual entrepreneurs.<br>
-                    <b>1.2.</b> Pursuant to these Rules, the Insurer undertakes to pay the Insured Person (their legal representative / beneficiary) an insurance indemnity (reimburse expenses) in the event of their illness or an accident that occurred during the Insured Person’s stay in the territory of the Kyrgyz Republic, up to the amount of the sum insured specified in this policy.<br>
-                    <b>1.3.</b> Pursuant to these Rules, the Insurer guarantees insurance coverage strictly within the territory of the Kyrgyz Republic.</p>
-
-                    <p style="margin: 0 0 3px 0;"><b>2. OBJECT OF INSURANCE</b><br>
-                    <b>2.1.</b> The object of voluntary medical and personal accident insurance for tourists entering the Kyrgyz Republic is the property interest of the Insured Person whose life or health was harmed as a result of the occurrence of insured events specified in these Rules.</p>
-
-                    <p style="margin: 0 0 3px 0;"><b>3. INSURED EVENT</b><br>
-                    <b>3.1.</b> Pursuant to these Rules, an insured event shall be defined as the following events occurring after the insurance contract enters into force:<br>
-                    1. An accident occurring within the territory of insurance that resulted in the death of the Insured Person or damage to their health.<br>
-                    2. A sudden acute illness, sharp deterioration of health, and/or exacerbation of a chronic condition requiring the provision of emergency and urgent medical care to the Insured Person to prevent substantial harm to health or to eliminate a threat to life.<br>
-                    <b>3.2.</b> The amount of the insurance payout shall be determined by the Insurer based on the actual expenses incurred by the Insured Person (Beneficiary), as substantiated by supporting documentation submitted by the Insured Person (Beneficiary) or the Assistance Company.<br>
-                    <b>3.3.</b> An event considered to be an insured event must bear the characteristics of probability and fortuity of its occurrence.<br>
-                    <b>3.4.</b> The burden of proof regarding the occurrence of an insured event, as well as the losses caused by it, rests with the Insured Person (Beneficiary).</p>
-
-                    <p style="margin: 0 0 3px 0;"><b>4. EXCLUSIONS FROM COVERAGE</b><br>
-                    <b>4.1.</b> In addition to the general grounds for releasing the Insurer from liability to make an insurance payout as specified in the Civil Code of the Kyrgyz Republic, the Insurer shall not be liable and reserves the right to fully or partially refuse an insurance payout to the Insured Person if the insured event occurred as a result of:<br>
-                    1. War; invasion; acts of foreign enemies; military or similar operations (whether war be declared or not) or civil war;<br>
-                    2. Rebellion; strike; lockouts; civil commotion reaching the proportions of or expanding into a popular uprising; riot; civil unrest; military mutiny; revolution; military seizure or usurpation of power; confiscation; requisition or nationalization of property; acts of terrorism;<br>
-                    3. Ionizing radiation or contamination by radioactivity from any nuclear fuel or from any nuclear waste from the combustion of nuclear fuel;<br>
-                    4. Intentional acts of the Policyholder or the Insured Person (Beneficiary);<br>
-                    5. Actions of the Policyholder/Insured Person aimed at causing an insured event or contributing to its occurrence (with the exception of actions taken in self-defense or in a state of extreme necessity);<br>
-                    6. Actions of the Policyholder/Insured Person recognized in accordance with statutory procedure as intentional crimes or administrative offenses directly linked by a causal connection to the insured event.<br>
-                    <b>4.2. No insurance payout shall be made in the following cases:</b><br>
-                    1. Non-fulfillment or improper fulfillment by the Policyholder and/or the Insured Person of the terms and conditions of the insurance contract (insurance policy);<br>
-                    2. Medical expenses not related to emergency care necessary for the treatment of a sudden illness or the elimination of the consequences of injuries that pose a threat to the life of the Insured Person;<br>
-                    3. Expenses for health resort or sanatorium treatment;<br>
-                    4. Expenses for medical services received during a period when the state of health of the Insured Person has improved to the extent that the Insured Person, independently or accompanied by another person, can return to their country of permanent residence;<br>
-                    5. Expenses and losses associated with incapacity for work, inability to participate in travel, tours, or excursions, inability to spend a vacation in the Kyrgyz Republic, ticket and hotel reservation costs, moral damages incurred, and the like;<br>
-                    6. Expenses for pregnancy diagnostics, expenses related to premature birth (spontaneous abortion), childbirth, and complications thereof;<br>
-                    7. Expenses for the treatment of sexually transmitted diseases, including AIDS, as well as the treatment of all diseases associated with the HIV virus;<br>
-                    8. Expenses for medical services made necessary by the consumption of alcohol, narcotic, or toxic substances, or the consequences of such consumption, as well as the use of medications without a prescription;<br>
-                    9. Expenses related to a chronic condition or the diagnosis and treatment of diseases that arose prior to the entry into force of the insurance contract (insurance policy), regardless of the stage of the disease. In such cases, only expenses for initial emergency medical care required to save the life of the Insured Person shall be covered, and only once during the policy validity period;<br>
-                    10. Expenses for dental treatment and prosthetics;<br>
-                    11. Expenses for plastic and cosmetic surgery, purchase, and repair of assistive devices (eyeglasses, hearing aids, prostheses, and other devices);<br>
-                    12. Treatment expenses or expenses associated with the death of the Insured Person in an automobile accident if the Insured Person was driving without a valid driver's license or under the influence of alcohol, narcotic, or toxic substances, as well as if the Insured Person, being aware of the fact, was traveling in a vehicle driven by a person who did not hold a valid driver's license or was under the influence of alcohol, narcotic, or toxic substances;<br>
-                    13. Expenses for the treatment of injuries sustained when the Insured Person personally or as an accomplice attempted to commit or committed a crime or administrative offense;<br>
-                    14. Treatment expenses or expenses associated with the death of the Insured Person if the Insured Person committed or attempted to commit suicide, intentionally inflicted self-harm, or requested another person to do so in order to obtain insurance indemnity;<br>
-                    15. Expenses for psychotherapeutic and psychiatric treatment;<br>
-                    16. Expenses for treatment if the accident or illness was caused by exposure to radioactive, toxic, explosive, or other dangerous substances, or by the negative impact of a nuclear installation or its components;<br>
-                    17. If the Insured Person is entitled to compensation for medical expenses under any other type of mandatory or voluntary insurance.<br>
-                    <b>4.3.</b> The insurance contract may provide for a different list of exclusions from coverage, other insurance limitations, and exclusions from insured events.</p>
-
-                    <p style="margin: 0 0 3px 0;"><b>9. OBLIGATIONS OF THE PARTIES UPON OCCURRENCE OF AN INSURED EVENT</b><br>
-                    <b>9.1.</b> A claim for an insurance payout shall be submitted to the Insurer in writing by the Insured Person or the Assistance Company, accompanied by the documents required to execute the insurance payout.<br>
-                    <b>9.2.</b> At the applicant's option, the claim for an insurance payout may be submitted in electronic form, accompanied by the necessary documents as electronic copies or electronic documents. However, submitting the claim in electronic form does not release the applicant from the obligation to present original documents to the Insurer at the Insurer's registered address.</p>
-
-                    <p style="margin: 0 0 3px 0;"><b>10. PROCEDURE AND CONDITIONS FOR MAKING INSURANCE PAYOUTS</b><br>
-                    <b>10.1.</b> The insurance payout shall be executed in the following order:<br>
-                    1. To the Assistance Company specified in the insurance contract, based on the cooperation agreement concluded between the Insurer and the Assistance Company;<br>
-                    2. To the Insured Person / Beneficiary, provided they independently paid for the services covered under the terms of this insurance contract.<br>
-                    <b>10.8.</b> The insurance payout shall be made by the Insurer via:<br>
-                    1. Reimbursement of expenses incurred by the Insured Person as a result of an insured event and receipt of emergency medical care without notifying the Assistance Company for valid reasons, no later than 30 (thirty) days from the date of receipt of the documents provided for in this section of the Rules;<br>
-                    2. Payment for the cost of services provided to the Insured Person by medical and other institutions upon agreement with the Assistance Company, in accordance with the procedure established by the regulatory legal acts of the Kyrgyz Republic.<br>
-                    <b>10.9.</b> Расходы, понесенные застрахованным в целях предотвращения или уменьшения убытков, подлежат возмещению Страховщиком, если такие расходы были необходимы или были произведены для выполнения указаний страховщика, даже если соответствующие меры оказались безуспешными.<br>
-                    <b>10.10.</b> Такие расходы возмещаются в фактических размерах, при этом общая сумма страховой выплаты и компенсации расходов не должна превышать страховую сумму, установленную договором страхования.<br>
-                    <b>10.11.</b> Указанные расходы возмещаются Страховщиком непосредственно лицу, понесшему их.<br>
-                    <b>10.12.</b> В случаях, когда размер страховой выплаты оспаривается сторонами договора страхования или выгодоприобретателем, Страховщик обязан осуществить страховую выплату в той ее части, которая не оспаривается ни одним из указанных лиц, в течение срока, установленного подпунктом 1) пункта 10.8. настоящих Правил.<br>
-                    <b>10.13.</b> Оспариваемая часть страховой выплаты должна быть выплачена страховщиком в течение 3 (трех) рабочих дней со дня вступления в законную силу определения суда о мировом соглашении или решения суда по данному спору, если судом решение не обращено к немедленному исполнению.</p><br><br>
-
-                    <div style="margin-top: 5px; font-weight: bold; padding-top: 2px;">
-                        READ AND AGREED __________________________________________________________Signature 
+                    <div style="text-align: center; font-weight: bold; font-size: 5.5pt; padding: 3px; border: 0.5pt solid black;">
+                        МАКСИМАЛЬНАЯ СТРАХОВАЯ СУММА 100 000 СОМОВ
                     </div>
+                    
+                    <table style="width: 100%; border-collapse: collapse; font-size: 4.5pt;">
+                        <tr style="background: #f2f2f2; font-weight: bold; text-align: center;">
+                            <td style="border: 0.5pt solid black; padding: 2px; width: 8%;"></td>
+                            <td style="border: 0.5pt solid black; padding: 2px; width: 67%;">БЛОК</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; width: 25%;">ПОДЛИМИТЫ ПО БЛОКАМ</td>
+                        </tr>
+                        <!-- Блок 1 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">1.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Экстренная амбулаторная помощь:</b><br>
+                                <b>Консультация врача при экстренном обращении:</b> первичный осмотр, сбор анамнеза, назначение лечения.<br>
+                                <b>Диагностическое исследование по направлению врача:</b> проведение экстренных лабораторных анализов (общий анализ крови, биохимический анализ крови, анализ мочи), необходимых для постановки диагноза при ургентном состоянии, угрожающем жизни пострадавшего Застрахованного.Базовое лабораторное обследование<br>
+                                <b>Инструментарная диагностика:</b> рентгенография, КТ, МРТ, УЗИ, необходимых для постановки диагноза при ургентном состоянии. <br>
+                                <b>Медицинские манипуляции: </b><br> Обезболивание, первичная хирургическая обработка ран; наложение швов; вправление вывихов; наложение гипсовых повязок или лонгет при переломах или трещинах<br>
+                                <b>Обеспечение медикаментами: </b><br>
+                                    • назначенные врачом необходимые лекарственные препараты, выписанные на рецептурном бланке с печатью; <br>
+                                    • перевязочные материалы (бинты, гипс);<br>
+                                    • средства фиксации и костыли.<br>
+                                <b>Купирование аллергии, угрожающей жизни.</b>
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                в пределах<br>20 000 сомов
+                            </td>
+                        </tr>
+                        <!-- Блок 2 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">2.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Экстренная стоматологическая помощь:</b><br>
+                                <b>Первичный ургентный прием</b> и осмотр у стоматолога или челюстно-лицевого хирурга для проведения первичного осмотра и установления локализации боли/повреждения.<br>
+                                <b>Экстренная инструментальная диагностика:</b><br>
+                                проведение прицельной внутриротовой рентгенографии (рентгеновский снимок зуба), компьютерной томографии зубной челюсти или ортопантомографии.<br>
+                                <b>Купирование болевого синдрома:</b><br>
+                                проведение местной инфильтрационной или проводниковой анестезии с использованием сертифицированных обезболивающих препаратов.
+                                <b>Хирургическое вмешательство:</b><br> 
+                                Экстренное удаление зуба (экстракция) при невозможности его сохранения или при угрозе распространения гнойной инфекции;<br>
+                                Дренирование (вскрытие) гнойного очага при остром периостите («флюсе») или при абсцессе.<br>
+                                <b>Терапевтическое вмешательство:</b><br> 
+                                Медикаментозная обработка корневых каналов и наложение временной пломбы для герметизации и снятия воспаления нерва (острый пульпит).<br>
+                                <b>Обеспечение медикаментами:</b><br> 
+                                Выписанные доктором – стоматологом на рецептурном бланке антибиотики, противовоспалительные и обезболивающие лекарственные средства, соответствующие экстренному обращению в стоматологию /клинику.
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                в пределах<br>10 000 сомов
+                            </td>
+                        </tr>
+                        <!-- Блок 3 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">3.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Экстренная госпитализация:</b><br>
+                                <b>Оказание экстренной хирургической помощи,</b>назначенной врачом специального медицинского учреждения<br>
+                                <b>Проведение преднаркозной подготовки:</b><br>проведение спинальной или местной анестезии <br>
+                                <b>Интенсивная терапия и реанимационные мероприятия:</b><br>Использование аппаратов искусственной вентиляции легких, дефибриляторов, систем искусственного кровообращения;<br> Проведение реанимационных процедур, направленных на стабилизацию состояния пациента при клинической смерти или шоковом статусе.<br>
+                                <b>Проведение срочных и повторных лабораторных исследований:</b><br>Проведение инструментарных исследований в условиях стационара.<br>
+                                <b>Медикаментозное обеспечение в условиях стационара:</b><br>Назначенные лекарственные препараты, расходные материалы, вводимые пациенту в период госпитализации.<br>
+                                <b>Пребывание в палате общего типа </b>в специализированном отделении (хирургия, травматология, токсикология либо в палате интенсивной терапии реанимации).
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                в пределах<br>50 000 сомов
+                            </td>
+                        </tr>
+                        <!-- Блок 4 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">4.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Экстренная медико-транспортная помощь:</b><br>
+                                • <b>Экстренная медицинская эвакуация с места происшествия:</b><br> вызов, работа наземной бригады скорой медицинской помощи (включая реанимационные бригады) для оказания первой помощи и экстренной доставки Застрахованного лица в ближайший дежурный госпиталь, способный оказать экстренную помощь.<br>
+                                • <b>Межбольничная эвакуация и транспортировка:</b><br> Организация перевода Застрахованного лица с необходимым медицинским сопровождением (профильный врач, фельдшер, реанимационная бригада) из первичного медицинского учреждения в специализированную клинику, если по месту первоначального поступления отсутствует необходимое оборудование или специалисты для лечения полученных травм или острых состояний.<br>
+                                • <b>Санитарная авиация:</b> не предоставляется.<br>
+                                • <b>Поисково-спасательные мероприятия:</b> не предоставляются.<br>
+                                • <b>Медицинская репатриация (возвращение в страну проживания):</b> не предоставляется.
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                в пределах<br>20 000 сом
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;"></td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                Санитарная авиация
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                не предоставляется
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;"></td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                Поисково – спасательные мероприятия:<br>Проведение официальных поисково – спасательных операций с целью обнаружения Застрахованного лица в труднодоступных природных зонах (в горах, лесных массивах, на водных обьектах), включая затраты на привлечение специализированной техники и спасательных отрядов.
+
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                не предоставляется
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;"></td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                Медицинская репатриация (возвращение в страну проживания):<br>Вынужденное досрочное возвращение из Кыргызской Республики, в случае, когда дальнейшее лечение в Кыргызской Республике признано нецелесообразным или состояние пациента требует длительной реабилитации
+
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; vertical-align: middle; font-weight: bold;">
+                                не предоставляется
+                            </td>
+                        </tr>
+                        <!-- Блок 5 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">5.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Посмертная репатриация тела до аэропорта территории Кыргызской Республики:</b><br>
+                                Санкционированные и требуемые законодательством Кыргызской Республики процедур по вскрытию для установления официальной причины смерти (в случае необходимости и согласия родственников Застрахованного лица);<br>
+                                Услуги по обязательному медицинскому бальзамированию тела, необходимому для последующей транспортировки воздушным или наземным транспортом;<br>
+                                Время хранения тела в морге до момента готовности к транспортировке;<br>
+                                Сбор разрешительных документов, необходимых для пересечения государственных границ и транспортировки Груза 200.
+
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: middle;">
+                                в пределах<br>50 000 сомов
+                            </td>
+                        </tr>
+                        <!-- Блок 6 -->
+                        <tr>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: top;">6.</td>
+                            <td style="border: 0.5pt solid black; padding: 2px; vertical-align: top;">
+                                <b>Медикаменты по любому блоку по назначению врача</b>
+                            </td>
+                            <td style="border: 0.5pt solid black; padding: 2px; text-align: center; font-weight: bold; vertical-align: middle;">
+                                в пределах<br>10 000 сомов
+                            </td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
         </table>
@@ -595,7 +757,7 @@
         <table style="border: none; margin-top: 25px;">
             <tr style="border: none;">
                 <td style="border: none; width: 50%;">
-                    <b>Страховщик:</b> ________________ / {{ policy.agent.get_full_name|default:policy.agent.username }}
+                    <b>Страховщик:</b> ________________ / <br>ОАО Государственная страховая организация
                 </td>
                 <td style="border: none; width: 50%; text-align: right;">
                     <b>Страхователь:</b> ________________ / {{ policy.holder_name }}

@@ -34,9 +34,12 @@ class DMSTouristTariff(models.Model):
 # 2. ПОЛИС ДМС ТУРИСТ
 class DMSTouristPolicy(models.Model):
     PURPOSE_CHOICES = [
-        ('BUSINESS', 'Туризм / Гостевая / Деловая'),
-        ('TREKKING', 'Хайкинг, Горный трекинг 1800-3500м'),
-        ('SPORT', 'Спорт, сборы, соревнования'),
+        ('BUSINESS', 'Гостевая / Деловая'),
+        ('TREKKING', 'Trekking, Hiking / Треккинг'),
+        ('SPORT', 'Sport / Спорт'),
+        ('STUDENT', 'Студент'),
+        ('RESIDENCE', 'ВНЖ'),
+        ('REGISTRATION', 'Регистрация'),
     ]
 
     policy_number = models.CharField("Номер полиса", max_length=50, unique=True, blank=True)
@@ -57,6 +60,7 @@ class DMSTouristPolicy(models.Model):
 
     # Денормализованные поля для быстрого поиска и печати
     holder_name = models.CharField("ФИО / Наименование", max_length=255, blank=True, null=True)
+    holder_citizenship = models.CharField("Гражданство страхователя", max_length=100, blank=True, null=True) # <-- Новое поле
     holder_inn = models.CharField("ИНН", max_length=14, blank=True, null=True)
     holder_phone = models.CharField("Телефон", max_length=50, blank=True, null=True)
     holder_address = models.CharField("Адрес в КР / Отель", max_length=255, blank=True, null=True)
@@ -128,6 +132,7 @@ class DMSTouristInsuredPerson(models.Model):
     policy = models.ForeignKey(DMSTouristPolicy, on_delete=models.CASCADE, related_name='insured_persons')
     full_name = models.CharField("ФИО туриста (латиница)", max_length=255)
     birth_date = models.DateField("Дата рождения")
+    citizenship = models.CharField("Гражданство", max_length=100, blank=True, null=True) # <-- Новое поле
     passport_number = models.CharField("Паспорт", max_length=50)
 
     age = models.PositiveIntegerField("Возраст", default=0)

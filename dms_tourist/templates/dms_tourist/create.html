@@ -62,8 +62,8 @@
                             <input type="text" name="holder_phone" id="h_phone" required placeholder="+996" class="custom-input phone-field">
                         </div>
                         <div>
-                            <label class="input-label">Контакт родственника / Сопровождающего</label>
-                            <input type="text" name="holder_relative" id="h_relative" placeholder="+996" class="custom-input phone-field">
+                            <label class="input-label">Гражданство</label>
+                            <input type="text" name="holder_citizenship" id="holder_citizenship" placeholder="Германия" class="custom-input uppercase">
                         </div>
                         <div class="md:col-span-2">
                             <label class="input-label">Адрес временного проживания / Отель в КР</label>
@@ -96,44 +96,69 @@
                 </div>
 
                 <!-- Условия и Программа -->
+                 <!-- Условия и Программа -->
                 <div class="glass-card">
-                    <div class="flex items-center gap-5 mb-8">
-                        <div class="w-14 h-14 bg-emerald-50 rounded-[1.2rem] flex items-center justify-center text-emerald-600">
-                            <i data-lucide="map-pin" class="w-7 h-7"></i>
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 bg-emerald-50 rounded-[1.2rem] flex items-center justify-center text-emerald-600">
+                                <i data-lucide="map-pin" class="w-7 h-7"></i>
+                            </div>
+                            <h2 class="section-title">Параметры поездки</h2>
                         </div>
-                        <h2 class="section-title">Параметры поездки</h2>
+                        
+                        <!-- Переключатель режима (Табы) -->
+                        <div class="flex bg-slate-100 p-1 rounded-2xl">
+                            <button type="button" id="mode-calendar-btn" onclick="switchInputMode('calendar')" class="py-2 px-3 text-[10px] font-black rounded-xl bg-white text-slate-900 shadow-sm uppercase tracking-wider transition-all">Календарь</button>
+                            <button type="button" id="mode-days-btn" onclick="switchInputMode('days')" class="py-2 px-3 text-[10px] font-black rounded-xl text-slate-400 uppercase tracking-wider transition-all">По дням</button>
+                        </div>
                     </div>
+
+                    <!-- Скрытое поле режима -->
+                    <input type="hidden" id="input_mode" value="calendar">
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="input-label italic">Дата въезда (Начало) *</label>
                             <input type="date" name="start_date" id="start_date" required class="custom-input">
                         </div>
-                        <div>
+
+                        <!-- Режим 1: Календарь (Дата окончания) -->
+                        <div id="calendar-end-block">
                             <label class="input-label italic">Дата выезда (Окончание) *</label>
-                            <input type="date" name="end_date" id="end_date" required class="custom-input">
+                            <input type="date" name="end_date" id="end_date" class="custom-input">
+                        </div>
+
+                        <!-- Режим 2: Ввод количества дней (Скрыт по умолчанию) -->
+                        <div id="days-count-block" class="hidden">
+                            <label class="input-label italic">Количество дней (1 - 365) *</label>
+                            <input type="number" id="days_input" min="1" max="365" placeholder="Например: 90" class="custom-input font-black text-blue-600">
+                            <p id="days-hint" class="text-[11px] font-bold text-emerald-600 italic mt-2 ml-1">Введите количество дней</p>
                         </div>
 
                         <div class="md:col-span-2">
                             <label class="input-label">Страховая сумма (Покрытие на 1 туриста)</label>
                             <select name="sum_insured" id="sum_insured" class="custom-input text-blue-600 text-lg font-black">
-                                <option value="100000" selected>100 000 СОМ (Базовый тариф: 100 сом/день)</option>
-                                <option value="500000">500 000 СОМ (Базовый тариф: 140 сом/день)</option>
-                                <option value="1000000">1 000 000 СОМ (Базовый тариф: 200 сом/день)</option>
+                                <option value="null" selected>Выберите страховую сумму</option>
+                                <option value="100000">100 000 СОМ (Базовый тариф: 80 сом/день)</option>
+                                <!-- <option value="500000">500 000 СОМ (Базовый тариф: 140 сом/день)</option>
+                                <option value="1000000">1 000 000 СОМ (Базовый тариф: 200 сом/день)</option> -->
                             </select>
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="input-label">Цель поездки / Риск активности</label>
+                            <label class="input-label">Цель поездки </label>
                             <select name="purpose" id="purpose" class="custom-input font-bold text-slate-700">
-                                <option value="BUSINESS" selected>Туризм / Гостевая / Деловая (Коэфф. 1.0)</option>
+                                <option value="null" selected>Выберите цель поездки</option>
+                                <option value="BUSINESS">Туризм / Гостевая / Деловая (Коэфф. 1.0)</option>
                                 <option value="TREKKING">Хайкинг, Горный трекинг 1800-3500м (Коэфф. 1.5)</option>
                                 <option value="SPORT">Спорт, сборы, соревнования (Коэфф. 2.0)</option>
+                                <option value="STUDENT">Студент (Коэфф. 1.0)</option>
+                                <option value="RESIDENCE">ВНЖ (Коэфф. 1.0)</option>
+                                <option value="REGISTRATION">Регистрация (Коэфф. 1.0)</option>
                             </select>
                         </div>
                     </div>
                 </div>
-
                 
             </div>
 
@@ -229,10 +254,14 @@
                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pr-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
                     <div>
                         <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">ФИО туриста (латиница) *</label>
                         <input type="text" name="insured_name[]" class="i-name w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-800 text-xs uppercase outline-none focus:border-blue-500" placeholder="IVANOV IVAN" required>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Гражданство *</label>
+                        <input type="text" name="insured_citizenship[]" class="i-citizenship w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 font-bold text-slate-800 text-xs uppercase outline-none focus:border-blue-500" placeholder="ГЕРМАНИЯ" required>
                     </div>
                     <div>
                         <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Дата рождения *</label>
@@ -273,8 +302,15 @@
         const tabInd = document.getElementById('tab-ind');
         const tabComp = document.getElementById('tab-comp');
         const addSelfBtn = document.getElementById('add-self-btn');
+
+        // Обязательные поля физлица
         const hName = document.getElementById('h_name');
+        const hPhone = document.getElementById('h_phone');
+
+        // Обязательные поля юрлица
         const cName = document.getElementById('c_name');
+        const cInn = document.getElementById('c_inn');
+        const cPhone = document.getElementById('c_phone');
 
         if (kind === 'individual') {
             if (indBlock) indBlock.classList.remove('hidden');
@@ -282,16 +318,30 @@
             if (tabInd) tabInd.className = "flex-1 py-2 px-4 text-[10px] font-black rounded-xl bg-white text-slate-900 shadow-sm uppercase tracking-wider";
             if (tabComp) tabComp.className = "flex-1 py-2 px-4 text-[10px] font-black rounded-xl text-slate-400 uppercase tracking-wider";
             if (addSelfBtn) addSelfBtn.classList.remove('hidden-btn');
+
+            // Включаем обязательность для физлица
             if (hName) hName.required = true;
+            if (hPhone) hPhone.required = true;
+
+            // Снимаем обязательность с юрлица
             if (cName) cName.required = false;
+            if (cInn) cInn.required = false;
+            if (cPhone) cPhone.required = false;
         } else {
             if (compBlock) compBlock.classList.remove('hidden');
             if (indBlock) indBlock.classList.add('hidden');
             if (tabComp) tabComp.className = "flex-1 py-2 px-4 text-[10px] font-black rounded-xl bg-white text-slate-900 shadow-sm uppercase tracking-wider";
             if (tabInd) tabInd.className = "flex-1 py-2 px-4 text-[10px] font-black rounded-xl text-slate-400 uppercase tracking-wider";
             if (addSelfBtn) addSelfBtn.classList.add('hidden-btn');
+
+            // Включаем обязательность для юрлица
             if (cName) cName.required = true;
+            if (cInn) cInn.required = true;
+            if (cPhone) cPhone.required = true;
+
+            // Снимаем обязательность с физлица
             if (hName) hName.required = false;
+            if (hPhone) hPhone.required = false;
         }
         recalculate();
     }
@@ -345,7 +395,7 @@
         return '';
     }
 
-    function addInsuredCard(name = '', dob = '', passport = '', isBulk = false) {
+    function addInsuredCard(name = '', dob = '', passport = '', isBulk = false, citizenship = '') {
         const list = document.getElementById('insured-list');
         const template = document.getElementById('insured-template');
         if (!list || !template) return;
@@ -359,12 +409,14 @@
 
         const clone = template.content.cloneNode(true);
         const nInput = clone.querySelector('.i-name');
+        const cInput = clone.querySelector('.i-citizenship'); // Инпут гражданства
         const dInput = clone.querySelector('.i-dob');
         const pInput = clone.querySelector('.i-pass');
 
-        nInput.value = name;
-        dInput.value = formattedDob;
-        pInput.value = passport;
+        if (nInput) nInput.value = name;
+        if (cInput) cInput.value = citizenship; // Записываем гражданство страхователя
+        if (dInput) dInput.value = formattedDob;
+        if (pInput) pInput.value = passport;
 
         const holderPass = document.getElementById('h_passport')?.value.trim().toUpperCase();
         const selfBtn = document.getElementById('add-self-btn');
@@ -385,19 +437,23 @@
             recalculate();
         });
 
-        [nInput, dInput, pInput].forEach(inp => {
-            inp.addEventListener('input', recalculate);
-            inp.addEventListener('change', recalculate);
+        // Слушаем изменения во всех полях, включая гражданство
+        [nInput, cInput, dInput, pInput].forEach(inp => {
+            if (inp) {
+                inp.addEventListener('input', recalculate);
+                inp.addEventListener('change', recalculate);
+            }
         });
 
         list.appendChild(clone);
 
-        // Прямая гарантия выставления значений в DOM
+        // Гарантия простановки значений в DOM
         const insertedCard = list.lastElementChild;
         if (insertedCard) {
-            insertedCard.querySelector('.i-name').value = name;
-            insertedCard.querySelector('.i-dob').value = formattedDob;
-            insertedCard.querySelector('.i-pass').value = passport;
+            if (insertedCard.querySelector('.i-name')) insertedCard.querySelector('.i-name').value = name;
+            if (insertedCard.querySelector('.i-citizenship')) insertedCard.querySelector('.i-citizenship').value = citizenship;
+            if (insertedCard.querySelector('.i-dob')) insertedCard.querySelector('.i-dob').value = formattedDob;
+            if (insertedCard.querySelector('.i-pass')) insertedCard.querySelector('.i-pass').value = passport;
         }
 
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -406,15 +462,17 @@
             recalculate();
         }
     }
-
     function addSelfToInsured() {
         const name = document.getElementById('h_name')?.value.trim();
+        const citizenship = document.getElementById('holder_citizenship')?.value.trim() || '';
         const passport = document.getElementById('h_passport')?.value.trim();
+        
         if (!name || !passport) {
             alert('Сначала заполните ФИО и Паспорт страхователя');
             return;
         }
-        addInsuredCard(name, '', passport);
+        // Вызываем с передачей гражданства
+        addInsuredCard(name, '', passport, false, citizenship);
     }
 
     function recalculate() {
@@ -456,41 +514,36 @@
         }
 
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        if (days < 1 || days > 180) {
+        if (days < 1 || days > 365) {
+            if (resDays) resDays.innerText = 'Максимум 365 дней!';
+            resTotal.innerText = '0.00';
+            if (resNetto) resNetto.innerText = '0.00 сом';
+            if (resNsp) resNsp.innerText = '0.00 сом';
             btn.disabled = true;
             prevBtn.disabled = true;
             return;
         }
         if (resDays) resDays.innerText = days;
 
-        // Поиск тарифа в БД
-        let baseRate = 100.0;
+        // Базовая ставка 80 сомов в сутки
+        let baseRate = 80.0;
+        if (sumInsured === 500000) baseRate = 140.0;
+        if (sumInsured === 1000000) baseRate = 200.0;
+
+        // Новая шкала коэффициентов длительности согласно правилам ГСО
         let kDur = 1.0;
-
-        const match = dbTariffs.find(t => 
-            parseInt(t.sum_insured) === sumInsured && 
-            days >= parseInt(t.days_min) && 
-            days <= parseInt(t.days_max)
-        );
-
-        if (match) {
-            baseRate = parseFloat(match.base_daily_rate);
-            kDur = parseFloat(match.duration_coeff);
-        } else {
-            if (days >= 11 && days <= 20) kDur = 0.9;
-            else if (days >= 21 && days <= 30) kDur = 0.8;
-            else if (days >= 31 && days <= 60) kDur = 0.7;
-            else if (days >= 61) kDur = 0.6;
-            if (sumInsured === 500000) baseRate = 140.0;
-            if (sumInsured === 1000000) baseRate = 200.0;
-        }
+        if (days <= 5) kDur = 1.0;
+        else if (days >= 6 && days <= 10) kDur = 0.9;
+        else if (days >= 11 && days <= 20) kDur = 0.8;
+        else if (days >= 21 && days <= 30) kDur = 0.7;
+        else if (days >= 31 && days <= 60) kDur = 0.6;
+        else if (days >= 61 && days <= 179) kDur = 0.5;
+        else kDur = 0.4; // От 180 и более дней
 
         if (resKdur) resKdur.innerText = kDur.toFixed(2);
 
-        // Коэффициент цели поездки
+        // Коэффициент цели поездки зафиксирован на 1.0
         let kPur = 1.0;
-        if (purpose === 'TREKKING') kPur = 1.5;
-        if (purpose === 'SPORT') kPur = 2.0;
         if (resKpur) resKpur.innerText = kPur.toFixed(1);
 
         let totalNetto = 0;
@@ -530,16 +583,17 @@
                 age--;
             }
 
-            if (isNaN(age) || age < 1 || age > 70) {
+            if (isNaN(age) || age < 1 || age > 75) {
                 if (badge) {
-                    badge.innerText = `Ошибка: возраст (${isNaN(age) ? '—' : age} л.) должен быть от 1 до 70 лет`;
+                    badge.innerText = `Ошибка: возраст (${isNaN(age) ? '—' : age} л.) должен быть от 1 до 75 лет`;
                     badge.className = 'text-[11px] font-bold text-red-500 italic i-calc-badge';
                 }
                 allCardsValid = false;
                 return;
             }
 
-            let kAge = (age >= 61) ? 1.5 : 1.0;
+            // Возрастной коэффициент зафиксирован на 1.0
+            let kAge = 1.0;
             let personNetto = days * baseRate * kDur * kAge * kPur;
             let personNsp = personNetto * 0.02;
             let personGross = personNetto + personNsp;
@@ -548,13 +602,13 @@
 
             if (badge) {
                 badge.className = 'text-[11px] font-bold text-blue-600 italic i-calc-badge';
-                badge.innerText = `Возраст: ${age} л. (x${kAge}) | Премия: ${personGross.toFixed(2)} сом`;
+                badge.innerText = `Возраст: ${age} л. | Премия: ${personGross.toFixed(2)} сом`;
             }
 
             if (breakdown) {
                 breakdown.innerHTML += `
                     <div class="flex justify-between text-[10px] text-slate-500 font-bold uppercase">
-                        <span>#${idx + 1} ${name.slice(0, 14)}:</span>
+                        <span>#${idx + 1} ${name.name ? name.name.slice(0, 14) : name.slice(0, 14)}:</span>
                         <span class="text-slate-800">${personGross.toFixed(2)} сом</span>
                     </div>
                 `;
@@ -576,7 +630,6 @@
             prevBtn.disabled = true;
         }
     }
-
     function initPhoneMask(selector) {
         document.querySelectorAll(selector).forEach(input => {
             input.addEventListener('focus', function() { if (!this.value) this.value = '+996'; });
@@ -683,5 +736,90 @@
         };
         reader.readAsArrayBuffer(file);
     }
+
+    // Переключение между режимами «Календарь» и «По дням»
+    function switchInputMode(mode) {
+        const modeInput = document.getElementById('input_mode');
+        if (modeInput) modeInput.value = mode;
+
+        const calBtn = document.getElementById('mode-calendar-btn');
+        const daysBtn = document.getElementById('mode-days-btn');
+        const calBlock = document.getElementById('calendar-end-block');
+        const daysBlock = document.getElementById('days-count-block');
+        const endDateInput = document.getElementById('end_date');
+        const daysInput = document.getElementById('days_input');
+
+        if (mode === 'calendar') {
+            if (calBtn) calBtn.className = "py-2 px-3 text-[10px] font-black rounded-xl bg-white text-slate-900 shadow-sm uppercase tracking-wider transition-all";
+            if (daysBtn) daysBtn.className = "py-2 px-3 text-[10px] font-black rounded-xl text-slate-400 uppercase tracking-wider transition-all";
+            if (calBlock) calBlock.classList.remove('hidden');
+            if (daysBlock) daysBlock.classList.add('hidden');
+            if (endDateInput) endDateInput.required = true;
+            if (daysInput) daysInput.required = false;
+        } else {
+            if (daysBtn) daysBtn.className = "py-2 px-3 text-[10px] font-black rounded-xl bg-white text-slate-900 shadow-sm uppercase tracking-wider transition-all";
+            if (calBtn) calBtn.className = "py-2 px-3 text-[10px] font-black rounded-xl text-slate-400 uppercase tracking-wider transition-all";
+            if (daysBlock) daysBlock.classList.remove('hidden');
+            if (calBlock) calBlock.classList.add('hidden');
+            if (endDateInput) endDateInput.required = false;
+            if (daysInput) daysInput.required = true;
+            
+            // Автоматически рассчитываем end_date по введенным дням
+            calculateEndDateFromDays();
+        }
+        recalculate();
+    }
+
+    // Расчет даты окончания и подсказки при вводе количества дней
+    function calculateEndDateFromDays() {
+        const mode = document.getElementById('input_mode')?.value;
+        if (mode !== 'days') return;
+
+        const sVal = document.getElementById('start_date')?.value;
+        const daysVal = parseInt(document.getElementById('days_input')?.value);
+        const endDateInput = document.getElementById('end_date');
+        const hintBlock = document.getElementById('days-hint');
+
+        if (!sVal || isNaN(daysVal) || daysVal < 1) {
+            if (hintBlock) hintBlock.innerText = 'Введите корректное число дней (от 1 до 365)';
+            if (endDateInput) endDateInput.value = '';
+            return;
+        }
+
+        const start = new Date(sVal);
+        // Количество дней минус 1, так как дата начала тоже входит в период (например, 1 день = start_date)
+        const end = new Date(start);
+        end.setDate(start.getDate() + daysVal - 1);
+
+        // Форматируем в ГГГГ-ММ-ДД для скрытого/реального инпута end_date
+        const isoEnd = end.toISOString().split('T')[0];
+        if (endDateInput) endDateInput.value = isoEnd;
+
+        // Форматируем для красивой подсказки (ДД.ММ.ГГГГ)
+        const formatRu = (d) => {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}.${month}.${year}`;
+        };
+
+        if (hintBlock) {
+            hintBlock.innerText = `Период: с ${formatRu(start)} по ${formatRu(end)} (${daysVal} дн.)`;
+        }
+
+        recalculate();
+    }
+
+    // Вешаем слушатель на поле ввода дней
+    document.addEventListener('DOMContentLoaded', () => {
+        const daysInput = document.getElementById('days_input');
+        if (daysInput) {
+            daysInput.addEventListener('input', calculateEndDateFromDays);
+        }
+        const sDate = document.getElementById('start_date');
+        if (sDate) {
+            sDate.addEventListener('change', calculateEndDateFromDays);
+        }
+    });
 </script>
 {% endblock %}

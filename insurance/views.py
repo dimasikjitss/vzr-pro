@@ -1,4 +1,5 @@
 import requests
+import io
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta
 from decimal import Decimal
@@ -625,6 +626,8 @@ def admin_dashboard(request):
     }
 
     return render(request, 'insurance/admin_dashboard.html', context)
+
+
 @login_required
 @user_passes_test(is_superadmin)
 def export_excel(request):
@@ -1244,7 +1247,7 @@ def export_excel_buh_vt(request):
     # 1. Получаем параметры периода и филиала из запроса
     d_from_raw = request.GET.get('date_from')
     d_to_raw = request.GET.get('date_to')
-    branch_id = request.GET.get('branch') # Ловим филиал из шаблона
+    branch_id = request.GET.get('branch')
     
     try:
         d_from = date.fromisoformat(d_from_raw)
@@ -1255,22 +1258,20 @@ def export_excel_buh_vt(request):
     date_from_str = d_from.strftime('%d.%m.%Y')
     date_to_str = d_to.strftime('%d.%m.%Y')
 
-    # 2. АРХИТЕКТУРНАЯ ПРОВЕРКА ПРАВ И ФИЛЬТРАЦИЯ ПО ФИЛИАЛУ
+    # 2. Проверка прав и фильтрация по филиалу
     filters = {'issue_date__range': [d_from, d_to]}
     
     if not request.user.is_superuser:
-        # Для обычного сотрудника лезем строго в профиль
         profile = getattr(request.user, 'profile', None)
         if profile and profile.branch:
             filters['branch_id'] = profile.branch.id
         else:
             return HttpResponse("Вы не привязаны к филиалу", status=403)
     else:
-        # Если админ И выбрал конкретный филиал в фильтре
         if branch_id and str(branch_id).strip():
             filters['branch_id'] = branch_id
 
-    # Выгружаем полисы NOMAD (ВТ) с учетом разграничения прав
+    # Выгружаем полисы NOMAD (ВТ)
     policies = NomadPolicy.objects.filter(**filters)\
         .select_related('agent', 'branch')\
         .prefetch_related('insured_persons')\
@@ -1285,18 +1286,20 @@ def export_excel_buh_vt(request):
     font_bold = Font(name='Arial', size=10, bold=True)
     font_regular = Font(name='Arial', size=10, bold=False)
     align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    fill_summary = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    fill_group = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid")
 
-    # --- ГЛАВНЫЙ ЗАГОЛОВОК ---
+    # --- ЗАГОЛОВОК ---
     ws.append([f"Отчет по полисам ВТ за период с {date_from_str} по {date_to_str}"])
     ws.row_dimensions[1].height = 35
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15) # Ровно 15 колонок
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=15)
     ws.cell(row=1, column=1).font = font_title
     ws.cell(row=1, column=1).alignment = align_center
 
     ws.append([])
     ws.row_dimensions[2].height = 15
 
-    # --- ШАПКА ТАБЛИЦЫ ВТ ---
+    # --- ШАПКА ТАБЛИЦЫ ---
     headers = [
         'Серия', 'Номер полиса', 'Дата оформления', 'Страхователь', 
         'Номер паспорта', 'Гражданство', 'Дата рождения', 'Телефон', 
@@ -1310,45 +1313,97 @@ def export_excel_buh_vt(request):
         cell.font = font_bold
         cell.alignment = align_center
 
-    # 4. Наполнение данными
+    # 4. Наполнение данными с группировкой
+    total_count = 0
+    total_gross = Decimal('0.00')
+
     for p in policies:
-        for person in p.insured_persons.all():
-            
-            p_som = Decimal(str(p.total_premium_netto or '0.00'))      
-            p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  
-            nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       
+        persons = list(p.insured_persons.all())
+        count_persons = len(persons)
+        total_count += 1
 
-            if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
-                final_premium_gross = p_som
-            else:
-                final_premium_gross = p_nsp_som
+        p_som = Decimal(str(p.total_premium_netto or '0.00'))      
+        p_nsp_som = Decimal(str(p.total_premium_gross or '0.00'))  
+        nsp_val = Decimal(str(p.total_nsp_amount or '0.00'))       
 
+        if p_nsp_som == Decimal('0.00') and p_som > Decimal('0.00'):
+            final_premium_gross = p_som
+        else:
+            final_premium_gross = p_nsp_som
+
+        total_gross += final_premium_gross
+
+        if count_persons <= 1:
+            person = persons[0] if count_persons == 1 else None
             row_data = [
                 'VT',                                              
                 p.policy_number,                                   
                 p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", 
                 p.holder_name,                                     
-                person.passport_number,                            
+                person.passport_number if person else "—",                            
                 p.citizenship,                                     
-                person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "", 
+                person.date_of_birth.strftime('%d.%m.%Y') if person and person.date_of_birth else "", 
                 p.holder_phone,                                    
                 p.date_from.strftime('%d.%m.%Y') if p.date_from else "", 
                 p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     
-                person.sum_insured,                                
+                person.sum_insured if person else "—",                                
                 p_som,                                             
                 nsp_val,                                           
                 final_premium_gross,                               
                 p.agent.get_full_name() or p.agent.username        
             ]
             ws.append(row_data)
-            
             current_row = ws.max_row
             ws.row_dimensions[current_row].height = 20
             for cell in ws[current_row]:
                 cell.font = font_regular
                 cell.alignment = align_center
+        else:
+            ws.append([
+                'VT', p.policy_number, 
+                p.issue_date.strftime('%d.%m.%Y') if p.issue_date else "", 
+                p.holder_name, 
+                f"📎 Группа (всего застраховано: {count_persons} чел.)", 
+                p.citizenship, "—", p.holder_phone, 
+                p.date_from.strftime('%d.%m.%Y') if p.date_from else "", 
+                p.date_to.strftime('%d.%m.%Y') if p.date_to else "",     
+                persons[0].sum_insured if persons else "—", 
+                p_som, nsp_val, final_premium_gross, 
+                p.agent.get_full_name() or p.agent.username
+            ])
+            summary_r = ws.max_row
+            ws.row_dimensions[summary_r].height = 22
+            for c in ws[summary_r]:
+                c.font = font_bold
+                c.fill = fill_group
+                c.alignment = align_center
 
-    # 5. Автоподбор ширины колонок под контент
+            for person in persons:
+                ws.append([
+                    '', '', '', '',
+                    f"   ↳ {person.full_name}", p.citizenship,
+                    person.date_of_birth.strftime('%d.%m.%Y') if person.date_of_birth else "",
+                    '', '', '', person.sum_insured, '', '', '', ''
+                ])
+                sub_r = ws.max_row
+                ws.row_dimensions[sub_r].outline_level = 1
+                ws.row_dimensions[sub_r].hidden = True
+                ws.row_dimensions[sub_r].height = 18
+                for c in ws[sub_r]:
+                    c.font = font_regular
+                    c.alignment = align_center
+
+    # --- ИТОГИ ВНИЗУ ---
+    ws.append([])
+    ws.append(['ОБЩИЕ ИТОГИ ЗА ПЕРИОД'])
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=3)
+    ws.cell(row=ws.max_row, column=1).font = font_bold
+    ws.cell(row=ws.max_row, column=1).fill = fill_summary
+
+    ws.append(['Всего оформлено полисов:', f"{total_count} шт."])
+    ws.append(['Общая сумма премий с НСП:', f"{total_gross} сом"])
+
+    # 5. Ширина колонок
     for col in ws.columns:
         max_length = 0
         column_letter = get_column_letter(col[0].column)
@@ -1364,12 +1419,17 @@ def export_excel_buh_vt(request):
                 pass
         ws.column_dimensions[column_letter].width = min(max_length + 3, 30)
 
-    # 6. Генерируем HTTP-ответ для скачивания файла
+    # 6. Сохранение через буфер и возврат ответа
     filename = f"VT_Nomad_Accounting_Report_{d_from}_{d_to}.xlsx"
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    wb.save(response)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
     
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 @login_required

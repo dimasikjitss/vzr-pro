@@ -128,8 +128,8 @@ function switchCalcTab(type) {
                 <label class="input-label">Цель поездки / Риск активности</label>
                 <select id="dms_purpose" class="custom-input">
                     <option value="BUSINESS" selected>Туризм / Гостевая / Деловая (Коэфф. 1.0)</option>
-                    <option value="TREKKING">Хайкинг, Горный трекинг 1800-3500м (Коэфф. 1.5)</option>
-                    <option value="SPORT">Спорт, сборы, соревнования (Коэфф. 2.0)</option>
+                    // <option value="TREKKING">Хайкинг, Горный трекинг 1800-3500м (Коэфф. 1.5)</option>
+                    // <option value="SPORT">Спорт, сборы, соревнования (Коэфф. 2.0)</option>
                 </select>
             </div>
         `;
@@ -240,37 +240,27 @@ function runCalculation() {
             if(calcEl.resRate) calcEl.resRate.innerText = "1.00 (KGS)";
         }
     } else if (currentCalcTab === 'DMS') {
-        // Расчет ДМС Турист
-        ageCoeff = (age >= 61) ? 1.5 : 1.0;
+        // Расчет ДМС Турист по новым правилам (базовый тариф 80 сом, коэф. возраста = 1.0, коэф. цели = 1.0)
+        ageCoeff = 1.0; // Зафиксировано на 1.0 согласно новым правилам
         
-        const purposeVal = document.getElementById('dms_purpose')?.value || 'BUSINESS';
-        let kPur = 1.0;
-        if (purposeVal === 'TREKKING') kPur = 1.5;
-        if (purposeVal === 'SPORT') kPur = 2.0;
+        let baseRate = 80.0; // Базовая ставка 80 сом
+        if (sumVal === 500000) baseRate = 140.0;
+        if (sumVal === 1000000) baseRate = 200.0;
 
-        let baseRate = 100.0;
         let kDur = 1.0;
+        if (days <= 5) kDur = 1.0;
+        else if (days >= 6 && days <= 10) kDur = 0.9;
+        else if (days >= 11 && days <= 20) kDur = 0.8;
+        else if (days >= 21 && days <= 30) kDur = 0.7;
+        else if (days >= 31 && days <= 60) kDur = 0.6;
+        else if (days >= 61 && days <= 179) kDur = 0.5;
+        else kDur = 0.4; // От 180 и более дней
 
-        const match = dmsTariffs.find(t => 
-            parseInt(t.sum_insured) === sumVal && 
-            days >= parseInt(t.days_min) && 
-            days <= parseInt(t.days_max)
-        );
-
-        if (match) {
-            baseRate = parseFloat(match.base_daily_rate);
-            kDur = parseFloat(match.duration_coeff);
-        } else {
-            if (days >= 11 && days <= 20) kDur = 0.9;
-            else if (days >= 21 && days <= 30) kDur = 0.8;
-            else if (days >= 31 && days <= 60) kDur = 0.7;
-            else if (days >= 61) kDur = 0.6;
-            if (sumVal === 500000) baseRate = 140.0;
-            if (sumVal === 1000000) baseRate = 200.0;
-        }
+        let kPur = 1.0; // Целевой коэффициент зафиксирован на 1.0
 
         premiumNettoSom = days * baseRate * kDur * ageCoeff * kPur;
         if (calcEl.resRate) calcEl.resRate.innerText = "1.00 (KGS)";
+    
     } else if (currentCalcTab === 'STUDENTS') {
         const timeType = document.getElementById('time_type').value;
         const isSports = document.getElementById('is_sports_section').checked;

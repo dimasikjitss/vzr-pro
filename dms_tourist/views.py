@@ -15,6 +15,7 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from insurance.models import Branch, IndividualHolder, CompanyHolder
 from .models import DMSTouristPolicy, DMSTouristInsuredPerson, DMSTouristTariff
 from django.core.serializers.json import DjangoJSONEncoder
+from .services import calculate_single_person_premium
 
 
 def is_superadmin(user):
@@ -25,7 +26,14 @@ from django.db import transaction
 
 @login_required
 def create_policy(request):
-    """Оформление и сохранение полиса ДМС Турист (индивидуальный или групповой)"""
+    """Оформление и сохранение полиса ДМС Турист (индивидуальный или групповой) с привязкой страхователя к справочнику"""
+    # 1. Проверка филиала агента
+    try:
+        user_branch = request.user.profile.branch
+    except Exception:
+        return render(request, 'insurance/error.html', {'message': 'Филиал не настроен в профиле пользователя.'})
+    
+
     if request.method == "POST":
         try:
             with transaction.atomic():
@@ -39,6 +47,9 @@ def create_policy(request):
                 d_to = date.fromisoformat(e_date_str)
                 days_count = (d_to - d_from).days + 1
 
+                if days_count < 1 or days_count > 365:
+                    raise ValueError("Период страхования должен составлять от 1 до 365 дней.")
+
                 # Получение базового тарифа из БД
                 tariff = DMSTouristTariff.objects.filter(
                     sum_insured=sum_insured,
@@ -46,39 +57,67 @@ def create_policy(request):
                     days_max__gte=days_count
                 ).first()
 
-                base_rate = Decimal(str(tariff.base_daily_rate)) if tariff else Decimal('100.00')
+                base_rate = Decimal(str(tariff.base_daily_rate)) if tariff else Decimal('80.00')
                 k_dur = Decimal(str(tariff.duration_coeff)) if tariff else Decimal('1.00')
 
+                # Коэффициент цели поездки
                 k_pur = Decimal('1.00')
-                if purpose == 'TREKKING': k_pur = Decimal('1.50')
-                elif purpose == 'SPORT': k_pur = Decimal('2.00')
+                if purpose == 'TREKKING': 
+                    k_pur = Decimal('1.50')
+                elif purpose == 'SPORT': 
+                    k_pur = Decimal('2.00')
 
-                # Определение данных страхователя
+                holder_instance = None
+                
+                # 2. Определение и создание страхователя в справочнике (как в Номаде)
                 if holder_kind == 'company':
                     h_name = request.POST.get('company_name', '').strip().upper()
-                    h_pass = (request.POST.get('company_inn', '') or request.POST.get('company_passport', '')).strip()
                     h_inn = request.POST.get('company_inn', '').strip()
                     h_phone = request.POST.get('company_phone', '').strip()
                     h_addr = request.POST.get('company_address', '').strip().upper()
                     c_okpo = request.POST.get('company_okpo', '').strip()
                     c_sign = request.POST.get('company_signatory', '').strip().upper()
+                    
+                    holder_instance = CompanyHolder.objects.create(
+                        company_name=h_name,
+                        inn=h_inn,
+                        okpo=c_okpo,
+                        legal_address=h_addr,
+                        signatory_name=c_sign,
+                        phone=h_phone,
+                    )
+                    h_pass = h_inn
+                    h_citizenship = ''
+                    h_relative = c_sign
                 else:
                     h_name = request.POST.get('holder_name', '').strip().upper()
+                    h_citizenship = request.POST.get('holder_citizenship', '').strip()
                     h_pass = request.POST.get('holder_passport', '').strip().upper()
                     h_inn = (request.POST.get('holder_inn', '') or request.POST.get('holder_pin', '')).strip()
                     h_phone = request.POST.get('holder_phone', '').strip()
                     h_addr = request.POST.get('holder_address', '').strip().upper()
+                    h_relative = request.POST.get('holder_relative', '').strip() or "Не указан"
                     c_okpo = ''
                     c_sign = ''
 
-                h_relative = request.POST.get('holder_relative', '').strip() or '—'
+                    holder_instance = IndividualHolder.objects.create(
+                        name=h_name,
+                        inn=h_inn,
+                        phone=h_phone,
+                        address=h_addr,
+                        passport=h_pass,
+                        relative_contact=h_relative,
+                    )
 
-                # Сбор параметров для создания объекта
+                # 3. Сбор параметров для создания полиса с передачей объекта holder
                 policy_kwargs = {
                     'agent': request.user,
-                    'branch': getattr(getattr(request.user, 'profile', None), 'branch', None),
+                    'branch': user_branch,
+                    'holder': holder_instance,  # Заполняет GenericForeignKey (holder_type и holder_id)
                     'holder_name': h_name,
+                    'holder_citizenship': h_citizenship,
                     'holder_passport': h_pass,
+                    'holder_inn': h_inn,
                     'holder_phone': h_phone,
                     'holder_address': h_addr,
                     'relative_contact': h_relative,
@@ -89,11 +128,6 @@ def create_policy(request):
                     'purpose': purpose,
                 }
 
-                # Добавляем опциональные поля модели, если они есть
-                if hasattr(DMSTouristPolicy, 'holder_inn'):
-                    policy_kwargs['holder_inn'] = h_inn
-                if hasattr(DMSTouristPolicy, 'holder_kind'):
-                    policy_kwargs['holder_kind'] = holder_kind
                 if hasattr(DMSTouristPolicy, 'company_okpo'):
                     policy_kwargs['company_okpo'] = c_okpo
                 if hasattr(DMSTouristPolicy, 'company_signatory'):
@@ -101,9 +135,10 @@ def create_policy(request):
 
                 policy = DMSTouristPolicy.objects.create(**policy_kwargs)
 
-                # Универсальное извлечение списка застрахованных (с [] и без)
+                # 4. Обработка списка застрахованных туристов
                 names = request.POST.getlist('insured_name[]') or request.POST.getlist('insured_name')
                 dobs = request.POST.getlist('insured_dob[]') or request.POST.getlist('insured_dob')
+                citizenships = request.POST.getlist('insured_citizenship[]') or request.POST.getlist('insured_citizenship')
                 passports = request.POST.getlist('insured_passport[]') or request.POST.getlist('insured_passport')
 
                 total_netto = Decimal('0.00')
@@ -111,51 +146,55 @@ def create_policy(request):
 
                 for i in range(len(names)):
                     n_val = names[i].strip().upper()
+                    if not n_val:
+                        continue
+                    
+                    c_val = citizenships[i].strip() if i < len(citizenships) else ''
                     p_val = passports[i].strip().upper() if i < len(passports) else ''
                     dob_raw = dobs[i].strip() if i < len(dobs) else ''
 
-                    if not n_val:
-                        continue
+                    if not dob_raw:
+                        raise ValueError(f"Не указана дата рождения для застрахованного {n_val}")
 
-                    dob_date = None
-                    age = 30
-                    if dob_raw:
-                        try:
-                            if '-' in dob_raw:
-                                dob_date = date.fromisoformat(dob_raw)
-                            elif '.' in dob_raw:
-                                parts = dob_raw.split('.')
-                                dob_date = date(int(parts[2]), int(parts[1]), int(parts[0]))
-                            
-                            age = d_from.year - dob_date.year - ((d_from.month, d_from.day) < (dob_date.month, dob_date.day))
-                        except Exception:
-                            dob_date = date(1990, 1, 1)
-                            age = 30
+                    if '-' in dob_raw:
+                        dob_date = date.fromisoformat(dob_raw)
+                    elif '.' in dob_raw:
+                        parts = dob_raw.split('.')
+                        dob_date = date(int(parts[2]), int(parts[1]), int(parts[0]))
+                    else:
+                        dob_date = date(1990, 1, 1)
 
-                    k_age = Decimal('1.50') if age >= 61 else Decimal('1.00')
-                    p_netto = (Decimal(days_count) * base_rate * k_dur * k_age * k_pur).quantize(Decimal('0.01'))
-                    p_nsp = (p_netto * Decimal('0.02')).quantize(Decimal('0.01'))
-                    p_gross = p_netto + p_nsp
+                    calc_res = calculate_single_person_premium(
+                        sum_insured=sum_insured,
+                        days=days_count,
+                        birth_date=dob_date,
+                        start_date=d_from,
+                        purpose=purpose
+                    )
 
-                    total_netto += p_netto
+                    total_netto += calc_res['netto']
 
                     persons_to_create.append(DMSTouristInsuredPerson(
                         policy=policy,
                         full_name=n_val,
                         birth_date=dob_date,
+                        citizenship=c_val,
                         passport_number=p_val,
-                        age=age,
-                        age_coeff=k_age,
-                        premium_netto=p_netto,
-                        nsp=p_nsp,
-                        premium_gross=p_gross
+                        age=calc_res['age'],
+                        age_coeff=calc_res['k_age'],
+                        duration_coeff=calc_res['k_dur'],
+                        purpose_coeff=calc_res['k_pur'],
+                        premium_netto=calc_res['netto'],
+                        nsp=calc_res['nsp'],
+                        premium_gross=calc_res['gross']
                     ))
 
-                # Массовая вставка всех туристов
-                if persons_to_create:
-                    DMSTouristInsuredPerson.objects.bulk_create(persons_to_create)
+                if not persons_to_create:
+                    raise ValueError("Укажите хотя бы одного застрахованного туриста.")
 
-                # Пересчет и сохранение итогов полиса
+                DMSTouristInsuredPerson.objects.bulk_create(persons_to_create)
+
+                # 5. Пересчет и сохранение итогов полиса
                 total_nsp = (total_netto * Decimal('0.02')).quantize(Decimal('0.01'))
                 total_gross = total_netto + total_nsp
 
@@ -164,19 +203,19 @@ def create_policy(request):
                 policy.total_premium_gross = total_gross
                 policy.save(update_fields=['total_premium_netto', 'total_nsp', 'total_premium_gross'])
 
-                # Редирект на экран успеха
+                messages.success(request, f"Полис {policy.policy_number} успешно оформлен!")
                 return redirect('dms_tourist:policy_success', pk=policy.pk)
 
         except Exception as e:
+            messages.error(request, f"Ошибка при сохранении полиса: {e}")
             return HttpResponse(f"Ошибка сохранения полиса: {str(e)}", status=400)
 
-    # GET
+    # GET-запрос
     tariffs = DMSTouristTariff.objects.all().order_by('sum_insured', 'days_min')
     return render(request, 'dms_tourist/create.html', {
         'tariffs': tariffs,
         'today': date.today().isoformat()
     })
-
 
 @login_required
 def policy_preview(request):
@@ -195,6 +234,9 @@ def policy_preview(request):
         d_to = date.fromisoformat(e_date_str)
         days_count = (d_to - d_from).days + 1
 
+        if days_count < 1 or days_count > 365:
+            raise ValueError("Период страхования должен составлять от 1 до 365 дней.")
+
         # Поиск базового тарифа в БД
         tariff = DMSTouristTariff.objects.filter(
             sum_insured=sum_insured,
@@ -202,17 +244,23 @@ def policy_preview(request):
             days_max__gte=days_count
         ).first()
 
-        base_rate = Decimal(str(tariff.base_daily_rate)) if tariff else Decimal('100.00')
+        base_rate = Decimal(str(tariff.base_daily_rate)) if tariff else Decimal('80.00')
         k_dur = Decimal(str(tariff.duration_coeff)) if tariff else Decimal('1.00')
 
+        # Коэффициент цели поездки
         k_pur = Decimal('1.00')
-        if purpose == 'TREKKING': k_pur = Decimal('1.50')
-        elif purpose == 'SPORT': k_pur = Decimal('2.00')
+        # if purpose == 'TREKKING': 
+        #     k_pur = Decimal('1.50')
+        # elif purpose == 'SPORT': 
+        #     k_pur = Decimal('2.00')
+        # Для BUSINESS, STUDENT, RESIDENCE, REGISTRATION коэффициент цели равен 1.00
 
-        # Списки застрахованных туристов из формы
-        names = request.POST.getlist('insured_name[]')
-        dobs = request.POST.getlist('insured_dob[]')
-        passports = request.POST.getlist('insured_passport[]')
+        # Списки застрахованных туристов из формы (включая гражданство)
+        names = request.POST.getlist('insured_name[]') or request.POST.getlist('insured_name')
+        dobs = request.POST.getlist('insured_dob[]') or request.POST.getlist('insured_dob')
+        h_citizenship = request.POST.get('holder_citizenship', '').strip()
+        citizenships = request.POST.getlist('insured_citizenship[]') or request.POST.getlist('insured_citizenship')
+        passports = request.POST.getlist('insured_passport[]') or request.POST.getlist('insured_passport')
 
         insured_persons_list = []
         total_netto = Decimal('0.00')
@@ -220,11 +268,12 @@ def policy_preview(request):
 
         for i in range(len(names)):
             n_val = names[i].strip().upper()
-            p_val = passports[i].strip().upper() if i < len(passports) else ''
-            dob_raw = dobs[i].strip() if i < len(dobs) else ''
-
             if not n_val:
                 continue
+            
+            c_val = citizenships[i].strip() if i < len(citizenships) else ''
+            p_val = passports[i].strip().upper() if i < len(passports) else ''
+            dob_raw = dobs[i].strip() if i < len(dobs) else ''
 
             dob_date = None
             age = 30
@@ -240,10 +289,14 @@ def policy_preview(request):
                     dob_date = date(1990, 1, 1)
                     age = 30
 
+            # Проверка возрастных лимитов (от 1 до 75 лет)
+            if age < 1 or age > 75:
+                raise ValueError(f"Возраст застрахованного {n_val} ({age} лет) выходит за допустимые пределы (от 1 до 75 лет).")
+
             if age >= 61:
                 has_elderly = True
 
-            k_age = Decimal('1.50') if age >= 61 else Decimal('1.00')
+            k_age = Decimal('1.00')
             p_netto = (Decimal(days_count) * base_rate * k_dur * k_age * k_pur).quantize(Decimal('0.01'))
             p_nsp = (p_netto * Decimal('0.02')).quantize(Decimal('0.01'))
             p_gross = p_netto + p_nsp
@@ -254,6 +307,8 @@ def policy_preview(request):
                 'full_name': n_val,
                 'birth_date': dob_date,
                 'age': age,
+                
+                'citizenship': c_val,  # Передаем гражданство в шаблон предпросмотра
                 'passport_number': p_val,
                 'premium_netto': p_netto,
                 'nsp': p_nsp,
@@ -268,6 +323,7 @@ def policy_preview(request):
             'issue_date': date.today(),
             'agent': request.user,
             'holder_kind': holder_kind,
+            'holder_citizenship': h_citizenship,
             'holder_name': request.POST.get('company_name', '').strip().upper() if holder_kind == 'company' else request.POST.get('holder_name', '').strip().upper(),
             'holder_passport': request.POST.get('company_inn', '').strip() if holder_kind == 'company' else request.POST.get('holder_passport', '').strip().upper(),
             'holder_inn': request.POST.get('company_inn', '').strip() if holder_kind == 'company' else request.POST.get('holder_inn', '').strip(),
@@ -295,7 +351,8 @@ def policy_preview(request):
 
     except Exception as e:
         return HttpResponse(f"Ошибка формирования предпросмотра: {str(e)}", status=400)
-
+   
+    
 @login_required
 def policy_success(request, pk):
     return render(request, 'dms_tourist/success.html', {'policy': get_object_or_404(DMSTouristPolicy, pk=pk)})
@@ -349,8 +406,8 @@ def export_excel_buh_dms(request):
     font_bold = Font(name='Arial', size=10, bold=True)
     font_regular = Font(name='Arial', size=10, bold=False)
     align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    align_left = Alignment(horizontal='left', vertical='center')
     fill_summary = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    fill_group = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid") # Нежно-голубой для групп
 
     ws.append([f"Отчет по полисам ДМС Турист за период с {d_from.strftime('%d.%m.%Y')} по {d_to.strftime('%d.%m.%Y')}"])
     ws.row_dimensions[1].height = 35
@@ -379,27 +436,26 @@ def export_excel_buh_dms(request):
         b_code = p.branch.code
         if b_code not in branch_stats:
             branch_stats[b_code] = {'name': p.branch.name, 'count': 0, 'sum': Decimal('0.00')}
+        
         total_count += 1
         branch_stats[b_code]['count'] += 1
 
-        for person in p.insured_persons.all():
+        persons = list(p.insured_persons.all())
+        count_persons = len(persons)
+
+        if count_persons == 0:
+            continue
+        elif count_persons == 1:
+            # 1 человек — обычная строка
+            person = persons[0]
             total_gross += person.premium_gross
             branch_stats[b_code]['sum'] += person.premium_gross
+            
             ws.append([
-                'DMST',
-                p.policy_number,
-                p.issue_date.strftime('%d.%m.%Y'),
-                p.holder_name,
-                person.full_name,
-                person.passport_number,
-                person.birth_date.strftime('%d.%m.%Y'),
-                p.holder_phone,
-                p.date_from.strftime('%d.%m.%Y'),
-                p.date_to.strftime('%d.%m.%Y'),
-                p.sum_insured,
-                person.premium_netto,
-                person.nsp,
-                person.premium_gross,
+                'DMST', p.policy_number, p.issue_date.strftime('%d.%m.%Y'), p.holder_name,
+                person.full_name, person.passport_number, person.birth_date.strftime('%d.%m.%Y'),
+                p.holder_phone, p.date_from.strftime('%d.%m.%Y'), p.date_to.strftime('%d.%m.%Y'),
+                p.sum_insured, person.premium_netto, person.nsp, person.premium_gross,
                 p.agent.get_full_name() or p.agent.username
             ])
             cur_r = ws.max_row
@@ -407,6 +463,45 @@ def export_excel_buh_dms(request):
             for c in ws[cur_r]:
                 c.font = font_regular
                 c.alignment = align_center
+        else:
+            # Группа людей: выводим итоговую строку полиса, а под ней скрытые детали с группировкой (+)
+            netto_total = sum(pr.premium_netto for pr in persons)
+            nsp_total = sum(pr.nsp for pr in persons)
+            gross_total = sum(pr.premium_gross for pr in persons)
+            
+            total_gross += gross_total
+            branch_stats[b_code]['sum'] += gross_total
+
+            # Главная строка полиса (сводная по группе)
+            ws.append([
+                'DMST', p.policy_number, p.issue_date.strftime('%d.%m.%Y'), p.holder_name,
+                f"📎 Группа (всего застраховано: {count_persons} чел.)", "—", "—",
+                p.holder_phone, p.date_from.strftime('%d.%m.%Y'), p.date_to.strftime('%d.%m.%Y'),
+                p.sum_insured, netto_total, nsp_total, gross_total,
+                p.agent.get_full_name() or p.agent.username
+            ])
+            summary_r = ws.max_row
+            ws.row_dimensions[summary_r].height = 22
+            for c in ws[summary_r]:
+                c.font = font_bold
+                c.fill = fill_group
+                c.alignment = align_center
+
+            # Строки с деталями каждого туриста (подчиненные, сворачиваются под «+»)
+            for person in persons:
+                ws.append([
+                    '', '', '', '',
+                    f"   ↳ {person.full_name}", person.passport_number, person.birth_date.strftime('%d.%m.%Y'),
+                    '', '', '', '',
+                    person.premium_netto, person.nsp, person.premium_gross, ''
+                ])
+                sub_r = ws.max_row
+                ws.row_dimensions[sub_r].outline_level = 1  # Уровень группировки
+                ws.row_dimensions[sub_r].hidden = True      # Свернуто по умолчанию (нажимается «+»)
+                ws.row_dimensions[sub_r].height = 18
+                for c in ws[sub_r]:
+                    c.font = font_regular
+                    c.alignment = align_center
 
     ws.append([])
     ws.append(['ОБЩИЕ ИТОГИ ЗА ПЕРИОД'])
@@ -427,7 +522,6 @@ def export_excel_buh_dms(request):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
-
 
 # --- 2. ЭКСПОРТ ДЛЯ БИШКЕК АССИСТ ---
 @login_required

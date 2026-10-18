@@ -25,7 +25,7 @@
                 </button>
                 <button onclick="switchProduct('vt')" id="tab-vt" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800">
                     <i data-lucide="tent" class="w-4 h-4"></i>
-                    <span>Nomad</span>
+                    <span>НС ТУРИСТ</span>
                 </button>
                 <button onclick="switchProduct('student')" id="tab-student" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold px-4 py-3 rounded-xl transition-all uppercase tracking-wider text-slate-500 hover:text-slate-800">
                     <i data-lucide="book-open" class="w-4 h-4"></i>
@@ -361,6 +361,7 @@ function renderJournalTable(policies) {
     let badgeClass = "bg-blue-50 text-blue-600";
     if (currentProduct === 'vt') badgeClass = "bg-indigo-50 text-indigo-600";
     if (currentProduct === 'student') badgeClass = "bg-teal-50 text-teal-600";
+    if (currentProduct === 'dms') badgeClass = "bg-emerald-50 text-emerald-600"; // <-- Цвет бейджа для ДМС
 
     policies.forEach(p => {
         const specStyle = p.spec === 'NONE' || p.spec === 'Без спорта' ? 'text-slate-400' : 'text-orange-600 font-bold';
@@ -475,7 +476,9 @@ function downloadAccountingReport() {
     let downloadUrl = '';
     if (currentProduct === 'vt') downloadUrl = `/analytics/export-vt/?${params}`;
     else if (currentProduct === 'student') downloadUrl = `/analytics/export-student/?${params}`;
+    else if (currentProduct === 'dms') downloadUrl = `/dms-tourist/export/buh/?${params}`; // <-- Урл экспорта ДМС
     else downloadUrl = `/analytics/export/?${params}`; 
+    
     
     window.location.href = downloadUrl;
 }
